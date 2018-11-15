@@ -1,0 +1,2 @@
+<select size="5" id="mobilfunknummer_box_normal" class="rufnummernbox" ondblclick="reservePhoneNumber(false);" tabindex="10">
+			<option value="2229570">0152 / 03486704</option><option value="2234287">0162 / 7296525</option><option value="2236792">0174 / 4729496</option><option value="2252550">0162 / 3227685</option><option value="2258482">0162 / 3271839</option></select>
