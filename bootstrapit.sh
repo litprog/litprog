@@ -1,10 +1,10 @@
 #!/bin/bash
 
 AUTHOR_NAME="Manuel Barkhau"
-AUTHOR_CONTACT="@mbarkhau"
+AUTHOR_EMAIL="mbarkhau@gmail.com"
 
-KEYWORDS="keywords used on pypi"
-DESCRIPTION="A markdown based literate programming tool."
+KEYWORDS="literate programming markdown"
+DESCRIPTION="Literate Programming using Markdown."
 
 LICENSE_ID="MIT"
 
@@ -13,7 +13,11 @@ MODULE_NAME="litprog"
 GIT_REPO_NAMESPACE="mbarkhau"
 GIT_REPO_DOMAIN="gitlab.com"
 
-DEFAULT_PYTHON_VERSION="python=3.6"
+DEFAULT_PYTHON_VERSION="python=3.7"
+SUPPORTED_PYTHON_VERSIONS="python=3.7 python=3.6 python=3.4 python=2.7"
+
+
+IS_PUBLIC=1
 
 ## Download and run the actual update script
 
