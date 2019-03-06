@@ -8,6 +8,9 @@ which might be adopted.
 The Craft of Writing Effectively - Larry McEnerney
 https://www.youtube.com/watch?v=aFwVf5a3pZM
 
+Linguistics, Style and Writing in the 21st Century - Steven Pinker
+https://www.youtube.com/watch?v=OV5J6BfToSw
+
 ## Caveat Emptor
 
 This chapter was written without extensive experience writing

@@ -1,10 +1,11 @@
 # This file is part of the litprog project
 # https://gitlab.com/mbarkhau/litprog
 #
-# Copyright (c) 2018 Manuel Barkhau (mbarkhau@gmail.com) - MIT License
+# Copyright (c) 2019 Manuel Barkhau (mbarkhau@gmail.com) - MIT License
 # SPDX-License-Identifier: MIT
 
 import os
+import sys
 import setuptools
 
 
@@ -25,6 +26,15 @@ install_requires = [
 ]
 
 
+package_dir = {"": "src"}
+
+
+if any(arg.startswith("bdist") for arg in sys.argv):
+    import lib3to6
+
+    package_dir = lib3to6.fix(package_dir)
+
+
 long_description = "\n\n".join((read("README.md"), read("CHANGELOG.md")))
 
 
@@ -34,13 +44,13 @@ setuptools.setup(
     author="Manuel Barkhau",
     author_email="mbarkhau@gmail.com",
     url="https://gitlab.com/mbarkhau/litprog",
-    version="201812.1a0",
+    version="201901.1a0",
     keywords="literate programming markdown litprog",
     description="Literate Programming using Markdown.",
     long_description=long_description,
     long_description_content_type="text/markdown",
     packages=["litprog"],
-    package_dir={"": "src"},
+    package_dir=package_dir,
     install_requires=install_requires,
     entry_points="""
         [console_scripts]

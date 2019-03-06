@@ -11,8 +11,12 @@ six
 typing
 click
 
-docopt
 pyphen
 pygments
 markdown
 weasyprint
+PyPDF2
+
+toml
+PyYAML
+ujson

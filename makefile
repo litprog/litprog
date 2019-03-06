@@ -145,14 +145,14 @@ build/deps.txt: build/envs.txt requirements/*.txt
 .PHONY: help
 help:
 	@awk '{ \
-			if ($$0 ~ /^.PHONY: [a-zA-Z\-\_0-9]+$$/) { \
+			if ($$0 ~ /^.PHONY: [a-zA-Z\-\_0-9.\/]+$$/) { \
 				helpCommand = substr($$0, index($$0, ":") + 2); \
 				if (helpMessage) { \
 					printf "\033[36m%-20s\033[0m %s\n", \
 						helpCommand, helpMessage; \
 					helpMessage = ""; \
 				} \
-			} else if ($$0 ~ /^[a-zA-Z\-\_0-9.]+:/) { \
+			} else if ($$0 ~ /^[a-zA-Z\-\_0-9.\/]+:/) { \
 				helpCommand = substr($$0, 0, index($$0, ":")); \
 				if (helpMessage) { \
 					printf "\033[36m%-20s\033[0m %s\n", \
@@ -337,7 +337,7 @@ test:
 		--verbose \
 		--cov-report html \
 		--cov-report term \
-		$(shell cd src/ && ls -1 */__init__.py | awk '{ print "--cov "substr($$1,0,index($$1,"/")-1) }') \
+		$(shell cd src/ && ls -1 */__init__.py | awk '{ sub(/\/__init__.py/, "", $$1); print "--cov "$$1 }') \
 		test/ src/;
 
 	# Next we install the package and run the test suite against it.
