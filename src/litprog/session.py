@@ -10,6 +10,9 @@ import typing as typ
 import subprocess as sp
 
 # TODO: if term, run and capture every line separately
+import logging
+
+log = logging.getLogger("litprog.session")
 
 
 class OutputLine(typ.NamedTuple):
@@ -37,8 +40,8 @@ class InteractiveSession:
         self.stderr_loop.start()
 
     def read_loop(self, out_buffer: typ.IO[bytes], output_lines: typ.List[OutputLine]) -> None:
-        print("reading")
         for line_data in iter(out_buffer.readline, b''):
+            log.debug(f"read {len(line_data)} bytes")
             us_ts       = round(time.time() * 1_000_000)
             line        = line_data.decode(self.encoding)
             output_line = OutputLine(us_ts, line)
@@ -46,7 +49,7 @@ class InteractiveSession:
 
     def send(self, input_str: str) -> None:
         input_data = input_str.encode(self.encoding)
-        print("sending", len(input_data))
+        log.debug(f"sending {len(input_data)} bytes")
         self.proc.stdin.write(input_data)
         self.proc.stdin.flush()
         # The delay is added so the timing of inputs does not
@@ -54,19 +57,19 @@ class InteractiveSession:
         # gap measure.
         time.sleep(0.01)
 
-    def exit(self, timeout=1) -> typ.Optional[int]:
-        print("exiting")
+    def wait(self, timeout=1) -> typ.Optional[int]:
+        log.debug(f"exiting timeout={timeout}")
         returncode = None
         try:
             self.proc.stdin.close()
             max_time = self.start + timeout
             while returncode is None and max_time > time.time():
-                print("poll", max_time - time.time())
+                # print("poll", max_time - time.time())
                 time.sleep(min(0.1, max(0, max_time - time.time())))
                 returncode = self.proc.poll()
         finally:
             if self.proc.returncode is None:
-                print("term")
+                # print("term")
                 self.proc.terminate()
                 returncode = self.proc.wait()
 
@@ -110,7 +113,7 @@ def demo():
             if line.strip():
                 session.send(line + "\n")
 
-    returncode = session.exit()
+    returncode = session.wait()
 
     all_lines = sorted(
         [(ts, "out", line) for ts, line in session.stdout_lines]

@@ -12,6 +12,7 @@ import json
 import yaml
 import toml
 import uuid
+import shlex
 import collections
 import typing as typ
 import pathlib2 as pl
@@ -35,7 +36,7 @@ def _configure_logging(verbosity: int = 0) -> None:
     if verbosity >= 2:
         log_format = "%(asctime)s.%(msecs)03d %(levelname)-7s " + "%(name)-15s - %(message)s"
         log_level  = logging.DEBUG
-    elif verbosity == 2:
+    elif verbosity == 1:
         log_format = "%(levelname)-7s - %(message)s"
         log_level  = logging.INFO
     else:
@@ -341,7 +342,7 @@ def _parse_maybe_options(lang: Lang, raw_lines: Lines) -> typ.Optional[BlockOpti
     first_line = raw_lines[0].val
 
     maybe_options: typ.Any = None
-    if 'lptype' in first_line and lang in ('toml', 'yaml', 'json'):
+    if lang in ('toml', 'yaml', 'json'):
         maybe_options_data = "".join(line.val for line in raw_lines)
 
         if lang == 'toml':
@@ -378,13 +379,7 @@ def _parse_code_block(raw_fenced_block: RawFencedBlock) -> FencedBlock:
         options, filtered_lines = _parse_comment_options(maybe_lang, raw_lines)
     else:
         options        = typ.cast(BlockOptions, maybe_options)
-        filtered_lines = raw_lines
-
-    if isinstance(maybe_options, dict) and 'lptype' in maybe_options:
-        options        = maybe_options
-        filtered_lines = raw_lines
-    else:
-        options, filtered_lines = _parse_comment_options(maybe_lang, raw_lines)
+        filtered_lines = []
 
     filtered_content = "".join(line.val for line in filtered_lines)
 
@@ -426,6 +421,10 @@ class ProcResult(typ.NamedTuple):
     exit_code: int
     stdout   : typ.List[OutputLine]
     stderr   : typ.List[OutputLine]
+
+
+class SessionException(Exception):
+    pass
 
 
 def _build(context: Context) -> None:
@@ -486,58 +485,76 @@ def _build(context: Context) -> None:
                     #     output_parts.append(postscript)
 
                 captured_outputs[lpid] = "".join(output_parts)
-                log.info(f"completed {litprog_type:>9} block {lpid}")
+                log.info(f"{litprog_type:>9} block {lpid:>25} done.")
             elif litprog_type == 'raw_block':
                 captured_outputs[lpid] = "".join(
                     "".join(l.val for l in block.lines) for block in context.blocks_by_id[lpid]
                 )
-                log.info(f"completed {litprog_type:>9} block {lpid}")
+                log.info(f"{litprog_type:>9} block {lpid:>25} done.")
             elif litprog_type == 'session':
-                isession = session.InteractiveSession(options.get('command', "bash"))
+                required_blocks = set(options.get('requires', []))
+                missing_blocks  = required_blocks - set(captured_outputs.keys())
+                if any(missing_blocks):
+                    log.debug(f"deferring {lpid} until {missing_blocks} are completed")
+                    continue
+
+                cmd_parts: typ.List[str]
+                command = options.get('command', "bash")
+
+                if isinstance(command, str):
+                    cmd_parts = shlex.split(command)
+                elif isinstance(command, list):
+                    cmd_parts = command
+                else:
+                    err_msg = f"Invalid command: {command}"
+                    raise Exception(err_msg)
+                log.info(f"starting session {lpid}. cmd: {cmd_parts}")
+                isession = session.InteractiveSession(cmd_parts)
 
                 for block in context.blocks_by_id[lpid]:
-                    for line in block.ines:
-                        session.send(line.val + "\n")
+                    for line in block.lines:
+                        isession.send(line.val + "\n")
 
-                returncode = isession.exit()
+                exit_code = isession.wait(timeout=2)
 
                 out_lines = sorted([(ts, "out", line) for ts, line in isession.stdout_lines])
                 err_lines = sorted([(ts, "err", line) for ts, line in isession.stderr_lines])
                 all_lines = sorted(out_lines + err_lines)
-                output = "\n".join(line for ts, out, line in all_lines)
+                output    = "\n".join(line for ts, out, line in all_lines)
 
-                if returncode != options.get('expected_exit_code', 0):
+                if exit_code == options.get('expected_exit_code', 0):
+                    # TODO (mb): better output capture for sessions
+                    captured_outputs[lpid] = output
+                    log.info(f"{litprog_type:>9} block {lpid:<15} done. RETCODE: {exit_code} ok.")
+                else:
+                    log.info(f"{litprog_type:>9} block {lpid:<15} fail. RETCODE: {exit_code} invalid!")
                     sys.stderr.write(output)
                     err_msg = f"Error processing block {lpid}"
-                    raise Exception(err_msg)
-
-                captured_outputs[lpid] = output
-                log.info(f"completed {litprog_type:>9} block {lpid}")
+                    raise SessionException(err_msg)
             else:
                 log.error(f"Unhandled litprog type={litprog_type} for lpid={lpid}")
                 return
 
+            if lpid not in captured_outputs:
+                continue
+
+            filepath = options.get('filepath')
+            if filepath is None:
+                continue
+
+            encoding = options.get('encoding', "utf-8")
+            file     = pl.Path(filepath)
+            with file.open(mode="w", encoding=encoding) as fh:
+                fh.write(captured_outputs[lpid])
+
+            if options.get('is_executable'):
+                file.chmod(file.stat().st_mode | 0o100)
+
+            log.info(f"wrote to '{file}'", )
+
         if prev_len_completed == len(captured_outputs):
             log.error(f"Build failed: No progress on/unresolved requirements.")
             return
-
-    for lpid, output in captured_outputs.items():
-        options = context.options_by_id[lpid]
-        print(f"captured {lpid:<40} {options}")
-        filepath = options.get('filepath')
-        if filepath is None:
-            continue
-
-        encoding = options.get('encoding', "utf-8")
-        file     = pl.Path(filepath)
-        print("write to", file)
-        with file.open(mode="w", encoding=encoding) as fh:
-            fh.write(output)
-
-        if options.get('is_executable'):
-            file.chmod(file.stat().st_mode | 0o100)
-
-        log.info(f"Created {file}")
 
 
 InputPaths = typ.Sequence[str]
@@ -555,7 +572,7 @@ def _iter_markdown_filepaths(input_paths: InputPaths) -> MarkdownPaths:
             yield in_path
 
 
-def _prepare_context(input_paths: InputPaths) -> Context:
+def _parse_context(input_paths: InputPaths) -> Context:
     input_filepaths = sorted(_iter_markdown_filepaths(input_paths))
 
     context = Context()
@@ -573,5 +590,8 @@ def _prepare_context(input_paths: InputPaths) -> Context:
 @click.option('-v', '--verbose', count=True, help="Control log level. -vv for debug level.")
 def build(input_paths: InputPaths, verbose: int = 0) -> None:
     _configure_logging(verbose)
-    context = _prepare_context(input_paths)
-    _build(context)
+    context = _parse_context(input_paths)
+    try:
+        _build(context)
+    except SessionException:
+        pass
