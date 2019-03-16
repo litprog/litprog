@@ -33,15 +33,18 @@ log = logging.getLogger("litprog.cli")
 
 
 def _configure_logging(verbosity: int = 0) -> None:
-    if verbosity >= 2:
-        log_format = "%(asctime)s.%(msecs)03d %(levelname)-7s " + "%(name)-15s - %(message)s"
-        log_level  = logging.DEBUG
-    elif verbosity == 1:
-        log_format = "%(levelname)-7s - %(message)s"
-        log_level  = logging.INFO
-    else:
+    if verbosity == 0:
         log_format = "%(levelname)-7s - %(message)s"
         log_level  = logging.WARNING
+    else:
+        log_format = (
+            "%(asctime)s.%(msecs)03d %(levelname)-7s " + "%(name)-15s - %(message)s"
+        )
+        if verbosity == 1:
+            log_level = logging.INFO
+        else:
+            assert verbosity >= 2
+            log_level = logging.DEBUG
 
     logging.basicConfig(level=log_level, format=log_format, datefmt="%Y-%m-%dT%H:%M:%S")
 
@@ -53,7 +56,9 @@ click.disable_unicode_literals_warning = True
 
 @click.group()
 @click.version_option(version="v201901.0001-alpha")
-@click.option('-v', '--verbose', count=True, help="Control log level. -vv for debug level.")
+@click.option(
+    '-v', '--verbose', count=True, help="Control log level. -vv for debug level."
+)
 def cli(verbose: int = 0) -> None:
     """litprog cli."""
     _configure_logging(verbose)
@@ -356,7 +361,18 @@ def _parse_maybe_options(lang: Lang, raw_lines: Lines) -> typ.Optional[BlockOpti
     else:
         return None
 
-    if isinstance(maybe_options, dict) and 'lptype' in maybe_options:
+    if not isinstance(maybe_options, dict):
+        return None
+
+    has_filepath = 'filepath' in maybe_options
+
+    if has_filepath and 'lptype' not in maybe_options:
+        maybe_options['lptype'] = 'out_file'
+
+    if has_filepath and 'lpid' not in maybe_options:
+        maybe_options['lpid'] = maybe_options['filepath']
+
+    if 'lptype' in maybe_options:
         # TODO (2019-03-02 mb): Probably we should validate the parsed options
         #   and raise an error if the options are invalid.
         return maybe_options
@@ -383,7 +399,16 @@ def _parse_code_block(raw_fenced_block: RawFencedBlock) -> FencedBlock:
 
     filtered_content = "".join(line.val for line in filtered_lines)
 
-    lpid: LitprogID = options['lpid'] if 'lpid' in options else str(uuid.uuid4())
+    lpid: LitprogID
+    if 'lpid' in options:
+        lpid = options['lpid']
+    elif 'filepath' in options:
+        lpid = options['filepath']
+    else:
+        lpid = str(uuid.uuid4())
+
+    if 'lptype' not in options:
+        options['lptype'] = 'raw_block'
 
     return FencedBlock(
         raw_fenced_block.file_path,
@@ -397,13 +422,32 @@ def _parse_code_block(raw_fenced_block: RawFencedBlock) -> FencedBlock:
 
 
 def _add_to_context(context: Context, code_block: FencedBlock) -> None:
+    is_duplicate_lpid = (
+        code_block.lpid in context.blocks_by_id
+        and code_block.options['lptype'] != 'raw_block'
+    )
+    if is_duplicate_lpid:
+        err_msg = f"Duplicated definition of {code_block.lpid}"
+        raise ParseError(err_msg)
+
     context.blocks_by_id[code_block.lpid].append(code_block)
 
     if code_block.lpid in context.options_by_id:
         prev_options = context.options_by_id[code_block.lpid]
         for key, val in code_block.options.items():
-            if key in prev_options and prev_options[key] != val:
-                err_msg = f"Redeclaration of option {key} for lpid={lpid}"
+            is_redeclared_key     = key in prev_options and prev_options[key] != val
+            is_block_continuation = (
+                is_redeclared_key and key == 'lptype' and val == 'raw_block'
+            )
+            if is_block_continuation:
+                valid_continuation_options = {
+                    'lpid'  : code_block.lpid,
+                    'lptype': 'raw_block',
+                }
+                assert code_block.options == valid_continuation_options
+                continue
+            elif is_redeclared_key:
+                err_msg = f"Redeclaration of option {key} for lpid={code_block.lpid}"
                 raise ParseError(err_msg, code_block)
             else:
                 prev_options[key] = val
@@ -411,40 +455,28 @@ def _add_to_context(context: Context, code_block: FencedBlock) -> None:
         context.options_by_id[code_block.lpid] = code_block.options
 
 
-class OutputLine(typ.NamedTuple):
+class CapturedLine(typ.NamedTuple):
 
-    microtime: float
-    line     : str
+    us_ts: float
+    line : str
 
 
 class ProcResult(typ.NamedTuple):
     exit_code: int
-    stdout   : typ.List[OutputLine]
-    stderr   : typ.List[OutputLine]
+    stdout   : typ.List[CapturedLine]
+    stderr   : typ.List[CapturedLine]
 
 
 class SessionException(Exception):
     pass
 
 
-def _build(context: Context) -> None:
+ExitCode = int
+
+
+def _build(context: Context) -> ExitCode:
     captured_outputs: typ.Dict[LitprogID, str       ] = {}
     captured_procs  : typ.Dict[LitprogID, ProcResult] = {}
-
-    # for lpid, blocks in context.blocks_by_id.items():
-    #     if lpid in context.options_by_id:
-    #         # requires further processing
-    #         continue
-    #     else:
-    #         # TODO: this should not be done here. In order to preserve
-    #         #   information about which block came from where, this should
-    #         #   be done later.
-    #         captured_outputs[lpid] = "".join(block.content for block in blocks)
-
-    for lpid, blocks in context.blocks_by_id.items():
-        options = context.options_by_id[lpid]
-        if 'lptype' not in options:
-            context.options_by_id[lpid]['lptype'] = 'raw_block'
 
     all_ids = set(context.options_by_id.keys()) | set(context.blocks_by_id.keys())
 
@@ -459,7 +491,9 @@ def _build(context: Context) -> None:
 
             litprog_type: str = options['lptype']
             if litprog_type == 'out_file':
-                missing_inputs = set(options['inputs']) - set(captured_outputs.keys())
+                required_inputs   = set(options['inputs'])
+                completed_outputs = set(captured_outputs.keys())
+                missing_inputs    = required_inputs - completed_outputs
                 if any(missing_inputs):
                     continue
 
@@ -485,15 +519,17 @@ def _build(context: Context) -> None:
                     #     output_parts.append(postscript)
 
                 captured_outputs[lpid] = "".join(output_parts)
-                log.info(f"{litprog_type:>9} block {lpid:>25} done.")
+                log.debug(f"{litprog_type:>9} block {lpid:>25} done.")
             elif litprog_type == 'raw_block':
                 captured_outputs[lpid] = "".join(
-                    "".join(l.val for l in block.lines) for block in context.blocks_by_id[lpid]
+                    "".join(l.val for l in block.lines)
+                    for block in context.blocks_by_id[lpid]
                 )
-                log.info(f"{litprog_type:>9} block {lpid:>25} done.")
+                log.debug(f"{litprog_type:>9} block {lpid:>25} done.")
             elif litprog_type == 'session':
                 required_blocks = set(options.get('requires', []))
-                missing_blocks  = required_blocks - set(captured_outputs.keys())
+                captured_blocks = set(captured_outputs.keys())
+                missing_blocks  = required_blocks - captured_blocks
                 if any(missing_blocks):
                     log.debug(f"deferring {lpid} until {missing_blocks} are completed")
                     continue
@@ -513,27 +549,32 @@ def _build(context: Context) -> None:
 
                 for block in context.blocks_by_id[lpid]:
                     for line in block.lines:
-                        isession.send(line.val + "\n")
+                        isession.send(line.val)
 
                 exit_code = isession.wait(timeout=2)
+                output    = "\n".join(iter(isession))
 
-                out_lines = sorted([(ts, "out", line) for ts, line in isession.stdout_lines])
-                err_lines = sorted([(ts, "err", line) for ts, line in isession.stderr_lines])
-                all_lines = sorted(out_lines + err_lines)
-                output    = "\n".join(line for ts, out, line in all_lines)
-
-                if exit_code == options.get('expected_exit_code', 0):
+                expected_exit_code = options.get('expected_exit_code', 0)
+                if exit_code == expected_exit_code:
                     # TODO (mb): better output capture for sessions
                     captured_outputs[lpid] = output
-                    log.info(f"{litprog_type:>9} block {lpid:<15} done. RETCODE: {exit_code} ok.")
+                    log.info(
+                        f"{litprog_type:>9} block {lpid:<15} done. RETCODE: {exit_code} ok."
+                    )
                 else:
-                    log.info(f"{litprog_type:>9} block {lpid:<15} fail. RETCODE: {exit_code} invalid!")
+                    log.info(
+                        f"{litprog_type:>9} block {lpid:<15} fail. RETCODE: {exit_code} invalid!"
+                    )
                     sys.stderr.write(output)
                     err_msg = f"Error processing block {lpid}"
-                    raise SessionException(err_msg)
+                    log.error(err_msg)
+                    return 1
+            elif litprog_type == 'meta':
+                captured_outputs[lpid] = ""
+                log.warning("lptype=meta not implemented")
             else:
                 log.error(f"Unhandled litprog type={litprog_type} for lpid={lpid}")
-                return
+                return 1
 
             if lpid not in captured_outputs:
                 continue
@@ -550,11 +591,14 @@ def _build(context: Context) -> None:
             if options.get('is_executable'):
                 file.chmod(file.stat().st_mode | 0o100)
 
-            log.info(f"wrote to '{file}'", )
+            log.info(f"wrote to '{file}'")
 
         if prev_len_completed == len(captured_outputs):
-            log.error(f"Build failed: No progress on/unresolved requirements.")
-            return
+            captured_blocks = list(captured_outputs.keys())
+            log.error(f"Captured blocks: {captured_blocks}")
+            log.error(f"Build failed: No progress/unresolved requirements.")
+            return 1
+    return 0
 
 
 InputPaths = typ.Sequence[str]
@@ -562,7 +606,7 @@ InputPaths = typ.Sequence[str]
 MarkdownPaths = typ.Iterable[pl.Path]
 
 
-def _iter_markdown_filepaths(input_paths: InputPaths) -> MarkdownPaths:
+def iter_markdown_filepaths(input_paths: InputPaths) -> MarkdownPaths:
     for in_path_str in input_paths:
         in_path = pl.Path(in_path_str)
         if in_path.is_dir():
@@ -573,12 +617,12 @@ def _iter_markdown_filepaths(input_paths: InputPaths) -> MarkdownPaths:
 
 
 def _parse_context(input_paths: InputPaths) -> Context:
-    input_filepaths = sorted(_iter_markdown_filepaths(input_paths))
+    input_filepaths = sorted(iter_markdown_filepaths(input_paths))
 
     context = Context()
 
     for path in input_filepaths:
-        log.info(f"parsing {path}")
+        log.debug(f"parsing {path}")
         for rfb in _iter_raw_fenced_blocks(path):
             code_block = _parse_code_block(rfb)
             _add_to_context(context, code_block)
@@ -587,11 +631,13 @@ def _parse_context(input_paths: InputPaths) -> Context:
 
 @cli.command()
 @click.argument('input_paths', nargs=-1, type=click.Path(exists=True))
-@click.option('-v', '--verbose', count=True, help="Control log level. -vv for debug level.")
+@click.option(
+    '-v', '--verbose', count=True, help="Control log level. -vv for debug level."
+)
 def build(input_paths: InputPaths, verbose: int = 0) -> None:
     _configure_logging(verbose)
     context = _parse_context(input_paths)
     try:
-        _build(context)
+        sys.exit(_build(context))
     except SessionException:
-        pass
+        sys.exit(1)

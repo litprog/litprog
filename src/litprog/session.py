@@ -15,10 +15,48 @@ import logging
 log = logging.getLogger("litprog.session")
 
 
-class OutputLine(typ.NamedTuple):
-
+class CapturedLine(typ.NamedTuple):
     us_ts: float
     line : str
+
+
+class CapturingThread(typ.NamedTuple):
+    thread: threading.Thread
+    lines : typ.List[CapturedLine]
+
+
+def _gen_captured_lines(
+    raw_lines: typ.Iterable[bytes], encoding: str = "utf-8"
+) -> typ.Iterable[CapturedLine]:
+    for raw_line in raw_lines:
+        us_ts      = round(time.time() * 1_000_000)
+        line_value = raw_line.decode(encoding)
+        log.debug(f"read {len(raw_line)} bytes")
+        yield CapturedLine(us_ts, line_value)
+
+
+def _read_loop(
+    sp_output_pipe: typ.IO[bytes],
+    captured_lines: typ.List[CapturedLine],
+    encoding      : str = "utf-8",
+) -> None:
+    raw_lines = iter(sp_output_pipe.readline, b'')
+    for raw_line in _gen_captured_lines(raw_lines, encoding=encoding):
+        captured_lines.append(raw_line)
+
+
+import threading
+
+
+def _start_reader(
+    sp_output_pipe: typ.IO[bytes], encoding: str = "utf-8"
+) -> CapturingThread:
+    captured_lines: typ.List[CapturedLine] = []
+    read_loop_thread = threading.Thread(
+        target=_read_loop, args=(sp_output_pipe, captured_lines, encoding)
+    )
+    read_loop_thread.start()
+    return CapturingThread(read_loop_thread, captured_lines)
 
 
 class InteractiveSession:
@@ -26,56 +64,81 @@ class InteractiveSession:
         if env is None:
             env = os.environ.copy()
 
+        log.debug(f"popen {cmd}")
         self.encoding = encoding
         self.start    = time.time()
-        self.proc     = sp.Popen(cmd, stdin=sp.PIPE, stdout=sp.PIPE, stderr=sp.PIPE, env=env)
+        self._proc    = sp.Popen(
+            cmd, stdin=sp.PIPE, stdout=sp.PIPE, stderr=sp.PIPE, env=env
+        )
+        self._retcode: typ.Optional[int] = None
 
-        self.stdout_lines: typ.List[OutputLine] = []
-        self.stderr_lines: typ.List[OutputLine] = []
-        stdout_args      = (self.proc.stdout, self.stdout_lines)
-        stderr_args      = (self.proc.stderr, self.stderr_lines)
-        self.stdout_loop = threading.Thread(target=self.read_loop, args=stdout_args)
-        self.stderr_loop = threading.Thread(target=self.read_loop, args=stderr_args)
-        self.stdout_loop.start()
-        self.stderr_loop.start()
-
-    def read_loop(self, out_buffer: typ.IO[bytes], output_lines: typ.List[OutputLine]) -> None:
-        for line_data in iter(out_buffer.readline, b''):
-            log.debug(f"read {len(line_data)} bytes")
-            us_ts       = round(time.time() * 1_000_000)
-            line        = line_data.decode(self.encoding)
-            output_line = OutputLine(us_ts, line)
-            output_lines.append(output_line)
+        self._stdout_ct = _start_reader(self._proc.stdout, encoding)
+        self._stderr_ct = _start_reader(self._proc.stderr, encoding)
 
     def send(self, input_str: str) -> None:
         input_data = input_str.encode(self.encoding)
         log.debug(f"sending {len(input_data)} bytes")
-        self.proc.stdin.write(input_data)
-        self.proc.stdin.flush()
+        self._proc.stdin.write(input_data)
+        self._proc.stdin.flush()
         # The delay is added so the timing of inputs does not
         # get ahead of the captured outputs. This is a stop
         # gap measure.
         time.sleep(0.01)
 
-    def wait(self, timeout=1) -> typ.Optional[int]:
-        log.debug(f"exiting timeout={timeout}")
-        returncode = None
+    @property
+    def retcode(self) -> int:
+        if self._retcode is None:
+            return self.wait()
+        else:
+            return self._retcode
+
+    def wait(self, timeout=1) -> int:
+        if self._retcode is not None:
+            return self._retcode
+
+        log.debug(f"wait with timeout={timeout}")
+        returncode: typ.Optional[int] = None
         try:
-            self.proc.stdin.close()
+            self._proc.stdin.close()
             max_time = self.start + timeout
             while returncode is None and max_time > time.time():
                 # print("poll", max_time - time.time())
                 time.sleep(min(0.1, max(0, max_time - time.time())))
-                returncode = self.proc.poll()
+                returncode = self._proc.poll()
         finally:
-            if self.proc.returncode is None:
+            if self._proc.returncode is None:
                 # print("term")
-                self.proc.terminate()
-                returncode = self.proc.wait()
+                self._proc.terminate()
+                returncode = self._proc.wait()
 
-        self.stdout_loop.join()
-        self.stderr_loop.join()
+        self._stdout_ct.thread.join()
+        self._stderr_ct.thread.join()
+        assert returncode is not None
+        self._retcode = returncode
         return returncode
+
+    def _assert_retcode(self) -> None:
+        if self._retcode is None:
+            raise AssertionError(
+                "'InteractiveSession.wait()' must be called "
+                + " before accessing captured output."
+            )
+
+    def iter_stdout(self) -> typ.Iterable[str]:
+        self._assert_retcode()
+        for ts, line in self._stdout_ct.lines:
+            yield line
+
+    def iter_stderr(self) -> typ.Iterable[str]:
+        self._assert_retcode()
+        for ts, line in self._stderr_ct.lines:
+            yield line
+
+    def __iter__(self) -> typ.Iterable[str]:
+        self._assert_retcode()
+        all_lines = self._stdout_ct.lines + self._stderr_ct.lines
+        for output_line in sorted(all_lines):
+            yield output_line.line
 
 
 block_1 = r"""
@@ -123,9 +186,8 @@ def demo():
     for ts, tgt, line in all_lines:
         print(tgt, ts, repr(line))
 
-
     # A negative value -N indicates that the child was terminated by signal N (Unix only).
-    print("<<<", returncode, session.proc.returncode)
+    print("<<<", returncode, session._proc.returncode)
 
     # wait_ms      = float(block.get('wait_ms', "100"))
     # wait         = wait_ms / 1000

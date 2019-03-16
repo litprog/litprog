@@ -78,11 +78,11 @@ def _iter_line_chunks(line: str, max_len: int) -> typ.Iterable[str]:
                 remaining_part = remaining_part[max_len:]
 
             # If we break on whitespace, it shouldn't be trailing
-            new_part_rstrip = new_part.rstrip()
+            new_part_rstrip    = new_part.rstrip()
             traling_whitespace = len(new_part) - len(new_part_rstrip)
             if new_part_rstrip and traling_whitespace:
                 remaining_part = new_part[-traling_whitespace:] + remaining_part
-                new_part = new_part_rstrip
+                new_part       = new_part_rstrip
 
             split_parts.append(new_part)
 
@@ -107,7 +107,9 @@ def _iter_line_chunks(line: str, max_len: int) -> typ.Iterable[str]:
         yield "".join(chunk)
 
 
-def iter_lines(pre_content_text: str, add_line_numbers: bool = True) -> typ.Iterable[str]:
+def iter_lines(
+    pre_content_text: str, add_line_numbers: bool = True
+) -> typ.Iterable[str]:
     pre_content_text  = pre_content_text.replace("<span></span>", "")
     pre_content_lines = pre_content_text.splitlines()
     num_lines         = len(pre_content_lines)
