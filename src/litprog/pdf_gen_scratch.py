@@ -5,10 +5,16 @@ import sys
 import typing as typ
 import pathlib2 as pl
 
+import pyphen
 import html5lib
 
 
 HTML_PART_PATTERN = re.compile(r"(&[#\w]+?;|<.*?>|\s+\w+)")
+
+
+MarkdownText = str
+
+HTMLText = str
 
 
 def _is_entity(part: str) -> int:
@@ -107,9 +113,7 @@ def _iter_line_chunks(line: str, max_len: int) -> typ.Iterable[str]:
         yield "".join(chunk)
 
 
-def iter_lines(
-    pre_content_text: str, add_line_numbers: bool = True
-) -> typ.Iterable[str]:
+def iter_lines(pre_content_text: str, add_line_numbers: bool = True) -> typ.Iterable[str]:
     pre_content_text  = pre_content_text.replace("<span></span>", "")
     pre_content_lines = pre_content_text.splitlines()
     num_lines         = len(pre_content_lines)
@@ -152,6 +156,68 @@ $ pycalver test 'v201811.0051-beta' '{pycalver}' --release final
 # for line_part in iter_lines(PRE_CODE_BLOCK.strip(), add_line_numbers=False):
 #     print(len(line_part), repr(line_part))
 # sys.exit(1)
+
+
+TAG_BEGIN_RE = re.compile(r"\<(\w+)[^\>]*\>")
+TAG_END_RE   = re.compile(r"\</\w+>")
+WORD_RE      = re.compile(r"\w+")
+SOFT_HYPHEN  = "\u00AD"
+SOFT_HYPHEN  = "&shy;"
+
+
+def _shyphenate_text(dic: pyphen.Pyphen, text: str) -> str:
+    if len(text) < 5:
+        return text
+    else:
+        return " ".join(dic.inserted(word, hyphen=SOFT_HYPHEN) for word in text.split(" "))
+
+
+def _iter_html_parts(
+    html_text: HTMLText, begin_tag_re: typ.Pattern, end_tag_re: typ.Pattern
+) -> typ.Iterable[typ.Tuple[HTMLText, HTMLText]]:
+    remaining_html = html_text
+    while remaining_html:
+        begin_match = begin_tag_re.search(remaining_html)
+        if begin_match is None:
+            yield remaining_html, "", ""
+            return
+
+        begin_lidx, begin_ridx = begin_match.span()
+        prelude = remaining_html[:begin_ridx]
+
+        end_match = end_tag_re.search(remaining_html, begin_ridx)
+        assert end_match is not None
+        end_lidx, end_ridx = end_match.span()
+
+        inner = remaining_html[begin_ridx:end_lidx]
+
+        end_tag = remaining_html[end_lidx:end_ridx]
+
+        print(prelude[-30:], "##", end_tag)
+        yield (prelude, inner, end_tag)
+
+        remaining_html = remaining_html[end_ridx:]
+
+
+def _shyphenate_html(html_text: HTMLText) -> HTMLText:
+    # TODO: parse language
+    dic = pyphen.Pyphen(lang="en_US")
+
+    def _iter_shyphenated(content_text: str) -> typ.Iterable[str]:
+        html_parts = _iter_html_parts(content_text, TAG_BEGIN_RE, TAG_END_RE)
+        for prelude, text, end_tag in html_parts:
+            yield prelude
+            yield _shyphenate_text(dic, text)
+            yield end_tag
+
+    text_tag_begin_re = re.compile(r"\<(p|li)( [^\>]*)?\>")
+    text_tag_end_re   = re.compile(r"\</(p|li)\>")
+
+    html_parts = _iter_html_parts(html_text, text_tag_begin_re, text_tag_end_re)
+    for prelude, content, end_tag in html_parts:
+        yield prelude
+        yield "".join(_iter_shyphenated(content))
+        yield end_tag
 
 
 def _postprocess_html_v2(html_text: str) -> typ.Iterable[str]:
@@ -208,7 +274,7 @@ def _postprocess_html_v2(html_text: str) -> typ.Iterable[str]:
     yield html_text[last_end_idx:]
 
 
-def _postprocess_html(html_text: str, shy=False) -> typ.Iterable[str]:
+def _postprocess_html(html_text: HTMLText) -> typ.Iterable[str]:
     # token_stream = html5lib.parse(html_text)
     html_text = html_text.replace("<table>" , """<div class="table-wrap"><table>""")
     html_text = html_text.replace("</table>", """</table></div>""")
@@ -216,7 +282,6 @@ def _postprocess_html(html_text: str, shy=False) -> typ.Iterable[str]:
     # - wrap headline and firstpara
     # - add below the fold
     # - add ids to headlines
-    # - add shy to text
     # - collect links and insert superscript (footnote links)
 
     # html5lib.serialize(token_stream, omit_optional_tags=False)
@@ -224,27 +289,25 @@ def _postprocess_html(html_text: str, shy=False) -> typ.Iterable[str]:
     pre_begin_re = re.compile(r'<div class="codehilite"><pre>')
     pre_end_re   = re.compile(r"</pre>")
 
-    para_begin_re = re.compile(r"<p>")
-    para_end_re   = re.compile(r"</p>")
-
     # TODO: firstpara
 
     last_end_idx = 0
 
     for match in pre_begin_re.finditer(html_text):
-        pre_begin_lidx, pre_begin_ridx = match.span()
-        yield html_text[last_end_idx:pre_begin_ridx]
+        begin_lidx, begin_ridx = match.span()
+        yield html_text[last_end_idx:begin_ridx]
 
-        end_match = pre_end_re.search(html_text, pre_begin_ridx + 1)
+        end_match = pre_end_re.search(html_text, begin_ridx + 1)
         assert end_match is not None
-        pre_end_lidx, pre_end_ridx = end_match.span()
+        end_lidx, end_ridx = end_match.span()
 
-        pre_content_text = html_text[pre_begin_ridx:pre_end_lidx]
-        yield "".join(iter_lines(pre_content_text))
+        content_text = html_text[begin_ridx:end_lidx]
+        yield "".join(iter_lines(content_text))
 
-        yield html_text[pre_end_lidx : pre_end_ridx + 1]
+        end_tag = html_text[end_lidx : end_ridx + 1]
+        yield end_tag
 
-        last_end_idx = pre_end_ridx + 1
+        last_end_idx = end_ridx + 1
 
     yield html_text[last_end_idx:]
 
@@ -297,10 +360,19 @@ tr:first-child td {
 tr:last-child td {
     border-bottom: none;
 }
-p, ul, ol {hyphens: auto; hyphenate-limit-chars: 5 2 3; }
+p, ul, ol {
+    -ms-hyphens: auto;
+    -webkit-hyphens: auto;
+    hyphens: auto;
+
+    hyphenate-limit-chars: 7 3 3;
+}
 h1 {
     page-break-before: always;
     margin: 3em 0 2em 0;
+}
+sup {
+    line-height: 1.1em;
 }
 h1, h2, h3, h4, h5 {
     margin-top: 2em;
@@ -337,7 +409,7 @@ a, a:visited {
 }
 
 p, blockquote, div.codehilite, table {
-    margin: 0 0 1em 0;
+    margin: 1em 0;
 }
 
 code {
@@ -422,7 +494,7 @@ SCREEN_STYLES = """
         color: #000;
         font-size: 20px;
         line-height: 1.5em;
-        background: #F2F0F0;
+        background: #F2F1F1;
         width: 100%;
 
         transition: background 1200ms linear 150ms, color 0ms linear 300ms;
@@ -432,13 +504,13 @@ SCREEN_STYLES = """
         position: relative;
         padding: 3em;
         margin: 6em auto 2em auto;
-        line-height: 1.55em;
+        line-height: 1.6em;
         min-width: 20em;
         min-height: 120em;
-        max-width: 33em;
-        box-shadow: #888 0 0 50px -5px;
+        max-width: 38em;
+        box-shadow: #888 0px 20px 30px -10px;
 
-        background: #F9F6F6;
+        background: #FAFAFA;
         transition: background 1200ms linear 150ms;
         will-change: background;
     }
@@ -472,7 +544,7 @@ SCREEN_STYLES = """
     body {
         min-width: 23em;
         font-size: 20px;
-        background: #F9F6F6;
+        background: #F2F1F1;
     }
     body.dark { background: #000; }
     .wrapper, body.dark .wrapper {
@@ -664,7 +736,7 @@ NAVIGATION_STYLES = """
       width: 1em;
       height: 1em;
       border-radius: 1em;
-      box-shadow: #888 0 0 20px -2px;
+      box-shadow: #888 0 0 10px -2px;
       transition: background 500ms, box-shadow 300ms;
 
       position: relative;
@@ -845,85 +917,102 @@ FOOT_HTML = f"""
 """
 
 
+def read_md_text(in_paths: typ.List[pl.Path]) -> MarkdownText:
+    out_md_text_parts: typ.List[MarkdownText] = []
+
+    for in_path in sorted(in_paths):
+        with in_path.open(mode="r", encoding="utf-8") as fh:
+            md_text_part: MarkdownText = fh.read()
+
+        out_md_text_parts.append(md_text_part)
+
+    return "\n\n".join(out_md_text_parts)
+
+
+def _gen_raw_html(md_text: MarkdownText) -> HTMLText:
+    import markdown as md
+
+    # https://python-markdown.github.io/extensions/
+    extensions = [
+        "markdown.extensions.extra",
+        "markdown.extensions.abbr",
+        "markdown.extensions.attr_list",
+        "markdown.extensions.def_list",
+        "markdown.extensions.fenced_code",
+        "markdown.extensions.footnotes",
+        "markdown.extensions.tables",
+        "markdown.extensions.admonition",
+        "markdown.extensions.codehilite",
+        "markdown.extensions.meta",
+        "markdown.extensions.sane_lists",
+        # # "markdown.extensions.toc",
+        "markdown.extensions.wikilinks",
+        # "markdown_aafigure",
+        #####
+        # "markdown.extensions.legacy_attr",
+        # "markdown.extensions.legacy_em",
+        # "markdown.extensions.nl2br",
+        # "markdown.extensions.smarty",
+    ]
+
+    md_ctx        = md.Markdown(extensions=extensions)
+    raw_html_text = md_ctx.convert(md_text)
+    return raw_html_text
+
+
 def main(args=sys.argv[1:]):
+    in_paths: typ.List[pl.Path] = []
     for arg in args:
         in_path = pl.Path(arg)
         ext     = "".join(in_path.suffixes)
 
-        if not (in_path.exists() and ext == ".md"):
-            continue
+        if in_path.exists() and ext == ".md":
+            in_paths.append(in_path)
 
-        in_name = in_path.name[: -len(ext)]
+    md_text = read_md_text(in_paths)
 
-        in_path_md    = in_path.parent / (in_name + ".md")
-        out_path_html = in_path.parent / (in_name + ".html")
-        out_path_pdf  = in_path.parent / (in_name + ".pdf")
+    out_dir = pl.Path("lit_out")
+    out_dir.mkdir(exist_ok=True)
+    out_path_html = out_dir / "out.html"
+    out_path_pdf  = out_dir / "out.pdf"
 
-        with in_path_md.open(mode="r", encoding="utf-8") as fh:
-            test_md_text = fh.read()
+    raw_html_text = _gen_raw_html(md_text)
 
-        import markdown as md
+    if "html" in args:
+        browser_html_text = "".join(_postprocess_html(raw_html_text))
+        browser_html_text = "".join(_shyphenate_html(browser_html_text))
 
-        # https://python-markdown.github.io/extensions/
-        extensions = [
-            "markdown.extensions.extra",
-            "markdown.extensions.abbr",
-            "markdown.extensions.attr_list",
-            "markdown.extensions.def_list",
-            "markdown.extensions.fenced_code",
-            "markdown.extensions.footnotes",
-            "markdown.extensions.tables",
-            "markdown.extensions.admonition",
-            "markdown.extensions.codehilite",
-            "markdown.extensions.meta",
-            "markdown.extensions.sane_lists",
-            # # "markdown.extensions.toc",
-            "markdown.extensions.wikilinks",
-            # "markdown_aafigure",
-            #####
-            # "markdown.extensions.legacy_attr",
-            # "markdown.extensions.legacy_em",
-            # "markdown.extensions.nl2br",
-            # "markdown.extensions.smarty",
+        print("regenerating ", out_path_html)
+        browser_html_string = HEAD_HTML + browser_html_text + FOOT_HTML
+        with out_path_html.open(mode="w", encoding="utf-8") as fh:
+            fh.write(browser_html_string)
+
+        with (out_dir / "litprog_codehilite.css").open(mode="w") as fh:
+            fh.write(CODEHILITE_STYLES)
+
+        with (out_dir / "litprog_print.css").open(mode="w") as fh:
+            fh.write(PRINT_STYLES)
+
+    # import cmarkgfm
+    # test_html_text = cmarkgfm.github_flavored_markdown_to_html(md_text)
+    # test_html_text = cmarkgfm.markdown_to_html(md_text)
+
+    if "pdf" in args:
+        import weasyprint as wp
+
+        print_html_text   = "".join(_postprocess_html(raw_html_text))
+        print_html_string = HEAD_HTML + print_html_text + FOOT_HTML
+        wp_ctx            = wp.HTML(string=print_html_string)
+
+        stylesheets = [
+            wp.CSS(string=GENERAL_STYLES),
+            wp.CSS(string=CODEHILITE_STYLES),
+            wp.CSS(string=PRINT_STYLES),
         ]
 
-        md_ctx        = md.Markdown(extensions=extensions)
-        raw_html_text = md_ctx.convert(test_md_text)
-
-        if "html" in args:
-            browser_html_text = "".join(_postprocess_html(raw_html_text, shy=True))
-
-            with (in_path.parent / "litprog_codehilite.css").open(mode="w") as fh:
-                fh.write(CODEHILITE_STYLES)
-
-            with (in_path.parent / "litprog_print.css").open(mode="w") as fh:
-                fh.write(PRINT_STYLES)
-
-            print("regenerating ", in_path, "->", out_path_html)
-            browser_html_string = HEAD_HTML + browser_html_text + FOOT_HTML
-            with out_path_html.open(mode="w", encoding="utf-8") as fh:
-                fh.write(browser_html_string)
-
-        # import cmarkgfm
-        # test_html_text = cmarkgfm.github_flavored_markdown_to_html(test_md_text)
-        # test_html_text = cmarkgfm.markdown_to_html(test_md_text)
-
-        if "pdf" in args:
-            import weasyprint as wp
-
-            print_html_text   = "".join(_postprocess_html(raw_html_text, shy=False))
-            print_html_string = HEAD_HTML + print_html_text + FOOT_HTML
-            wp_ctx            = wp.HTML(string=print_html_string)
-
-            stylesheets = [
-                wp.CSS(string=GENERAL_STYLES),
-                wp.CSS(string=CODEHILITE_STYLES),
-                wp.CSS(string=PRINT_STYLES),
-            ]
-
-            print("regenerating ", in_path, "->", out_path_pdf)
-            with out_path_pdf.open(mode="wb") as fh:
-                wp_ctx.write_pdf(fh, stylesheets=stylesheets)
+        print("regenerating ", out_path_pdf)
+        with out_path_pdf.open(mode="wb") as fh:
+            wp_ctx.write_pdf(fh, stylesheets=stylesheets)
 
 
 if __name__ == '__main__':

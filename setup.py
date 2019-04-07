@@ -54,7 +54,7 @@ setuptools.setup(
     install_requires=install_requires,
     entry_points="""
         [console_scripts]
-        litprog=litprog.__main__:cli
+        litprog=litprog.cli:cli
     """,
     zip_safe=True,
 

@@ -16,6 +16,7 @@ pygments
 markdown
 weasyprint
 PyPDF2
+beautifulsoup4
 
 toml
 PyYAML

@@ -1,18 +1,28 @@
-## Building
+# This file is part of the litprog project
+# https://gitlab.com/mbarkhau/litprog
+#
+# Copyright (c) 2019 Manuel Barkhau (mbarkhau@gmail.com) - MIT License
+# SPDX-License-Identifier: MIT
+import os
+import io
+import re
+import sys
+import math
+import enum
+import os.path
+import typing as typ
+import pathlib2 as pl
+import operator as op
+import itertools as it
+import functools as ft
 
-```yaml
-filepath     : "src/litprog/build.py"
-inputs       : [
-    "license_header_boilerplate",
-    "generated_preamble",
-    "common.imports",
-    "module_logger",
-    "build.code",
-]
-```
+InputPaths = typ.Sequence[str]
+FilePaths  = typ.Iterable[pl.Path]
 
-```python
-# lpid = build.code
+ExitCode = int
+import logging
+
+log = logging.getLogger(__name__)
 import shlex
 
 import litprog.parse
@@ -20,7 +30,7 @@ import litprog.session
 
 
 def build(context: litprog.parse.Context) -> ExitCode:
-    captured_outputs: typ.Dict[litprog.parse.LitprogID, str       ] = {}
+    captured_outputs: typ.Dict[litprog.parse.LitprogID, str                       ] = {}
     captured_procs  : typ.Dict[litprog.parse.LitprogID, litprog.session.ProcResult] = {}
 
     all_ids = set(context.options_by_id.keys()) | set(context.blocks_by_id.keys())
@@ -141,4 +151,3 @@ def build(context: litprog.parse.Context) -> ExitCode:
             log.error(f"Build failed: No progress/unresolved requirements.")
             return 1
     return 0
-```

@@ -7,24 +7,21 @@ This module is based (very loosly) on code by ["Eli Bendersky"][eli_bendersky] a
 The current implementation was primarilly developed with interactive interpreters in mind such as `bash` and `python`. The input and output to these interpreters is line oriented and can in principle go on forever.
 
 ```yaml
-filepath     : "src/litprog/tmp_session.py"
+filepath     : "src/litprog/session.py"
 inputs       : [
     "license_header_boilerplate",
+    "generated_preamble",
     "common.imports",
-    "session.imports",
     "module_logger",
     "session.code",
 ]
 ```
 
 ```python
-# lpid = session.imports
+# lpid = session.code
 
-import os
-import io
 import time
-import typing as typ
-import functools as ft
+import threading
 import subprocess as sp
 ```
 
@@ -36,14 +33,26 @@ We may have to revisit this and abstract it to `CapturedChunk` so that we don't 
 
 ```python
 # lpid = session.code
+
+class SessionException(Exception):
+    pass
+
+
 class CapturedLine(typ.NamedTuple):
-  ts: float
-  line : str
+    ts: float
+    line : str
 
 
 class CapturingThread(typ.NamedTuple):
-  thread: threading.Thread
-  lines : typ.List[CapturedLine]
+    thread: threading.Thread
+    lines : typ.List[CapturedLine]
+
+
+class ProcResult(typ.NamedTuple):
+    exit_code: int
+    stdout   : typ.List[CapturedLine]
+    stderr   : typ.List[CapturedLine]
+
 
 Environ = typ.Mapping[str, str]
 # make mypy fail if this is the wrong type
@@ -55,21 +64,21 @@ The `_gen_captured_lines` is basically a constructor for `CapturedLine`, but sin
 ```python
 # lpid = session.code
 def _gen_captured_lines(
-  raw_lines: typ.Iterable[bytes],
-  encoding : str = "utf-8",
+    raw_lines: typ.Iterable[bytes],
+    encoding : str = "utf-8",
 ) -> typ.Iterable[CapturedLine]:
-  for raw_line in raw_lines:
-    ts      = time.time()
-    line_value = raw_line.decode(encoding)
-    log.debug(f"read {len(raw_line)} bytes")
-    yield CapturedLine(ts, line_value)
+    for raw_line in raw_lines:
+        ts      = time.time()
+        line_value = raw_line.decode(encoding)
+        log.debug(f"read {len(raw_line)} bytes")
+        yield CapturedLine(ts, line_value)
 ```
 
 ```yaml
 lpid   : session.tests
 lptype : session
 command: /usr/bin/env python3
-requires: [src/litprog/tmp_session.py]
+requires: [src/litprog/session.py]
 ```
 
 ```python
@@ -109,8 +118,6 @@ Note that `captured_lines` list is modified by the created thread and read from 
 
 ```python
 # lpid = session.code
-import threading
-
 def _start_reader(
     sp_output_pipe: typ.IO[bytes], encoding: str = "utf-8"
 ) -> CapturingThread:
@@ -186,6 +193,7 @@ class InteractiveSession:
         self._in_cl = []
         self._out_ct = _start_reader(self._proc.stdout, _enc)
         self._err_ct = _start_reader(self._proc.stderr, _enc)
+
 ```
 
 The `send` method simply encodes and writes a string to the stdin of the subprocess.
@@ -308,6 +316,7 @@ session = litprog.session.InteractiveSession(cmd)
 retcode = session.wait()
 for line in session:
     print("???", line)
+assert retcode == 0
 ```
 
 ### Links

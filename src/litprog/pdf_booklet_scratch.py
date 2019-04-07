@@ -151,9 +151,7 @@ def main() -> int:
             in_page_width_mm  = round(in_page_width  / UNITS_PER_MM)
             in_page_height_mm = round(in_page_height / UNITS_PER_MM)
 
-            err_msg = (
-                f"Unknown page format: {in_page_width_mm}mm x {in_page_height_mm}mm"
-            )
+            err_msg = f"Unknown page format: {in_page_width_mm}mm x {in_page_height_mm}mm"
             raise Exception(err_msg)
 
         out_format_id, page_order, center_margin = BOOKLET_FORMAT_MAPPING[in_format_id]
@@ -163,23 +161,18 @@ def main() -> int:
         out_width, out_height = PAPER_FORMATS_MM[out_format_id]
 
         if page_order == 'booklet':
-            booklet_page_indexes, booklet_index_by_page = booklet_page_layout(
-                len(reader.pages)
-            )
+            booklet_page_indexes, booklet_index_by_page = booklet_page_layout(len(reader.pages))
             half_page_to_in_page = list(enumerate(booklet_page_indexes))
         else:
             half_page_to_in_page = [
-                (half_page_index, half_page_index)
-                for half_page_index in range(len(reader.pages))
+                (half_page_index, half_page_index) for half_page_index in range(len(reader.pages))
             ]
 
         sheet_indexes = set(
-            half_page_index // 2
-            for in_page_index, half_page_index in half_page_to_in_page
+            half_page_index // 2 for in_page_index, half_page_index in half_page_to_in_page
         )
         out_sheets = [
-            output.addBlankPage(width=out_width, height=out_height)
-            for _ in sheet_indexes
+            output.addBlankPage(width=out_width, height=out_height) for _ in sheet_indexes
         ]
 
         in_pages = list(reader.pages)
