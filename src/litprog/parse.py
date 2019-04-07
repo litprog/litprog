@@ -3,8 +3,13 @@
 #
 # Copyright (c) 2019 Manuel Barkhau (mbarkhau@gmail.com) - MIT License
 # SPDX-License-Identifier: MIT
-# This is a generated and should not be edited.
-# Changes will be overwritten!
+
+###################################
+#    This is a generated file.    #
+# This file should not be edited. #
+#  Changes will be overwritten!   #
+###################################
+
 import os
 import io
 import re
@@ -31,7 +36,6 @@ import json
 import toml
 import yaml
 import uuid
-
 
 VALID_OPTION_KEYS = {'lptype', 'lpid'}
 

@@ -30,15 +30,6 @@ ExitCode = int
 import logging
 
 log = logging.getLogger(__name__)
-import os
-import yaml
-import toml
-import json
-import collections
-import litprog.parse
-import litprog.build
-import litprog.session
-
 # To enable pretty tracebacks:
 #   echo "export ENABLE_BACKTRACE=1;" >> ~/.bashrc
 if os.environ.get('ENABLE_BACKTRACE') == '1':
@@ -47,50 +38,65 @@ if os.environ.get('ENABLE_BACKTRACE') == '1':
     backtrace.hook(align=True, strip_path=True, enable_on_envvar_only=True)
 
 
+class LogConfig(typ.NamedTuple):
+    fmt: str
+    lvl: int
+
+
+def _parse_logging_config(verbosity: int) -> LogConfig:
+    if verbosity == 0:
+        return LogConfig("%(levelname)-7s - %(message)s", logging.WARNING)
+
+    log_format = "%(asctime)s.%(msecs)03d %(levelname)-7s " + "%(name)-15s - %(message)s"
+    if verbosity == 1:
+        return LogConfig(log_format, logging.INFO)
+
+    assert verbosity >= 2
+    return LogConfig(log_format, logging.DEBUG)
+
+
 def _configure_logging(verbosity: int = 0) -> None:
+    _prev_verbosity: int = getattr(_configure_logging, '_prev_verbosity', -1)
+
+    if verbosity <= _prev_verbosity:
+        return
+
+    _configure_logging._prev_verbosity = verbosity
+
+    # remove previous logging handlers
     for handler in list(logging.root.handlers):
         logging.root.removeHandler(handler)
 
-    if verbosity == 0:
-        log_format = "%(levelname)-7s - %(message)s"
-        log_level  = logging.WARNING
-    else:
-        log_format = "%(asctime)s.%(msecs)03d %(levelname)-7s " + "%(name)-15s - %(message)s"
-        if verbosity == 1:
-            log_level = logging.INFO
-        else:
-            assert verbosity >= 2
-            log_level = logging.DEBUG
+    log_cfg = _parse_logging_config(verbosity)
+    logging.basicConfig(level=log_cfg.lvl, format=log_cfg.fmt, datefmt="%Y-%m-%dT%H:%M:%S")
 
-    logging.basicConfig(level=log_level, format=log_format, datefmt="%Y-%m-%dT%H:%M:%S")
 
+import collections
 
 import click
 
+import litprog.parse
+import litprog.build
+import litprog.session
+
 click.disable_unicode_literals_warning = True
+
+verbosity_option = click.option(
+    '-v', '--verbose', count=True, help="Control log level. -vv for debug level."
+)
 
 
 @click.group()
 @click.version_option(version="v201901.0001-alpha")
-@click.option('-v', '--verbose', count=True, help="Control log level. -vv for debug level.")
+@verbosity_option
 def cli(verbose: int = 0) -> None:
     """litprog cli."""
     _configure_logging(verbose)
 
 
-def _iter_markdown_filepaths(input_paths: InputPaths) -> FilePaths:
-    for in_path_str in input_paths:
-        in_path = pl.Path(in_path_str)
-        if in_path.is_dir():
-            for in_filepath in in_path.glob("**/*.md"):
-                yield in_filepath
-        else:
-            yield in_path
-
-
 @cli.command()
 @click.argument('input_paths', nargs=-1, type=click.Path(exists=True))
-@click.option('-v', '--verbose', count=True, help="Control log level. -vv for debug level.")
+@verbosity_option
 def build(input_paths: InputPaths, verbose: int = 0) -> None:
     _configure_logging(verbose)
     md_filepaths = sorted(_iter_markdown_filepaths(input_paths))
@@ -99,3 +105,28 @@ def build(input_paths: InputPaths, verbose: int = 0) -> None:
         sys.exit(litprog.build.build(context))
     except litprog.session.SessionException:
         sys.exit(1)
+
+
+MARKDOWN_FILE_EXTENSIONS = {
+    "markdown",
+    "mdown",
+    "mkdn",
+    "md",
+    "mkd",
+    "mdwn",
+    "mdtxt",
+    "mdtext",
+    "text",
+    "Rmd",
+}
+
+
+def _iter_markdown_filepaths(input_paths: InputPaths) -> FilePaths:
+    for path_str in input_paths:
+        path = pl.Path(path_str)
+        if path.is_file():
+            yield path
+        else:
+            for ext in MARKDOWN_FILE_EXTENSIONS:
+                for fpath in path.glob(f"**/*.{ext}"):
+                    yield fpath

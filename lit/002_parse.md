@@ -2,6 +2,11 @@
 
 A `Context` object holds all results from the parsing phase. We'll get into the other datastructures used here in a moment, but first let's focus on what we're trying get as a result of parsing. The idea here is to find all the fenced blocks in the markdown files and build mappings/dict objects using the `lpid`/`LitprogID` as keys. Note that there can be multiple `FencedBlocks` with the same `lpid`, which are simply concatenated together. To know how these blocks are to be treated, we collect options for each lpid. In the most simple case such an option is for example the language.
 
+Some notes library choices:
+
+- `toml`, `yaml`: In additon to json, the toml format is supported to define litprog metadata.
+- `pathlib2` provides a uniform API for both python2 and python3 which is compatible with the API of the python3 `pathlib` module in the standard library. In other words, if python2 support is every dropped, only the imports have to change.
+
 ```python
 # lpid = parse.code
 import collections
@@ -10,8 +15,6 @@ import json
 import toml
 import yaml
 import uuid
-
-
 ```
 
 ## Functional Core
