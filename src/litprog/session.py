@@ -36,25 +36,11 @@ import shlex
 import threading
 import subprocess as sp
 
+import litprog.types as lptyp
+
 
 class SessionException(Exception):
     pass
-
-
-class CapturedLine(typ.NamedTuple):
-    ts  : float
-    line: str
-
-
-class CapturingThread(typ.NamedTuple):
-    thread: threading.Thread
-    lines : typ.List[CapturedLine]
-
-
-class ProcResult(typ.NamedTuple):
-    exit_code: int
-    stdout   : typ.List[CapturedLine]
-    stderr   : typ.List[CapturedLine]
 
 
 Environ = typ.Mapping[str, str]
@@ -64,16 +50,18 @@ _: Environ = os.environ
 
 def _gen_captured_lines(
     raw_lines: typ.Iterable[bytes], encoding: str = "utf-8"
-) -> typ.Iterable[CapturedLine]:
+) -> typ.Iterable[lptyp.CapturedLine]:
     for raw_line in raw_lines:
         ts         = time.time()
         line_value = raw_line.decode(encoding)
         log.debug(f"read {len(raw_line)} bytes")
-        yield CapturedLine(ts, line_value)
+        yield lptyp.CapturedLine(ts, line_value)
 
 
 def _read_loop(
-    sp_output_pipe: typ.IO[bytes], captured_lines: typ.List[CapturedLine], encoding: str = "utf-8"
+    sp_output_pipe: typ.IO[bytes],
+    captured_lines: typ.List[lptyp.CapturedLine],
+    encoding      : str = "utf-8",
 ) -> None:
     raw_lines = iter(sp_output_pipe.readline, b'')
     cl_gen    = _gen_captured_lines(raw_lines, encoding=encoding)
@@ -81,8 +69,13 @@ def _read_loop(
         captured_lines.append(cl)
 
 
+class CapturingThread(typ.NamedTuple):
+    thread: threading.Thread
+    lines : typ.List[lptyp.CapturedLine]
+
+
 def _start_reader(sp_output_pipe: typ.IO[bytes], encoding: str = "utf-8") -> CapturingThread:
-    captured_lines: typ.List[CapturedLine] = []
+    captured_lines: typ.List[lptyp.CapturedLine] = []
     read_loop_thread = threading.Thread(
         target=_read_loop, args=(sp_output_pipe, captured_lines, encoding)
     )
@@ -111,7 +104,7 @@ class InteractiveSession:
     _retcode: typ.Optional[int]
     _proc   : sp.Popen
 
-    _in_cl : typ.List[CapturedLine]
+    _in_cl : typ.List[lptyp.CapturedLine]
     _out_ct: CapturingThread
     _err_ct: CapturingThread
     # class InteractiveSession: ...
@@ -141,7 +134,7 @@ class InteractiveSession:
 
     # class InteractiveSession: ...
     def send(self, input_str: str, delay: float = 0.01) -> None:
-        self._in_cl.append(CapturedLine(time.time(), input_str))
+        self._in_cl.append(lptyp.CapturedLine(time.time(), input_str))
         input_data = input_str.encode(self.encoding)
         log.debug(f"sending {len(input_data)} bytes")
         self._proc.stdin.write(input_data)

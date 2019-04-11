@@ -17,33 +17,35 @@ inputs       : [
 # lpid = build.code
 import litprog.parse
 import litprog.session
+import litprog.types as lptyp
 ```
 
 
 ```python
 # lpid = build.code
-OutputsById = typ.Dict[litprog.parse.LitprogID, str       ]
-ProgResultsById = typ.Dict[litprog.parse.LitprogID, litprog.session.ProcResult]
-MaybeStr = typ.Optional[str]
 
+class GeneratorResult:
+    output: typ.Optional[str]
+    done  : bool
+    error : bool
 
-class BuildContext:
-
-    blocks          : litprog.parse.BlocksById
-    options         : litprog.parse.OptionsById
-    captured_outputs: OutputsById
-    captured_procs  : ProgResultsById
-    
-    def __init__(self, pctx: litprog.parse.ParseContext) -> None:
-        self.blocks = pctx.blocks
-        self.options = pctx.options
-        self.captured_outputs = {}
-        self.captured_procs = {}
+    def __init__(self, 
+        output: typ.Optional[str] = None,
+        *,
+        done  : typ.Optional[bool] = None,
+        error : bool = False,
+    ) -> None:
+        self.output = output
+        if done is None:
+            self.done = output is not None
+        else:
+            self.done = done
+        self.error = error
 
 
 GeneratorFunc = typ.Callable[
-    [litprog.parse.LitprogID, BuildContext],
-    MaybeStr,
+    [lptyp.LitprogID, lptyp.BuildContext],
+    GeneratorResult,
 ]
 ```
 
@@ -53,39 +55,41 @@ GeneratorFunc = typ.Callable[
 
 
 def gen_meta_output(
-    lpid: litprog.parse.LitprogID,
-    ctx: BuildContext,
-) -> MaybeStr:
+    lpid: lptyp.LitprogID,
+    ctx: lptyp.BuildContext,
+) -> GeneratorResult:
     log.warning(f"lptype=meta not implemented")
+    return GeneratorResult(done=True)
 ```
 
 
 ```python
 # lpid = build.code
 def gen_raw_block_output(
-    lpid: litprog.parse.LitprogID,
-    ctx: BuildContext,
-) -> MaybeStr:
-    return "".join(
+    lpid: lptyp.LitprogID,
+    ctx: lptyp.BuildContext,
+) -> GeneratorResult:
+    output = "".join(
         "".join(l.val for l in block.lines)
         for block in ctx.blocks[lpid]
     )
+    return GeneratorResult(output)
 ```
 
 
 ```python
 # lpid = build.code
 def gen_out_file_output(
-    lpid: litprog.parse.LitprogID,
-    ctx: BuildContext,
-) -> MaybeStr:
+    lpid: lptyp.LitprogID,
+    ctx: lptyp.BuildContext,
+) -> GeneratorResult:
     options = ctx.options[lpid]
     required_inputs   = set(options['inputs'])
     completed_outputs = set(ctx.captured_outputs.keys())
     missing_inputs    = required_inputs - completed_outputs
 
     if any(missing_inputs):
-        return
+        return GeneratorResult(done=False)
 
     output_parts = [
         ctx.captured_outputs[input_lpid]
@@ -97,23 +101,24 @@ def gen_out_file_output(
     # prelude_tmpl    = options.get('block_prelude')
     # postscript_tmpl = options.get('block_postscript')
 
-    return "".join(output_parts)
+    output = "".join(output_parts)
+    return GeneratorResult(output)
 ```
 
 
 ```python
 # lpid = build.code
 def gen_session_output(
-    lpid: litprog.parse.LitprogID,
-    ctx: BuildContext,
-) -> MaybeStr:
+    lpid: lptyp.LitprogID,
+    ctx: lptyp.BuildContext,
+) -> GeneratorResult:
     options = ctx.options[lpid]
     required_blocks = set(options.get('requires', []))
     captured_blocks = set(ctx.captured_outputs.keys())
     missing_blocks  = required_blocks - captured_blocks
     if any(missing_blocks):
         log.debug(f"deferring {lpid} until {missing_blocks} are completed")
-        return
+        return GeneratorResult(done=False)
 
     command = options.get('command', "bash")
     log.info(f"starting session {lpid}. cmd: {command}")
@@ -130,7 +135,7 @@ def gen_session_output(
     if exit_code == expected_exit_code:
         # TODO (mb): better output capture for sessions
         log.info(f"  session block {lpid:<15} done. RETCODE: {exit_code} ok.")
-        return output
+        return GeneratorResult(output)
     else:
         log.info(
             f"  session block {lpid:<15} fail. RETCODE: {exit_code} invalid!"
@@ -140,7 +145,7 @@ def gen_session_output(
         log.error(err_msg)
         # TODO: This is a bit harsh to do here. Probably
         #   we should raise an exception.
-        sys.exit(1)
+        return GeneratorResult(error=True)
 ```
 
 
@@ -158,8 +163,8 @@ OUTPUT_GENERATORS_BY_TYPE: typ.Mapping[str, GeneratorFunc] = {
 ```python
 # lpid = build.code
 def write_output(
-    lpid: litprog.parse.LitprogID,
-    ctx: BuildContext,
+    lpid: lptyp.LitprogID,
+    ctx: lptyp.BuildContext,
 ) -> None:
     options = ctx.options[lpid]
     maybe_filepath = options.get('filepath')
@@ -180,8 +185,8 @@ def write_output(
 
 ```python
 # lpid = build.code
-def build(parse_ctx: litprog.parse.ParseContext) -> ExitCode:
-    ctx = BuildContext(parse_ctx)
+def build(parse_ctx: lptyp.ParseContext) -> ExitCode:
+    ctx = lptyp.BuildContext(parse_ctx)
 
     option_ids = set(ctx.options.keys())
     block_ids = set(ctx.blocks.keys())
@@ -202,14 +207,20 @@ def build(parse_ctx: litprog.parse.ParseContext) -> ExitCode:
                 log.error(f"lptype={litprog_type} not implemented")
                 return 1
 
-            output = generator_func(lpid, ctx)
-            if output is None:
-                ctx.captured_outputs[lpid] = ""
-                log.debug(f"{litprog_type:>9} block {lpid:>25} done (no output).")
+            res: GeneratorResult = generator_func(lpid, ctx)
+            if res.error:
+                log.error(f"{litprog_type:>9} block {lpid:>25} had an error.")
+                return 1
+            elif res.done:
+                if res.output is None:
+                    ctx.captured_outputs[lpid] = ""
+                    log.debug(f"{litprog_type:>9} block {lpid:>25} done (no output).")
+                else:
+                    ctx.captured_outputs[lpid] = res.output
+                    log.debug(f"{litprog_type:>9} block {lpid:>25} done.")
+                    write_output(lpid, ctx)
             else:
-                ctx.captured_outputs[lpid] = output
-                log.debug(f"{litprog_type:>9} block {lpid:>25} done.")
-                write_output(lpid, ctx)
+                continue
 
         if prev_len_completed == len(ctx.captured_outputs):
             captured_blocks = list(ctx.captured_outputs.keys())

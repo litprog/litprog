@@ -37,65 +37,13 @@ import toml
 import yaml
 import uuid
 
+import litprog.types as lptyp
+
 VALID_OPTION_KEYS = {'lptype', 'lpid'}
 
 
-class Line(typ.NamedTuple):
-
-    line_no: int
-    val    : str
-
-
-Lines = typ.List[Line]
-
-
-LitprogID = str
-
-Lang = str
-
-MaybeLang = typ.Optional[Lang]
-
-BlockOptions = typ.Dict[str, typ.Any]
-
-
-class RawFencedBlock(typ.NamedTuple):
-
-    file_path  : pl.Path
-    info_string: str
-    lines      : Lines
-
-
-class FencedBlock(typ.NamedTuple):
-
-    file_path  : pl.Path
-    info_string: str
-    lines      : Lines
-    lpid       : LitprogID
-    language   : MaybeLang
-    options    : BlockOptions
-    content    : str
-
-
-Block = typ.Union[RawFencedBlock, FencedBlock]
-
-BlocksById  = typ.Dict[LitprogID, typ.List[FencedBlock]]
-OptionsById = typ.Dict[LitprogID, BlockOptions]
-
-
-class ParseContext:
-
-    blocks : BlocksById
-    options: OptionsById
-
-    def __init__(self) -> None:
-        bbid = collections.defaultdict(list)
-
-        self.blocks  = bbid
-        self.options = {}
-
-
 class ParseError(Exception):
-    def __init__(self, msg: str, block: Block) -> None:
+    def __init__(self, msg: str, block: lptyp.Block) -> None:
         file_path  = block.file_path
         first_line = block.lines[0]
         line_no    = first_line.line_no
@@ -108,8 +56,8 @@ class ParseError(Exception):
         super(ParseError, self).__init__(msg)
 
 
-def parse_context(md_paths: FilePaths) -> ParseContext:
-    ctx = ParseContext()
+def parse_context(md_paths: FilePaths) -> lptyp.ParseContext:
+    ctx = lptyp.ParseContext()
 
     for path in md_paths:
         log.debug(f"parsing {path}")
@@ -120,7 +68,7 @@ def parse_context(md_paths: FilePaths) -> ParseContext:
     return ctx
 
 
-def _iter_raw_fenced_blocks(input_path: pl.Path) -> typ.Iterable[RawFencedBlock]:
+def _iter_raw_fenced_blocks(input_path: pl.Path) -> typ.Iterable[lptyp.RawFencedBlock]:
     with input_path.open(mode="r", encoding="utf-8") as fh:
         input_lines = enumerate(fh)
         for i, line_val in input_lines:
@@ -131,12 +79,12 @@ def _iter_raw_fenced_blocks(input_path: pl.Path) -> typ.Iterable[RawFencedBlock]
             fence_str   = line_val[:3]
             info_string = line_val[3:].strip()
             block_lines = list(_iter_fenced_block_lines(fence_str, input_lines))
-            yield RawFencedBlock(input_path, info_string, block_lines)
+            yield lptyp.RawFencedBlock(input_path, info_string, block_lines)
 
 
 def _iter_fenced_block_lines(
     fence_str: str, input_lines: typ.Iterable[typ.Tuple[int, str]]
-) -> typ.Iterable[Line]:
+) -> typ.Iterable[lptyp.Line]:
     for i, line_val in input_lines:
         line_no     = i + 1
         maybe_fence = line_val.rstrip()
@@ -145,10 +93,10 @@ def _iter_fenced_block_lines(
         if is_closing_fence:
             last_line_val = line_val.rstrip()[: -len(fence_str)]
             if last_line_val:
-                yield Line(line_no, last_line_val)
+                yield lptyp.Line(line_no, last_line_val)
             break
         else:
-            yield Line(line_no, line_val)
+            yield lptyp.Line(line_no, line_val)
 
 
 LANGUAGE_COMMENT_PATTERNS = {
@@ -239,15 +187,15 @@ LANGUAGE_COMMENT_TEMPLATES = {
 
 
 def _parse_comment_options(
-    maybe_lang: MaybeLang, raw_lines: Lines
-) -> typ.Tuple[BlockOptions, Lines]:
+    maybe_lang: lptyp.MaybeLang, raw_lines: lptyp.Lines
+) -> typ.Tuple[lptyp.BlockOptions, lptyp.Lines]:
     # NOTE (2019-03-02 mb): In the case of
     #   options, each one is on it's own line and
     #   the first line to not declare an option
     #   terminates the options preamble of a
     #   fenced block.
 
-    options: BlockOptions = {}
+    options: lptyp.BlockOptions = {}
     if not (maybe_lang and maybe_lang in LANGUAGE_COMMENT_PATTERNS):
         return options, raw_lines
 
@@ -288,7 +236,7 @@ def _parse_comment_options(
     return options, filtered_lines
 
 
-def _parse_language(info_string: str) -> MaybeLang:
+def _parse_language(info_string: str) -> lptyp.MaybeLang:
     info_string = info_string.strip()
 
     if info_string:
@@ -297,7 +245,9 @@ def _parse_language(info_string: str) -> MaybeLang:
         return None
 
 
-def _parse_maybe_options(lang: Lang, raw_lines: Lines) -> typ.Optional[BlockOptions]:
+def _parse_maybe_options(
+    lang: lptyp.Lang, raw_lines: lptyp.Lines
+) -> typ.Optional[lptyp.BlockOptions]:
     if len(raw_lines) == 0:
         return None
 
@@ -337,7 +287,7 @@ def _parse_maybe_options(lang: Lang, raw_lines: Lines) -> typ.Optional[BlockOpti
         return None
 
 
-def _parse_code_block(raw_fenced_block: RawFencedBlock) -> FencedBlock:
+def _parse_code_block(raw_fenced_block: lptyp.RawFencedBlock) -> lptyp.FencedBlock:
     maybe_lang = _parse_language(raw_fenced_block.info_string)
     raw_lines  = raw_fenced_block.lines
 
@@ -346,12 +296,12 @@ def _parse_code_block(raw_fenced_block: RawFencedBlock) -> FencedBlock:
     else:
         maybe_options = None
 
-    filtered_lines: Lines
+    filtered_lines: lptyp.Lines
 
     if maybe_options is None:
         options, filtered_lines = _parse_comment_options(maybe_lang, raw_lines)
     else:
-        options        = typ.cast(BlockOptions, maybe_options)
+        options        = typ.cast(lptyp.BlockOptions, maybe_options)
         filtered_lines = []
 
     filtered_content = "".join(line.val for line in filtered_lines)
@@ -367,7 +317,7 @@ def _parse_code_block(raw_fenced_block: RawFencedBlock) -> FencedBlock:
     if 'lptype' not in options:
         options['lptype'] = 'raw_block'
 
-    return FencedBlock(
+    return lptyp.FencedBlock(
         raw_fenced_block.file_path,
         raw_fenced_block.info_string,
         filtered_lines,
@@ -378,7 +328,7 @@ def _parse_code_block(raw_fenced_block: RawFencedBlock) -> FencedBlock:
     )
 
 
-def _add_to_context(ctx: ParseContext, code_block: FencedBlock) -> None:
+def _add_to_context(ctx: lptyp.ParseContext, code_block: lptyp.FencedBlock) -> None:
     is_duplicate_lpid = (
         code_block.lpid in ctx.blocks and code_block.options['lptype'] != 'raw_block'
     )

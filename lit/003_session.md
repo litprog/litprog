@@ -24,6 +24,8 @@ import time
 import shlex
 import threading
 import subprocess as sp
+
+import litprog.types as lptyp
 ```
 
 ### Streamed Reading of STDOUT and STDERR
@@ -39,47 +41,37 @@ class SessionException(Exception):
     pass
 
 
-class CapturedLine(typ.NamedTuple):
-    ts: float
-    line : str
-
-
-class CapturingThread(typ.NamedTuple):
-    thread: threading.Thread
-    lines : typ.List[CapturedLine]
-
-
-class ProcResult(typ.NamedTuple):
-    exit_code: int
-    stdout   : typ.List[CapturedLine]
-    stderr   : typ.List[CapturedLine]
-
-
 Environ = typ.Mapping[str, str]
 # make mypy fail if this is the wrong type
 _: Environ = os.environ
 ```
 
-The `_gen_captured_lines` is basically a constructor for `CapturedLine`, but since the only use case is for streaming data it is written as a generator.
+The `_gen_captured_lines` is basically a constructor for `lptyp.CapturedLine`, but since the only use case is for streaming data it is written as a generator.
 
 ```python
 # lpid = session.code
 def _gen_captured_lines(
     raw_lines: typ.Iterable[bytes],
     encoding : str = "utf-8",
-) -> typ.Iterable[CapturedLine]:
+) -> typ.Iterable[lptyp.CapturedLine]:
     for raw_line in raw_lines:
         ts      = time.time()
         line_value = raw_line.decode(encoding)
         log.debug(f"read {len(raw_line)} bytes")
-        yield CapturedLine(ts, line_value)
+        yield lptyp.CapturedLine(ts, line_value)
 ```
 
 ```yaml
 lpid   : session.tests
 lptype : session
 command: /usr/bin/env python3
-requires: [src/litprog/session.py]
+requires: [
+    'src/litprog/types.py',
+    'src/litprog/parse.py',
+    'src/litprog/build.py',
+    'src/litprog/session.py',
+    'src/litprog/cli.py',
+]
 ```
 
 ```python
@@ -104,7 +96,7 @@ The term `output` may be a bit confusing here. It refers to the fact that the pa
 # lpid = session.code
 def _read_loop(
     sp_output_pipe: typ.IO[bytes],
-    captured_lines: typ.List[CapturedLine],
+    captured_lines: typ.List[lptyp.CapturedLine],
     encoding      : str = "utf-8",
 ) -> None:
     raw_lines = iter(sp_output_pipe.readline, b'')
@@ -119,10 +111,15 @@ Note that `captured_lines` list is modified by the created thread and read from 
 
 ```python
 # lpid = session.code
+class CapturingThread(typ.NamedTuple):
+    thread: threading.Thread
+    lines : typ.List[lptyp.CapturedLine]
+
+
 def _start_reader(
     sp_output_pipe: typ.IO[bytes], encoding: str = "utf-8"
 ) -> CapturingThread:
-    captured_lines: typ.List[CapturedLine] = []
+    captured_lines: typ.List[lptyp.CapturedLine] = []
     read_loop_thread = threading.Thread(
         target=_read_loop,
         args=(sp_output_pipe, captured_lines, encoding),
@@ -161,7 +158,6 @@ def _normalize_command(command: AnyCommand) -> typ.List[str]:
 
 ```python
 # lpid = session.code
-
 class InteractiveSession:
 
     encoding: str
@@ -170,7 +166,7 @@ class InteractiveSession:
     _retcode: typ.Optional[int]
     _proc   : sp.Popen
 
-    _in_cl: typ.List[CapturedLine]
+    _in_cl: typ.List[lptyp.CapturedLine]
     _out_ct: CapturingThread
     _err_ct: CapturingThread
 ```
@@ -223,7 +219,7 @@ A delay is added at the end so the timing of inputs does not get ahead of the ca
 # lpid = session.code
 # class InteractiveSession: ...
     def send(self, input_str: str, delay: float=0.01) -> None:
-        self._in_cl.append(CapturedLine(time.time(), input_str))
+        self._in_cl.append(lptyp.CapturedLine(time.time(), input_str))
         input_data = input_str.encode(self.encoding)
         log.debug(f"sending {len(input_data)} bytes")
         self._proc.stdin.write(input_data)
