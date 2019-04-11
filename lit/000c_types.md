@@ -12,11 +12,17 @@ inputs       : [
 ]
 ```
 
+## Parse -> Build
+
+These types relate to the interaction between the `parse` and `build` modules. `parse` extracts all code blocks from the markdown files which `build` uses as inputs to generate code files and run the interactive sessions.
+
+    
 ```python
 # lpid = types.code
 
-import collections
+Lang = str
 
+MaybeLang = typ.Optional[Lang]
 
 LitprogID = str
 
@@ -28,10 +34,6 @@ class Line(typ.NamedTuple):
 
 
 Lines = typ.List[Line]
-
-Lang = str
-
-MaybeLang = typ.Optional[Lang]
 
 BlockOptions = typ.Dict[str, typ.Any]
 
@@ -52,9 +54,12 @@ class FencedBlock(typ.NamedTuple):
     language   : MaybeLang
     options    : BlockOptions
     content    : str
+```
 
 
-Block = typ.Union[RawFencedBlock, FencedBlock]
+```python
+# lpid = types.code
+
 
 BlocksById  = typ.Dict[LitprogID, typ.List[FencedBlock]]
 OptionsById = typ.Dict[LitprogID, BlockOptions]
@@ -84,7 +89,6 @@ class ProcResult(typ.NamedTuple):
 
 OutputsById = typ.Dict[LitprogID, str       ]
 ProgResultsById = typ.Dict[LitprogID, ProcResult]
-MaybeStr = typ.Optional[str]
 
 
 class BuildContext:

@@ -1,6 +1,6 @@
 ## Parsing
 
-A `lptyp.ParseContext` object holds all results from the parsing phase. We'll get into the other datastructures used here in a moment, but first let's focus on what we're trying get as a result of parsing. The idea here is to find all the fenced blocks in the markdown files and build mappings/dict objects using the `lpid`/`LitprogID` as keys. Note that there can be multiple `FencedBlocks` with the same `lpid`, which are simply concatenated together. To know how these blocks are to be treated, we collect options for each lpid. In the most simple case such an option is for example the language.
+An `lptyp.ParseContext` object holds all results from the parsing phase. We'll get into the other datastructures used here in a moment, but first let's focus on what we're trying get as a result of parsing. The idea here is to find all the fenced blocks in the markdown files and build mappings/dict objects using the `lpid`/`LitprogID` as keys. Note that there can be multiple `FencedBlocks` with the same `lpid`, which are simply concatenated together. To know how these blocks are to be treated, we collect options for each lpid. In the most simple case such an option is for example the language.
 
 Some notes library choices:
 
@@ -9,8 +9,6 @@ Some notes library choices:
 
 ```python
 # lpid = parse.code
-import collections
-
 import json
 import toml
 import yaml
@@ -400,4 +398,15 @@ assert len(lit_paths) > 0
 assert all(isinstance(p, pl.Path) for p in lit_paths)
 assert all(p.suffix == ".md" for p in lit_paths)
 ```
+
+
+### Future Work
+
+#### Better Handling of dependencies
+
+Currently a `session` block must specify each recursive dependency in the `requires` field, not just those it directly depends upon. It would be nice if for example the `test_parse` session would only have to declare its dependency direct dependencies, eg. `src/litprog/parse.py` and `src/litprog/cli.py`. 
+
+Alternatively, we could add syntax specific parsing for each block, to determine what each one provides and requires. For the python syntax for example, we could parse `import <module_name>` lines to determine what the requirements for a code block are and we could parse from the field `filepath: module_name.py` to determine that it provides that python module.
+
+Some magic is justified if it reduces tedium to bearable levels.
 

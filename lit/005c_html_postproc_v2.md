@@ -4,8 +4,8 @@ inputs       : [
     "license_header_boilerplate",
     "generated_preamble",
     "common.imports",
-    "html_postproc_v2.imports",
     "module_logger",
+    "html_postproc_v2.imports",
     "html_postproc_v2.code",
 ]
 ```

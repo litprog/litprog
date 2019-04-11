@@ -1,6 +1,10 @@
-## Building
+## Build: Process Fenced Blocks
 
-The purpose of `build.py` is to 1. generate the program files that can be executed and 2. to run any interactive sessions that either illustrate or validated how the program works.
+The purpose of the `build` module is to 
+
+    1. Generate the program files that can be executed
+    2. Run any interactive sessions to illustrate or validate the program
+
 
 ```yaml
 filepath     : "src/litprog/build.py"
@@ -229,3 +233,54 @@ def build(parse_ctx: lptyp.ParseContext) -> ExitCode:
             return 1
     return 0
 ```
+
+### Future Work
+
+#### Temporary Directory
+
+As of now, each output file is written to directly. It may be better (or at least give the option) to write output to a temporary directory first and only move the generated files to the working directory if the build succeeded.
+
+
+
+### Delete Old Files?
+
+Should files that were previously generated be removed? If a file is renamed in the markdown source, then files by the old are not touched. To support this, we would have to implement some kind of manifest, to keep track of files from previous builds.
+
+
+#### Parallel Build Steps
+
+For now the build is completely linear, but eventually we may want to speed
+things up. This is something to keep in mind when making design decisions
+
+A very interesting approach to dealing with log output produced by parallel
+build steps: [redo, buildroot, and serializing parallel logs](https://apenwarr.ca/log/20181106)
+
+Long story short, the log output of a build step is persisted and only
+written to stdout incrementally if it belongs the first and lowest level
+step.
+
+~~~
+t01  A: redo J
+t02  J:   ...stuff...
+t03  J:   redo X
+t04  X:     redo Q
+t05  Q:       ...build Q...
+t06  X:     ...X stuff...
+t06  J:   redo Y
+t06  Y:     redo Q
+t07  Y:     ...Y stuff...
+t08  J:   redo Z
+t08  Z:     redo Q
+t08  Z:     ...Z stuff...
+t08  J:   ...stuff...
+t08  A: exit 0
+~~~
+
+Notice that the output which belonged to the concurrently running steps was
+buffered and written all at once only after steps which were started
+earlier or as its own dependencies were completed.
+
+
+#### Partial/Incremental Build
+
+For slow builds it might be worth implementing something to build/run only subsets of the program.

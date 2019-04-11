@@ -1,9 +1,9 @@
-# LitProg - Readable Programs
+# LitProg - Programs for Humans
 
 ```yaml
 lptype: meta
 title: LitProg
-subtitle: Readable Programs
+subtitle: Programs for Humans
 language: en
 authors: [
     "Manuel Barkhau",
@@ -18,11 +18,12 @@ authors: [
         – Goethe
 
 
-LitProg is a markdown based literate programming tool which can be used together with most[^languages_caveat] programming languages. A literate program should be written, first and foremost, to be understood by other people and not merely to be valid input for a compiler or interpreter.
+LitProg is a markdown based literate programming tool which can be used together with most[^languages_caveat] programming languages. A literate program is written, first and foremost, to be understood by other people and not merely to be valid input for a compiler or interpreter.
+
 
 ## Costs and Benefits
 
-Literate programming is not a silver bullet. Rather it offers al tradeoff that is quite similar to the practice automated testing: Upfront cost/investment for a potential long term payoff. Having automated tests reduces the chance that changes to a program will break existing functionality. They are a safety net that limit the damage a programmers can cause when they don't understand all of the implications of a change that they want to make.
+Literate programming is not a silver bullet. Rather it offers al tradeoff that is quite similar to the practice automated testing: An initial investment/upfront cost which hopefully produces a long term payoff. Creating automated tests is reduces the chance that changes to a program will break existing functionality. They are a safety net that limit the damage a programmers can cause when they don't understand all of the implications of a change that they want to make.
 
 In the case of literate programming, technical documentation is written to explain the intent and high level abstractions. This allows other programmers to rebuild the mental model that is required to verify the correctness of a program and to effectively make changes. Some of these can be expressed in program structure and with good naming, but code has to be valid which limits how expressive . Programmers who are introduced long after the initial authoring of the program will have an easier time building a mental model of the program and thus will more readilly be able to recognize flaws and make changes. , which cannot be easilly read just from reading the code. This makes it easier for programmers who are unfamiliar with the code to find their way around the codebase and more confidently make changes.
 
@@ -54,85 +55,6 @@ For now we will completely ignore the output as pdf/html tables, footnotes,
 images or anything else.
 
 Of course we have a chicken and egg problem here, so to bootstrap the program the python files will have to be implemented in a non LitProg form. For development the easiest python files to work are the ones in the `src/` directory. Using `source activate` and running `pip install .` will install the `litprog` command, which will use code from the `src/` directory. As soon as possible the program should be self hosted.
-
-### The `litprog` Module
-
-All generated code is written to `src/litprog/`, starting with `src/litprog/__init__.py`.
-
-```yaml
-filepath: "src/litprog/__init__.py"
-inputs  : [
-    "license_header_boilerplate",
-    "generated_preamble",
-    "dunder_version",
-]
-```
-
-The file starts with some legal boilerplate. I honestly can't say what legal relevance of this is, probably it's mostly just ceremonial.
-
-```python
-# lpid = license_header_boilerplate
-# This file is part of the litprog project
-# https://gitlab.com/mbarkhau/litprog
-#
-# Copyright (c) 2019 Manuel Barkhau (mbarkhau@gmail.com) - MIT License
-# SPDX-License-Identifier: MIT
-```
-
-```python
-# lpid = generated_preamble
-
-###################################
-#    This is a generated file.    #
-# This file should not be edited. #
-#  Changes will be overwritten!   #
-###################################
-
-```
-
-```python
-# lpid = dunder_version
-
-__version__ = "v201901.0001-alpha"
-```
-
-Each module has a module level logger named `log`.
-
-```python
-# lpid = module_logger
-import logging
-
-log = logging.getLogger(__name__)
-```
-
-
-### Code Conventions
-
-Across the implementation of LitProg there are commonly used aliases for imported modules. In general, the plain `import x` or `import longlib as ll` imports are preferred over `from x import y` so that usage code always includes the context from where they came.
-
-```python
-# lpid = common.imports
-import os
-import io
-import re
-import sys
-import math
-import enum
-import os.path
-import typing as typ
-import pathlib2 as pl
-import operator as op
-import itertools as it
-import functools as ft
-
-InputPaths = typ.Sequence[str]
-FilePaths = typ.Iterable[pl.Path]
-
-ExitCode = int
-```
-
-Since the reader may not have access to the output files and be able to look at all symbols that have been imported into a module, it is better to establish ideoms/conventions about imported modules and have fully qualified references to the attributes of a module, rather than relying on those attributes having been imported and injected into the scope of the current module.
-
 ## Glossary
 
 - [Input] Source Files: Markdown based inputs

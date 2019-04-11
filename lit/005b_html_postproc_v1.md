@@ -2,9 +2,10 @@
 filepath     : "src/litprog/html_postproc_v1.py"
 inputs       : [
     "license_header_boilerplate",
+    "generated_preamble",
     "common.imports",
-    "html_postproc_v1.imports",
     "module_logger",
+    "html_postproc_v1.imports",
     "html_postproc_v1.code",
 ]
 ```
