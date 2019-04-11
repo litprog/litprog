@@ -494,7 +494,7 @@ SCREEN_STYLES = """
         color: #000;
         font-size: 20px;
         line-height: 1.5em;
-        background: #F2F1F1;
+        background: #F1F0F0;
         width: 100%;
 
         transition: background 1200ms linear 150ms, color 0ms linear 300ms;
@@ -508,9 +508,9 @@ SCREEN_STYLES = """
         min-width: 20em;
         min-height: 120em;
         max-width: 38em;
-        box-shadow: #888 0px 20px 30px -10px;
+        box-shadow: #888 0px 10px 30px 0px;
 
-        background: #FAFAFA;
+        background: #FAF8F8;
         transition: background 1200ms linear 150ms;
         will-change: background;
     }
