@@ -32,6 +32,7 @@ import logging
 log = logging.getLogger(__name__)
 
 import time
+import shlex
 import threading
 import subprocess as sp
 
@@ -89,6 +90,19 @@ def _start_reader(sp_output_pipe: typ.IO[bytes], encoding: str = "utf-8") -> Cap
     return CapturingThread(read_loop_thread, captured_lines)
 
 
+AnyCommand = typ.Union[str, typ.List[str]]
+
+
+def _normalize_command(command: AnyCommand) -> typ.List[str]:
+    if isinstance(command, str):
+        return shlex.split(command)
+    elif isinstance(command, list):
+        return command
+    else:
+        err_msg = f"Invalid command: {command}"
+        raise Exception(err_msg)
+
+
 class InteractiveSession:
 
     encoding: str
@@ -100,9 +114,10 @@ class InteractiveSession:
     _in_cl : typ.List[CapturedLine]
     _out_ct: CapturingThread
     _err_ct: CapturingThread
+    # class InteractiveSession: ...
 
     def __init__(
-        self, cmd: typ.Sequence[str], *, env: typ.Optional[Environ] = None, encoding: str = "utf-8"
+        self, cmd: AnyCommand, *, env: typ.Optional[Environ] = None, encoding: str = "utf-8"
     ) -> None:
         _env: Environ
         if env is None:
@@ -114,8 +129,9 @@ class InteractiveSession:
         self.start    = time.time()
         self._retcode = None
 
-        log.info(f"popen {cmd}")
-        self._proc = sp.Popen(cmd, stdin=sp.PIPE, stdout=sp.PIPE, stderr=sp.PIPE, env=_env)
+        cmd_parts = _normalize_command(cmd)
+        log.info(f"popen {cmd_parts}")
+        self._proc = sp.Popen(cmd_parts, stdin=sp.PIPE, stdout=sp.PIPE, stderr=sp.PIPE, env=_env)
 
         _enc = encoding
 
@@ -123,6 +139,7 @@ class InteractiveSession:
         self._out_ct = _start_reader(self._proc.stdout, _enc)
         self._err_ct = _start_reader(self._proc.stderr, _enc)
 
+    # class InteractiveSession: ...
     def send(self, input_str: str, delay: float = 0.01) -> None:
         self._in_cl.append(CapturedLine(time.time(), input_str))
         input_data = input_str.encode(self.encoding)
@@ -132,10 +149,18 @@ class InteractiveSession:
         if delay:
             time.sleep(delay)
 
+    # class InteractiveSession: ...
     @property
     def retcode(self) -> int:
         return self.wait()
 
+    def _assert_retcode(self) -> None:
+        if self._retcode is None:
+            raise AssertionError(
+                "'InteractiveSession.wait()' must be called " + " before accessing captured output."
+            )
+
+    # class InteractiveSession: ...
     def wait(self, timeout=1) -> int:
         if self._retcode is not None:
             return self._retcode
@@ -164,12 +189,7 @@ class InteractiveSession:
         self._retcode = returncode
         return returncode
 
-    def _assert_retcode(self) -> None:
-        if self._retcode is None:
-            raise AssertionError(
-                "'InteractiveSession.wait()' must be called " + " before accessing captured output."
-            )
-
+    # class InteractiveSession: ...
     def iter_stdout(self) -> typ.Iterable[str]:
         self._assert_retcode()
         for ts, line in self._out_ct.lines:

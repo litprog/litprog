@@ -1,6 +1,6 @@
 ## Parsing
 
-A `Context` object holds all results from the parsing phase. We'll get into the other datastructures used here in a moment, but first let's focus on what we're trying get as a result of parsing. The idea here is to find all the fenced blocks in the markdown files and build mappings/dict objects using the `lpid`/`LitprogID` as keys. Note that there can be multiple `FencedBlocks` with the same `lpid`, which are simply concatenated together. To know how these blocks are to be treated, we collect options for each lpid. In the most simple case such an option is for example the language.
+A `ParseContext` object holds all results from the parsing phase. We'll get into the other datastructures used here in a moment, but first let's focus on what we're trying get as a result of parsing. The idea here is to find all the fenced blocks in the markdown files and build mappings/dict objects using the `lpid`/`LitprogID` as keys. Note that there can be multiple `FencedBlocks` with the same `lpid`, which are simply concatenated together. To know how these blocks are to be treated, we collect options for each lpid. In the most simple case such an option is for example the language.
 
 Some notes library choices:
 
@@ -20,6 +20,7 @@ import uuid
 ## Functional Core
 
 Everything up to here has been the imperative shell of our command, now we will continue with the functional core that will be tested more thoroughly.
+
 
 ### File-System Utilities
 
@@ -81,17 +82,20 @@ class FencedBlock(typ.NamedTuple):
 
 Block = typ.Union[RawFencedBlock, FencedBlock]
 
+BlocksById = typ.Dict[LitprogID, typ.List[FencedBlock]]
+OptionsById= typ.Dict[LitprogID, BlockOptions]
 
-class Context:
 
-    blocks_by_id : typ.Dict[LitprogID, typ.List[FencedBlock]]
-    options_by_id: typ.Dict[LitprogID, BlockOptions]
+class ParseContext:
+
+    blocks : BlocksById
+    options: OptionsById
 
     def __init__(self) -> None:
         bbid = collections.defaultdict(list)
 
-        self.blocks_by_id  = bbid
-        self.options_by_id = {}
+        self.blocks  = bbid
+        self.options = {}
 
 
 class ParseError(Exception):
@@ -108,15 +112,16 @@ class ParseError(Exception):
         super(ParseError, self).__init__(msg)
 
 
-def parse_context(md_paths: FilePaths) -> Context:
-    context = Context()
+def parse_context(md_paths: FilePaths) -> ParseContext:
+    ctx = ParseContext()
 
     for path in md_paths:
         log.debug(f"parsing {path}")
         for rfb in _iter_raw_fenced_blocks(path):
             code_block = _parse_code_block(rfb)
-            _add_to_context(context, code_block)
-    return context
+            _add_to_context(ctx, code_block)
+
+    return ctx
 
 
 def _iter_raw_fenced_blocks(
@@ -383,19 +388,19 @@ def _parse_code_block(raw_fenced_block: RawFencedBlock) -> FencedBlock:
     )
 
 
-def _add_to_context(context: Context, code_block: FencedBlock) -> None:
+def _add_to_context(ctx: ParseContext, code_block: FencedBlock) -> None:
     is_duplicate_lpid = (
-        code_block.lpid in context.blocks_by_id
+        code_block.lpid in ctx.blocks
         and code_block.options['lptype'] != 'raw_block'
     )
     if is_duplicate_lpid:
         err_msg = f"Duplicated definition of {code_block.lpid}"
         raise ParseError(err_msg)
 
-    context.blocks_by_id[code_block.lpid].append(code_block)
+    ctx.blocks[code_block.lpid].append(code_block)
 
-    if code_block.lpid in context.options_by_id:
-        prev_options = context.options_by_id[code_block.lpid]
+    if code_block.lpid in ctx.options:
+        prev_options = ctx.options[code_block.lpid]
         for key, val in code_block.options.items():
             is_redeclared_key = (
                 key in prev_options and prev_options[key] != val
@@ -419,7 +424,7 @@ def _add_to_context(context: Context, code_block: FencedBlock) -> None:
             else:
                 prev_options[key] = val
     else:
-        context.options_by_id[code_block.lpid] = code_block.options
+        ctx.options[code_block.lpid] = code_block.options
 ```
 
 ```yaml
@@ -427,8 +432,10 @@ lpid    : test_parse
 lptype  : session
 command : /usr/bin/env python3
 requires: [
-    'src/litprog/cli.py',
     'src/litprog/parse.py',
+    'src/litprog/build.py',
+    'src/litprog/session.py',
+    'src/litprog/cli.py',
 ]
 ```
 
