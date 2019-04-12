@@ -6,6 +6,55 @@ language: en
 authors : [
     "Manuel Barkhau",
 ]
+manifest: {
+    "overview": [
+        "technical_pitch",
+        "touchy_feely_pitch",
+        "use_cases",
+    ],
+    "user_docs": [
+        "example_usage",
+        "public_api",
+    ],
+    "how_to_write": [
+        "project_organization",
+        "document_structure",
+        "writing_style",
+    ],
+    "impl_prelude": [
+        "boilerplate",
+        "code_style",
+        "types_and_datastructures",
+    ],
+    "porcelain": [
+        "config",
+        "cli",
+        "watch",
+    ],
+    "plumbing": [
+        "parse",
+        "build",
+        "session",
+        "metaprogramming",
+    ],
+    "docgen": [
+        "md2html",
+        "html_postproc",
+        "html_postproc_v0",
+        "general_ui",
+        "screen_ui",
+        "print_ui",
+        "html2pdf",
+        "pdf_join",
+    ],
+    "plugins": [
+        "spellcheck",
+        "readability",
+        "rename",
+        "python_fmt",
+        "lint_litprog",
+    ],
+}
 ```
 
 # Introduction to LitProg
