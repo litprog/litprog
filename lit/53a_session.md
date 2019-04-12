@@ -215,6 +215,9 @@ The `send` method simply encodes and writes a string to the stdin of the subproc
 
 A delay is added at the end so the timing of inputs does not get ahead of the captured outputs. Put differently, it leaves enough time for the subprocess to generate its output and have it be captured before the next input is sent. This is not ideal as it limits execution to 100 lines per second. If it becomes a problem we could introduce `lpflags: nodelay` which would set the delay to 0, with the consequence being that all of the inputs happen at once before any output is captured.
 
+Using the delay causes processing to be waaay slower that we would like it to be. A better approach would be to have markers inserted into the output which can then be parsed to determine the order which the subprocess wrote.
+
+
 ```python
 # lpid = session.code
 # class InteractiveSession: ...

@@ -33,3 +33,23 @@ a text without reading footnotes.
 For anecdotes or other text not directly related to understanding
 the program.
 
+
+
+### Definitions/Vocuabulary
+
+TODO: Syntax
+
+    kramdown
+    : A Markdown-superset converter
+
+    Maruku
+    :     Another Markdown-superset converter
+
+The glossary is used as a source for spell checking. In addition
+to a standard english word list and
+
+
+### Editor Affordances
+
+Ctrl+Shift+R -> ## Chapter
+Ctrl+R -> Section

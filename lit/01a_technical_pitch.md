@@ -1,3 +1,4 @@
+
 ## Why use LitProg?
 
 You probably shouldn't, there are good reasons it has not found wide adoption in industry or Open Source and we will go into those in this chapter.

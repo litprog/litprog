@@ -104,7 +104,7 @@ def _configure_logging(verbosity: int = 0) -> None:
 ```
 
 
-### Imperative Shell: CLI command `litprog`
+### CLI Command Group `litprog`
 
 Since we're declaring the entry point here, we import most of the other modules directly (and all of them indirectly). While other modules are written in a functional style and have unit tests, this module represents the [imperative shell](https://www.destroyallsoftware.com/screencasts/catalog/functional-core-imperative-shell) and thus only has a basic integration test. 
 
@@ -115,6 +115,7 @@ import click
 import litprog.parse
 import litprog.build
 import litprog.session
+import litprog.types as lptyp
 ```
 
 We'll be using the venerable [click][ref_click_lib] library to implement our CLI. `click` complains about use of `from __future__ import unicode_literals` [for some reason that I haven't dug into yet][ref_click_py3]. In the course of compiling LitProg to universal python using `lib3to6` the import is added. 
@@ -396,7 +397,8 @@ MARKDOWN_FILE_EXTENSIONS = {
 }
 ```
 
-This helper function scans the file system based on arguments to a subcommand. Note that paths that are passed directly as arguments are always selected, regardless of extension, but files that are in sub-directories are only selected if they have one of the [known extensions for markdown files](https://superuser.com/questions/249436/file-extension-for-markdown-files).
+This helper function scans the file system based on arguments to a subcommand. Note that paths that are passed directly as arguments are always selected, regardless of extension, but files that are in sub-directories are only selected if they have one of the [known extensions for markdown files][ref_md_file_extensons].
+
 
 ```python
 # lpid = cli.code
@@ -476,3 +478,5 @@ if __name__ == '__main__':
 [ref_click_lib]: https://click.palletsprojects.com
 
 [ref_click_py3]: https://click.palletsprojects.com/en/5.x/python3/
+
+[ref_md_file_extensons]: https://superuser.com/questions/249436/file-extension-for-markdown-files

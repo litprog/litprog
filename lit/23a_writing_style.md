@@ -2,7 +2,6 @@
 
 While there are many (much more authoritative) sources on writing good prose, the specific kind of prose of a literate program, and the specific tooling used to compile it, does lend some justification for a short chapter with reccomendations on writing style.
 
-
 #### Itemised Lists are Fantastic
 
 Comma separation should be reserved for very short lists, where
@@ -32,6 +31,10 @@ When expressing a relationship between `x` and `y`, prefer `x` of
 `y` as opposed to `y`'s `x`. `x` of `y` doesn't involve quotes
 (which is especially good when , it sounds more punchy and is
 therefore clearer.
+
+#### Hedging is Giving in to Bullies
+
+Assume good faith on the part of the reader. A reader who does not have good faith, will disregard your attempts to hedge against their criticisms. In the meantime you and all of your readers suffer through endless pleading to not be misunderstood.
 
 
 ### Single Source of Truth

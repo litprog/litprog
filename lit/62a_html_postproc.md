@@ -10,7 +10,8 @@ which `litprog` generates from the program text.
 
  - Table of Contents (from h1: part, h2: chapter headings)
  - Overview (from h1, h2, h3: section headings and summaries)
- - Glossary (from definitions)
+ - Glossary from [definition lists](https://python-markdown.github.io/extensions/definition_lists/)
+ - Contributor Stats
 
 
 ```yaml

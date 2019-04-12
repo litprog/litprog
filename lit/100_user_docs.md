@@ -1,3 +1,4 @@
+
 ## Compile/Build Phases
 
 Some of the considerations that go into what the phases of the compiler do

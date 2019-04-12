@@ -74,6 +74,8 @@ When a reader is reading your text, they are building up a context in their mind
     + Feedback
     + Fix/Refactor/Edit
 
+https://www.gwern.net/About#writing-checklist
+
 
 
 ### Writing Workflow

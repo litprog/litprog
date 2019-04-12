@@ -1,3 +1,4 @@
+
 ## Why use LitProg?
 
 Long term thinking pays of in the long run.

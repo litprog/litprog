@@ -56,8 +56,9 @@ class ParseError(Exception):
 
 def parse_context(md_paths: FilePaths) -> lptyp.ParseContext:
     ctx = lptyp.ParseContext()
+    ctx.md_paths.extend(md_paths)
 
-    for path in md_paths:
+    for path in ctx.md_paths:
         log.debug(f"parsing {path}")
         for rfb in _iter_raw_fenced_blocks(path):
             code_block = _parse_code_block(rfb)

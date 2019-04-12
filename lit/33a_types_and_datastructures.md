@@ -1,4 +1,4 @@
-# Common Type Definitions
+## Common Type Definitions and Datastructures
 
 The `litprog` program has some types that are used across boundaries of submodules. They are declared in `types.py` and imported as `import litprog.types as lptyp`.
 
@@ -12,7 +12,7 @@ inputs       : [
 ]
 ```
 
-## Parse -> Build
+### Parse -> Build
 
 These types relate to the interaction between the `parse` and `build` modules. `parse` extracts all code blocks from the markdown files which `build` uses as inputs to generate code files and run the interactive sessions.
 
@@ -68,10 +68,12 @@ OptionsById = typ.Dict[LitprogID, BlockOptions]
 
 class ParseContext:
 
-    blocks : BlocksById
-    options: OptionsById
+    md_paths: FilePaths
+    blocks  : BlocksById
+    options : OptionsById
 
     def __init__(self) -> None:
+        self.md_paths = []
         self.blocks  = collections.defaultdict(list)
         self.options = {}
 
@@ -94,14 +96,16 @@ ProgResultsById = typ.Dict[LitprogID, ProcResult]
 
 class BuildContext:
 
+    md_paths        : FilePaths
     blocks          : BlocksById
     options         : OptionsById
     captured_outputs: OutputsById
     captured_procs  : ProgResultsById
     
     def __init__(self, pctx: ParseContext) -> None:
-        self.blocks = pctx.blocks
-        self.options = pctx.options
+        self.md_paths         = pctx.md_paths
+        self.blocks           = pctx.blocks
+        self.options          = pctx.options
         self.captured_outputs = {}
-        self.captured_procs = {}
+        self.captured_procs   = {}
 ```
