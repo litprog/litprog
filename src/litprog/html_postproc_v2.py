@@ -1,3 +1,4 @@
+
 # This file is part of the litprog project
 # https://gitlab.com/mbarkhau/litprog
 #
@@ -26,7 +27,7 @@ import itertools as it
 import functools as ft
 
 InputPaths = typ.Sequence[str]
-FilePaths  = typ.Iterable[pl.Path]
+FilePaths = typ.Iterable[pl.Path]
 
 ExitCode = int
 import logging
@@ -36,9 +37,8 @@ import re
 import bs4
 import pyphen
 
-PARSER_MODULE = "html.parser"
+PARSER_MODULE = 'html.parser'
 PARSER_MODULE = 'lxml'
-
 
 def _iter_filepaths(params: typ.List[str]) -> FilePaths:
     for param in params:
@@ -49,10 +49,16 @@ def _iter_filepaths(params: typ.List[str]) -> FilePaths:
             dirs = [path]
             while dirs:
                 for dirpath, dirnames, filenames in os.walk(dirs.pop()):
-                    dirpaths = [pl.Path(dirpath, dirname) for dirname in dirnames]
+                    dirpaths = [
+                        pl.Path(dirpath, dirname)
+                        for dirname in dirnames
+                    ]
                     dirs.extend(dirpaths)
 
-                    filepaths = [pl.Path(dirpath, filename) for filename in filenames]
+                    filepaths = [
+                        pl.Path(dirpath, filename)
+                        for filename in filenames
+                    ]
                     for filepath in filepaths:
                         if filepath.suffix == ".html":
                             yield filepath
@@ -67,17 +73,27 @@ def _iter_headlines(soup: bs4.BeautifulSoup) -> typ.Iterable[bs4.element.Tag]:
             yield h
 
 
-INLINE_TAG_NAMES = {"span", "b", "i", "a", "em", "small", "strong", "sub", "sup"}
+INLINE_TAG_NAMES = {
+    "span",
+    "b",
+    "i",
+    "a",
+    "em",
+    "small",
+    "strong",
+    "sub",
+    "sup",
+}
 
 
-SOFT_HYPHEN = "&shy;"
-SOFT_HYPHEN = "\u00AD"
+SOFT_HYPHEN  = "&shy;"
+SOFT_HYPHEN  = "\u00AD"
 
 WORD_RE = re.compile(r"\w+", flags=re.UNICODE)
 
 
 def _iter_shyphenated(dic: pyphen.Pyphen, text: str) -> typ.Iterable[str]:
-    text     = text.replace("\u00AD", "").replace("&shy;", "")
+    text = text.replace("\u00AD", "").replace("&shy;", "")
     prev_end = 0
     for match in WORD_RE.finditer(text):
         start, end = match.span()
@@ -88,7 +104,7 @@ def _iter_shyphenated(dic: pyphen.Pyphen, text: str) -> typ.Iterable[str]:
         if len(word) < 6:
             yield word
         else:
-            yield dic.inserted(word, hyphen=SOFT_HYPHEN)
+            yield dic.inserted(word, hyphen=SOFT_HYPHEN) 
 
         prev_end = end
 
@@ -113,7 +129,7 @@ def _postprocess_soup(soup: bs4.BeautifulSoup) -> str:
             next_sibling = next_sibling.next_sibling
         assert isinstance(next_sibling, bs4.element.Tag)
 
-        if next_sibling.name != 'p':
+        if next_sibling.name != "p":
             continue
 
         section_start = soup.new_tag("div")
@@ -128,8 +144,9 @@ def _postprocess_soup(soup: bs4.BeautifulSoup) -> str:
     elements = it.chain(soup.find_all(f"p"), soup.find_all(f"li"))
     for elem in elements:
         for part in elem.contents:
-            is_text_elem = isinstance(part, bs4.element.NavigableString) or (
-                part.name in INLINE_TAG_NAMES and part.string
+            is_text_elem = (
+                isinstance(part, bs4.element.NavigableString)
+                or (part.name in INLINE_TAG_NAMES and part.string)
             )
             if is_text_elem:
                 shyphenated = _shyphenate(dic, part.string)
@@ -137,7 +154,7 @@ def _postprocess_soup(soup: bs4.BeautifulSoup) -> str:
             # print(type(part), len(part), str(part)[:10])
 
     return str(soup)
-
+    
 
 def _postproc_html(filepath: pl.Path) -> None:
     with filepath.open(mode="rb") as fh:
@@ -153,9 +170,9 @@ def _postproc_html(filepath: pl.Path) -> None:
     print("<<<", tmp_filepath)
     # tmp_filepath.rename(filepath)
 
-
+    
 def main(args: typ.List[str] = sys.argv[1:]) -> int:
-    flags  = set(arg for arg in args if arg.startswith("-"))
+    flags = set(arg for arg in args if arg.startswith("-"))
     params = [arg for arg in args if arg not in flags]
 
     for filepath in _iter_filepaths(params):

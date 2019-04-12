@@ -1,3 +1,4 @@
+
 # This file is part of the litprog project
 # https://gitlab.com/mbarkhau/litprog
 #
@@ -26,7 +27,7 @@ import itertools as it
 import functools as ft
 
 InputPaths = typ.Sequence[str]
-FilePaths  = typ.Iterable[pl.Path]
+FilePaths = typ.Iterable[pl.Path]
 
 ExitCode = int
 
@@ -65,7 +66,6 @@ class FencedBlock(typ.NamedTuple):
     options    : BlockOptions
     content    : str
 
-
 Block = typ.Union[RawFencedBlock, FencedBlock]
 
 BlocksById  = typ.Dict[LitprogID, typ.List[FencedBlock]]
@@ -74,10 +74,12 @@ OptionsById = typ.Dict[LitprogID, BlockOptions]
 
 class ParseContext:
 
-    blocks : BlocksById
-    options: OptionsById
+    md_paths: FilePaths
+    blocks  : BlocksById
+    options : OptionsById
 
     def __init__(self) -> None:
+        self.md_paths = []
         self.blocks  = collections.defaultdict(list)
         self.options = {}
 
@@ -93,18 +95,21 @@ class ProcResult(typ.NamedTuple):
     stderr   : typ.List[CapturedLine]
 
 
-OutputsById     = typ.Dict[LitprogID, str]
+
+OutputsById = typ.Dict[LitprogID, str       ]
 ProgResultsById = typ.Dict[LitprogID, ProcResult]
 
 
 class BuildContext:
 
+    md_paths        : FilePaths
     blocks          : BlocksById
     options         : OptionsById
     captured_outputs: OutputsById
     captured_procs  : ProgResultsById
-
+    
     def __init__(self, pctx: ParseContext) -> None:
+        self.md_paths         = pctx.md_paths
         self.blocks           = pctx.blocks
         self.options          = pctx.options
         self.captured_outputs = {}

@@ -1,3 +1,4 @@
+
 # This file is part of the litprog project
 # https://gitlab.com/mbarkhau/litprog
 #
@@ -26,7 +27,7 @@ import itertools as it
 import functools as ft
 
 InputPaths = typ.Sequence[str]
-FilePaths  = typ.Iterable[pl.Path]
+FilePaths = typ.Iterable[pl.Path]
 
 ExitCode = int
 import logging
@@ -36,18 +37,16 @@ import litprog.parse
 import litprog.session
 import litprog.types as lptyp
 
-
 class GeneratorResult:
     output: typ.Optional[str]
     done  : bool
     error : bool
 
-    def __init__(
-        self,
+    def __init__(self, 
         output: typ.Optional[str] = None,
         *,
-        done : typ.Optional[bool] = None,
-        error: bool = False,
+        done  : typ.Optional[bool] = None,
+        error : bool = False,
     ) -> None:
         self.output = output
         if done is None:
@@ -57,26 +56,38 @@ class GeneratorResult:
         self.error = error
 
 
-GeneratorFunc = typ.Callable[[lptyp.LitprogID, lptyp.BuildContext], GeneratorResult]
+GeneratorFunc = typ.Callable[
+    [lptyp.LitprogID, lptyp.BuildContext],
+    GeneratorResult,
+]
 
 
-def gen_meta_output(lpid: lptyp.LitprogID, ctx: lptyp.BuildContext) -> GeneratorResult:
+def gen_meta_output(
+    lpid: lptyp.LitprogID,
+    ctx: lptyp.BuildContext,
+) -> GeneratorResult:
     log.warning(f"lptype=meta not implemented")
     return GeneratorResult(done=True)
-
-
-def gen_raw_block_output(lpid: lptyp.LitprogID, ctx: lptyp.BuildContext) -> GeneratorResult:
-    output = "".join("".join(l.val for l in block.lines) for block in ctx.blocks[lpid])
+def gen_raw_block_output(
+    lpid: lptyp.LitprogID,
+    ctx: lptyp.BuildContext,
+) -> GeneratorResult:
+    output = "".join(
+        "".join(l.val for l in block.lines)
+        for block in ctx.blocks[lpid]
+    )
     return GeneratorResult(output)
-
-
-def gen_multi_block_output(lpid: lptyp.LitprogID, ctx: lptyp.BuildContext) -> GeneratorResult:
+def gen_multi_block_output(
+    lpid: lptyp.LitprogID,
+    ctx: lptyp.BuildContext,
+) -> GeneratorResult:
     log.warning(f"lptype=multi_block not implemented")
     return GeneratorResult(done=True)
-
-
-def gen_out_file_output(lpid: lptyp.LitprogID, ctx: lptyp.BuildContext) -> GeneratorResult:
-    options           = ctx.options[lpid]
+def gen_out_file_output(
+    lpid: lptyp.LitprogID,
+    ctx: lptyp.BuildContext,
+) -> GeneratorResult:
+    options = ctx.options[lpid]
     required_inputs   = set(options['inputs'])
     completed_outputs = set(ctx.captured_outputs.keys())
     missing_inputs    = required_inputs - completed_outputs
@@ -84,7 +95,10 @@ def gen_out_file_output(lpid: lptyp.LitprogID, ctx: lptyp.BuildContext) -> Gener
     if any(missing_inputs):
         return GeneratorResult(done=False)
 
-    output_parts = [ctx.captured_outputs[input_lpid] for input_lpid in options['inputs']]
+    output_parts = [
+        ctx.captured_outputs[input_lpid]
+        for input_lpid in options['inputs']
+    ]
 
     # TODO: Add preulude/postscript for each block
     #   this may be needed to read content back in after formatting
@@ -93,10 +107,11 @@ def gen_out_file_output(lpid: lptyp.LitprogID, ctx: lptyp.BuildContext) -> Gener
 
     output = "".join(output_parts)
     return GeneratorResult(output)
-
-
-def gen_session_output(lpid: lptyp.LitprogID, ctx: lptyp.BuildContext) -> GeneratorResult:
-    options         = ctx.options[lpid]
+def gen_session_output(
+    lpid: lptyp.LitprogID,
+    ctx: lptyp.BuildContext,
+) -> GeneratorResult:
+    options = ctx.options[lpid]
     required_blocks = set(options.get('requires', []))
     captured_blocks = set(ctx.captured_outputs.keys())
     missing_blocks  = required_blocks - captured_blocks
@@ -121,15 +136,15 @@ def gen_session_output(lpid: lptyp.LitprogID, ctx: lptyp.BuildContext) -> Genera
         log.info(f"  session block {lpid:<15} done. RETCODE: {exit_code} ok.")
         return GeneratorResult(output)
     else:
-        log.info(f"  session block {lpid:<15} fail. RETCODE: {exit_code} invalid!")
+        log.info(
+            f"  session block {lpid:<15} fail. RETCODE: {exit_code} invalid!"
+        )
         sys.stderr.write(output)
         err_msg = f"Error processing session {lpid}"
         log.error(err_msg)
         # TODO: This is a bit harsh to do here. Probably
         #   we should raise an exception.
         return GeneratorResult(error=True)
-
-
 OUTPUT_GENERATORS_BY_TYPE: typ.Mapping[str, GeneratorFunc] = {
     'meta'       : gen_meta_output,
     'raw_block'  : gen_raw_block_output,
@@ -137,10 +152,11 @@ OUTPUT_GENERATORS_BY_TYPE: typ.Mapping[str, GeneratorFunc] = {
     'out_file'   : gen_out_file_output,
     'session'    : gen_session_output,
 }
-
-
-def write_output(lpid: lptyp.LitprogID, ctx: lptyp.BuildContext) -> None:
-    options        = ctx.options[lpid]
+def write_output(
+    lpid: lptyp.LitprogID,
+    ctx: lptyp.BuildContext,
+) -> None:
+    options = ctx.options[lpid]
     maybe_filepath = options.get('filepath')
     if maybe_filepath is None:
         return
@@ -154,14 +170,12 @@ def write_output(lpid: lptyp.LitprogID, ctx: lptyp.BuildContext) -> None:
         filepath.chmod(filepath.stat().st_mode | 0o100)
 
     log.info(f"wrote to '{filepath}'")
-
-
 def build(parse_ctx: lptyp.ParseContext) -> ExitCode:
     ctx = lptyp.BuildContext(parse_ctx)
 
     option_ids = set(ctx.options.keys())
-    block_ids  = set(ctx.blocks.keys())
-    all_ids    = option_ids | block_ids
+    block_ids = set(ctx.blocks.keys())
+    all_ids = option_ids | block_ids
 
     while len(ctx.captured_outputs) < len(all_ids):
 
@@ -178,7 +192,7 @@ def build(parse_ctx: lptyp.ParseContext) -> ExitCode:
                 log.error(f"lptype={litprog_type} not implemented")
                 return 1
 
-            res         : GeneratorResult = generator_func(lpid, ctx)
+            res: GeneratorResult = generator_func(lpid, ctx)
             if res.error:
                 log.error(f"{litprog_type:>9} block {lpid:>25} had an error.")
                 return 1
