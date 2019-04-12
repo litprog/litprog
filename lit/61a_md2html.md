@@ -1,3 +1,16 @@
+```yaml
+filepath: "src/litprog/md2html.py"
+inputs  : [
+    "license_header_boilerplate",
+    "generated_preamble",
+    "common.imports",
+    "module_logger",
+    "md2html.code",
+]
+```
+
+```python
+# lpid=md2html.code
 import io
 import re
 import sys
@@ -511,3 +524,4 @@ def main(args=sys.argv[1:]):
 
 if __name__ == '__main__':
     main()
+```

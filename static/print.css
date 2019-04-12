@@ -1,0 +1,64 @@
+@media print {
+    div.firstpara {
+        page-break-inside: avoid;
+    }
+
+    code {
+        padding: 0.07em 0.20em 0.14em 0.20em;
+    }
+
+    p a {
+        color: black;
+        text-decoration: none;
+        border-bottom: 1px dashed #666;
+    }
+    body {
+        /* A6 - for kindle */
+        font-size: 8pt;
+        line-height: 1.35em;
+
+        /* A5 - for A4 and US-Letter booklets */
+        font-size: 10.0pt;
+        line-height: 1.4em;
+
+        /* 1of2col - for 2 column paper layout */
+        font-size: 8.0pt;
+        line-height: 1.35em;
+    }
+
+    @page {
+        /* A6 - margins optimized for kindle */
+        padding: 0;
+        margin: 14mm 7.5mm;
+        size: 105mm 148mm;
+    }
+
+    @page {
+        /* A5 - for booklets */
+        padding: 0;
+        margin: 10mm;
+        size: 148mm 210mm;
+    }
+
+    @page {
+        /* Half-Letter - for booklets */
+        padding: 0;
+        margin: 10mm;
+        size: 5.5in 8.5in;
+    }
+
+    @page {
+        /* 1of2col-Letter - for 2 column paper layout */
+        padding: 0;
+        margin: 10mm 8mm;
+        size: 4.25in 11in;
+    }
+
+    @page {
+        /* 1of2col-A4 - for 2 column paper layout */
+        padding: 0;
+        margin: 10mm 8mm;
+        size: 105mm 297mm;
+    }
+
+}

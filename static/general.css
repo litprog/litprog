@@ -1,0 +1,104 @@
+
+html, body {
+    padding: 0;
+    margin: 0;
+
+    text-align: justify;
+    text-justify: inter-word;
+    webkit-font-smoothing: antialiased;
+}
+
+body.font-slab {font-family: "Bitter", Gelasio, Georgia, serif;}
+body.font-serif {font-family: Merriweather, Gelasio, Georgia, "Times New Roman", serif;}
+body.font-sans {font-family: "PT Sans", Helvetica, Arial, sans-serif;}
+
+body.font-serif code {font-size: 0.95em;}
+body.font-serif code {font-size: 0.9em;}
+body.font-sans code {font-size: 0.9em;}
+
+table {
+    border-collapse: collapse;
+    text-align: left;
+}
+th, td {
+    border: 1px solid #AAA;
+    padding: 0.2em 0.4em;
+    border-width: 0 1px;
+}
+tr td {
+    border-bottom: 1px dashed #CCC;
+}
+th:last-child, td:last-child {
+    border-right: none;
+}
+th:first-child, td:first-child {
+    border-left: none;
+}
+th {
+    border-bottom: 1px solid #AAA;
+    padding-top: 0.5em;
+    padding-bottom: 0.5em;
+}
+tr:first-child td {
+    padding-top: 0.5em;
+}
+tr:last-child td {
+    border-bottom: none;
+}
+p, ul, ol {
+    -ms-hyphens: auto;
+    -webkit-hyphens: auto;
+    hyphens: auto;
+
+    hyphenate-limit-chars: 7 3 3;
+}
+h1 {
+    page-break-before: always;
+    margin: 3em 0 2em 0;
+}
+sup {
+    line-height: 1.1em;
+}
+h1, h2, h3, h4, h5 {
+    margin-top: 2em;
+    margin-bottom: 1em;
+    letter-spacing: 0.1em;
+    font-weight: bold;
+    line-height: 1.3em;
+    counter-reset: paragraph 1;
+    counter-reset: section 1;
+    font-variant: small-caps;
+    text-align: left;
+    transition: color 0ms linear 300ms;
+}
+
+h2:hover:before, h3:hover:before, h4:hover:before, h5:hover:before {
+    content: "‣";
+    display: inline-block;
+    margin-left: -1em;
+    width: 1em;
+}
+
+h1 {
+    margin-bottom: 1em;
+    text-align: center;
+}
+
+h1 > a, h2 > a, h3 > a, h4 > a, h5 > a {
+    color: black;
+    text-decoration: none;
+    transition: color 0ms linear 300ms;
+}
+a, a:visited {
+    color: black;
+}
+
+p, blockquote, div.codehilite, table {
+    margin: 1em 0;
+}
+
+code {
+    border: 1px dotted #AAA;
+    font-size: 0.95em;
+}
+

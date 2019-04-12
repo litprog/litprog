@@ -1,3 +1,18 @@
+TODO: 
+ - Side by side layout on wide screens
+ - TOC and Navigation
+
+### Generated Content
+
+Some parts of a text are more important than others, so in
+order to help users and newbies, there are three things
+which `litprog` generates from the program text.
+
+ - Table of Contents (from h1: part, h2: chapter headings)
+ - Overview (from h1, h2, h3: section headings and summaries)
+ - Glossary (from definitions)
+
+
 ```yaml
 filepath     : "src/litprog/html_postproc_v2.py"
 inputs       : [

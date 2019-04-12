@@ -80,6 +80,16 @@ def gen_raw_block_output(
     return GeneratorResult(output)
 ```
 
+```python
+# lpid = build.code
+def gen_multi_block_output(
+    lpid: lptyp.LitprogID,
+    ctx: lptyp.BuildContext,
+) -> GeneratorResult:
+    log.warning(f"lptype=multi_block not implemented")
+    return GeneratorResult(done=True)
+```
+
 
 ```python
 # lpid = build.code
@@ -152,14 +162,14 @@ def gen_session_output(
         return GeneratorResult(error=True)
 ```
 
-
 ```python
 # lpid = build.code
 OUTPUT_GENERATORS_BY_TYPE: typ.Mapping[str, GeneratorFunc] = {
-    'meta'     : gen_meta_output,
-    'raw_block': gen_raw_block_output,
-    'out_file' : gen_out_file_output,
-    'session'  : gen_session_output,
+    'meta'       : gen_meta_output,
+    'raw_block'  : gen_raw_block_output,
+    'multi_block': gen_multi_block_output,
+    'out_file'   : gen_out_file_output,
+    'session'    : gen_session_output,
 }
 ```
 
@@ -284,3 +294,11 @@ earlier or as its own dependencies were completed.
 #### Partial/Incremental Build
 
 For slow builds it might be worth implementing something to build/run only subsets of the program.
+
+
+#### Transparent Handling of stdin/stdout/stderr for Debugging
+
+To enable terminal based debuggers and so that users can drop into a shell by creating a breakpoint, we should investigate if there is a mode where we don't capture the output of subprocesses, but instead pass everything through transparently. This would presumably imply a serial build.
+
+
+

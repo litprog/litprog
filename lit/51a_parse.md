@@ -148,7 +148,6 @@ LANGUAGE_COMMENT_PATTERNS = {
 }
 
 
-# parse
 LANGUAGE_COMMENT_TEMPLATES = {
     "c++"          : "// {}",
     'actionscript' : "// {}",
@@ -410,3 +409,6 @@ Alternatively, we could add syntax specific parsing for each block, to determine
 
 Some magic is justified if it reduces tedium to bearable levels.
 
+#### Carry forward `lpid`
+
+It's redundant and error prone to have to set the lpid on every code block when the most common case is for subsequent fenced blocks to all belong to the same lpid. If no lpid is specified, it should just use the lpid of the previous block.

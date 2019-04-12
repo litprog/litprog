@@ -117,7 +117,7 @@ import litprog.build
 import litprog.session
 ```
 
-We'll be using the venerable [click][^click_lib_ref] library to implement our CLI. `click` complains about use of `from __future__ import unicode_literals` [for some reason that I haven't dug into yet](https://click.palletsprojects.com/en/5.x/python3/). In the course of compiling LitProg to universal python using `lib3to6` the import is added. 
+We'll be using the venerable [click][ref_click_lib] library to implement our CLI. `click` complains about use of `from __future__ import unicode_literals` [for some reason that I haven't dug into yet][ref_click_py3]. In the course of compiling LitProg to universal python using `lib3to6` the import is added. 
 
 As far as I can tell, everything is behaving as expected, at least using ascii filenames, so the following is used to supress the warning.
 
@@ -266,3 +266,7 @@ import litprog.cli
 if __name__ == '__main__':
     litprog.cli.cli()
 ```
+
+[ref_click_lib]: https://click.palletsprojects.com
+
+[ref_click_py3]: https://click.palletsprojects.com/en/5.x/python3/
