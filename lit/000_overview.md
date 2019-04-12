@@ -6,55 +6,54 @@ language: en
 authors : [
     "Manuel Barkhau",
 ]
-manifest: {
-    "overview": [
-        "technical_pitch",
-        "touchy_feely_pitch",
-        "use_cases",
-    ],
-    "user_docs": [
-        "example_usage",
-        "public_api",
-    ],
-    "how_to_write": [
-        "project_organization",
-        "document_structure",
-        "writing_style",
-    ],
-    "impl_prelude": [
-        "boilerplate",
-        "code_style",
-        "types_and_datastructures",
-    ],
-    "porcelain": [
-        "config",
-        "cli",
-        "watch",
-    ],
-    "plumbing": [
-        "parse",
-        "build",
-        "session",
-        "metaprogramming",
-    ],
-    "docgen": [
-        "md2html",
-        "html_postproc",
-        "html_postproc_v0",
-        "general_ui",
-        "screen_ui",
-        "print_ui",
-        "html2pdf",
-        "pdf_join",
-    ],
-    "plugins": [
-        "spellcheck",
-        "readability",
-        "rename",
-        "python_fmt",
-        "lint_litprog",
-    ],
-}
+manifest: [
+    "overview::overview",
+    "overview::technical_pitch",
+    "overview::touchy_feely_pitch",
+    "overview::use_cases",
+
+    "user_docs::user_docs",
+    "user_docs::example_usage",
+    "user_docs::public_api",
+
+    "how_to_write::how_to_write",
+    "how_to_write::project_organization",
+    "how_to_write::document_structure",
+    "how_to_write::writing_style",
+
+    "impl_prelude::impl_prelude",
+    "impl_prelude::boilerplate",
+    "impl_prelude::code_style",
+    "impl_prelude::types_and_datastructures",
+
+    "porcelain::porcelain",
+    "porcelain::config",
+    "porcelain::cli",
+    "porcelain::watch",
+
+    "plumbing::plumbing",
+    "plumbing::parse",
+    "plumbing::build",
+    "plumbing::session",
+    "plumbing::metaprogramming",
+
+    "docgen::docgen",
+    "docgen::md2html",
+    "docgen::html_postproc",
+    "docgen::html_postproc_v0",
+    "docgen::general_ui",
+    "docgen::screen_ui",
+    "docgen::print_ui",
+    "docgen::html2pdf",
+    "docgen::pdf_join",
+
+    "plugins::plugins",
+    "plugins::spellcheck",
+    "plugins::readability",
+    "plugins::rename",
+    "plugins::python_fmt",
+    "plugins::lint_litprog",
+]
 ```
 
 # Introduction to LitProg
