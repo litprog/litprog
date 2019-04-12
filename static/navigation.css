@@ -1,0 +1,83 @@
+@media screen {
+
+#below-the-fold {
+  display: block;
+}
+#nav {
+  position: absolute;
+  user-select: none;
+  top: -4em;
+  right: 2em;
+}
+#nav > div:before {
+  display: block;
+  font-weight: bold;
+  text-align: center;
+  vertical-align: middle;
+  line-height: 1.1em;
+}
+#nav > div#toggle-theme:before {
+  font-family: sans-serif;
+  content: "☀";
+}
+.font-slab #nav > div#toggle-font:before {content: "F₁";}
+.font-serif #nav > div#toggle-font:before {content: "F₂";}
+.font-sans #nav > div#toggle-font:before {content: "F₃";}
+#nav > div#toggle-print:before {content: "P";}
+.dark #nav > div#toggle-theme:before {content: "☾";}
+#nav > div {
+  display: inline-block;
+  font-weight: bold;
+  margin: 0 0.2em;
+  cursor: pointer;
+  background: #FFF;
+  padding: 0.5em;
+  width: 1em;
+  height: 1em;
+  border-radius: 1em;
+  box-shadow: #888 0 0 10px -2px;
+  transition: background 500ms, box-shadow 300ms;
+
+  position: relative;
+  overflow: hidden;
+}
+#nav > div:hover {
+  box-shadow: #888 0px 1px 15px -2px;
+}
+.dark #nav > div {
+  background: #000;
+}
+
+#nav div:after {
+  content: "";
+  background: #888;
+  display: block;
+  position: absolute;
+  padding: 2em;
+  border-radius: 4em;
+  top: -1em;
+  left: -1em;
+  opacity: 0;
+  transition: all 500ms;
+}
+
+#nav div:active:after {
+  top: 1em;
+  left: 1em;
+  padding: 0;
+  opacity: 1;
+  transition: 0s
+}
+
+}
+
+@media only screen and (max-width: 50em) {
+
+#nav {
+  position: absolute;
+  user-select: none;
+  top: 2em;
+  right: 21
+}
+
+}

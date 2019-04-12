@@ -1,0 +1,83 @@
+  .dark #pdf {
+    background: black;
+  }
+  #pdf {
+    background: white;
+    text-align: center;
+
+    user-select: none;
+    position: absolute;
+
+    left: 50%;
+    margin-left: -14em;
+    width: 26em;
+
+    padding: 1em;
+    min-height: 15em;
+    top: -150em;
+    box-shadow: rgba(150, 150, 150, 0.3) 0px 2px 30px 5px;
+    transition: top 300ms ease-in-out;
+    will-change: top;
+  }
+  #pdf.active {
+    top: 2em;
+  }
+  #pdf a div.onepage, #pdf a div.twopage {
+    position: relative;
+    color: black;
+    background: #fff;
+    border: 1px solid #888;
+    margin: 1em;
+    display: inline-block;
+  }
+  #pdf a div:before, #pdf a div.twopage:after {
+    z-index: 1;
+    top: 3%;
+    position: absolute;
+    font: 0.7em/0.4em black sans-serif;
+    text-align: justify;
+    content: "– — – — – – – — – — – – – — – — – – — –– — – –– – — – — – – – — – — – – — –– — – – — – – — – – — – — — – – — – — – — – — – — – — – — —– — – — – – — –– — – – — – – — – – — – — — – – — – — – — – — – — – — – — —– — – — – – — –– — – – — – – — – – — – — — – – — – — – — – — – — – — – — — – — – — – – – — – — – – – — – — – – — –– — – –– – — – — – – – — – — – – — –– — – – — – – — – – — – — — – – — – — – — – — – — – — – — —– — – — – – — –– — – – — – – — – – — – — — – – — – — – — – — – — – — – — —– — – — – – — –– — – – — – – — – – — – — — – – — – — – — – — – — – — – — —";
+    color: #888;
+    overflow: hidden;
+    display: block;
+    padding: 0 3%;
+    height: 92%
+  }
+  #pdf a div.dense:before, #pdf a div.dense:after {
+    line-height: 0.35;
+    font-size: 0.6em;
+  }
+  #pdf a div.onepage:before {
+    max-width: 90%;
+    padding: 0 6%;
+    left: 0;
+  }
+  #pdf a div.twopage:before {
+    left: 0;
+  }
+  #pdf a div.twopage:before, #pdf a div.twopage:after {
+    max-width: 44%;
+  }
+  #pdf a div.twopage:after {
+    right: 0;
+  }
+  #pdf .a6 {
+    width: calc(1.05 * 3em);
+    height: calc(1.48 * 3em);
+  }
+  #pdf .a5 {
+    width: calc(1.48 * 3em);
+    height: calc(2.10 * 3em);
+  }
+  #pdf .half-letter {
+    width: calc(1.40 * 3em);
+    height: calc(2.16 * 3em);
+  }
+  #pdf .a4 {
+    width: calc(2.96 * 3em);
+    height: calc(2.10 * 3em);
+  }
+  #pdf .letter {
+    width: calc(2.80 * 3em);
+    height: calc(2.16 * 3em);
+  }
