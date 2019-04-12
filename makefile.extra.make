@@ -39,3 +39,15 @@ src/litprog/tmp__main__.py: lit/000_mvp.md src/litprog/__main__.py
 	$(DEV_ENV)/bin/litprog build lit/000_mvp.md
 	$(DEV_ENV)/bin/sjfmt src/litprog/tmp*.py
 
+
+lit_out/out.html.tmp.html: lit/*.md
+	$(DEV_ENV)/bin/litprog build lit/000_mvp.md lit/005c_html_postproc_v2.md
+	$(DEV_ENV)/bin/python src/litprog/html_postproc_v2.py lit_out/out.html
+
+
+src/litprog/__main__.py: lit/*.md
+	$(DEV_ENV)/bin/litprog build -v lit/*.md
+
+.PHONY: it
+it: src/litprog/__main__.py
+# it: lit_out/out_postproc.html

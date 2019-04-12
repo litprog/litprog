@@ -9,17 +9,19 @@
 # This file should not be edited. #
 #  Changes will be overwritten!   #
 ###################################
-
 import os
 import io
 import re
 import sys
 import math
+import time
 import enum
 import os.path
+import collections
 import typing as typ
 import pathlib2 as pl
 import operator as op
+import datetime as dt
 import itertools as it
 import functools as ft
 
@@ -66,6 +68,11 @@ def gen_meta_output(lpid: lptyp.LitprogID, ctx: lptyp.BuildContext) -> Generator
 def gen_raw_block_output(lpid: lptyp.LitprogID, ctx: lptyp.BuildContext) -> GeneratorResult:
     output = "".join("".join(l.val for l in block.lines) for block in ctx.blocks[lpid])
     return GeneratorResult(output)
+
+
+def gen_multi_block_output(lpid: lptyp.LitprogID, ctx: lptyp.BuildContext) -> GeneratorResult:
+    log.warning(f"lptype=multi_block not implemented")
+    return GeneratorResult(done=True)
 
 
 def gen_out_file_output(lpid: lptyp.LitprogID, ctx: lptyp.BuildContext) -> GeneratorResult:
@@ -124,10 +131,11 @@ def gen_session_output(lpid: lptyp.LitprogID, ctx: lptyp.BuildContext) -> Genera
 
 
 OUTPUT_GENERATORS_BY_TYPE: typ.Mapping[str, GeneratorFunc] = {
-    'meta'     : gen_meta_output,
-    'raw_block': gen_raw_block_output,
-    'out_file' : gen_out_file_output,
-    'session'  : gen_session_output,
+    'meta'       : gen_meta_output,
+    'raw_block'  : gen_raw_block_output,
+    'multi_block': gen_multi_block_output,
+    'out_file'   : gen_out_file_output,
+    'session'    : gen_session_output,
 }
 
 

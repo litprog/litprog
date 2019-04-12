@@ -64,7 +64,7 @@ Note that version strings may appear to be hard-coded, but they are in fact prog
 __version__ = "v201901.0001-alpha"
 ```
 
-### Code Conventions
+### Common Imports
 
 Across the implementation of LitProg there are commonly used aliases for imported modules. In general, the plain `import x` or `import longlib as ll` imports are preferred over `from x import y` so that usage code always includes the context from where they came.
 
@@ -75,12 +75,14 @@ import io
 import re
 import sys
 import math
+import time
 import enum
 import os.path
 import collections
 import typing as typ
 import pathlib2 as pl
 import operator as op
+import datetime as dt
 import itertools as it
 import functools as ft
 

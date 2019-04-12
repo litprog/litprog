@@ -54,12 +54,13 @@ class FencedBlock(typ.NamedTuple):
     language   : MaybeLang
     options    : BlockOptions
     content    : str
+
+Block = typ.Union[RawFencedBlock, FencedBlock]
 ```
 
 
 ```python
 # lpid = types.code
-
 
 BlocksById  = typ.Dict[LitprogID, typ.List[FencedBlock]]
 OptionsById = typ.Dict[LitprogID, BlockOptions]

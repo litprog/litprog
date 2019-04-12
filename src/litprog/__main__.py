@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+
 # This file is part of the litprog project
 # https://gitlab.com/mbarkhau/litprog
 #
@@ -10,7 +11,6 @@
 # This file should not be edited. #
 #  Changes will be overwritten!   #
 ###################################
-
 import litprog.cli
 
 if __name__ == '__main__':

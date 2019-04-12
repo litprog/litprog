@@ -9,17 +9,19 @@
 # This file should not be edited. #
 #  Changes will be overwritten!   #
 ###################################
-
 import os
 import io
 import re
 import sys
 import math
+import time
 import enum
 import os.path
+import collections
 import typing as typ
 import pathlib2 as pl
 import operator as op
+import datetime as dt
 import itertools as it
 import functools as ft
 
@@ -28,8 +30,9 @@ FilePaths  = typ.Iterable[pl.Path]
 
 ExitCode = int
 
-import collections
+Lang = str
 
+MaybeLang = typ.Optional[Lang]
 
 LitprogID = str
 
@@ -41,10 +44,6 @@ class Line(typ.NamedTuple):
 
 
 Lines = typ.List[Line]
-
-Lang = str
-
-MaybeLang = typ.Optional[Lang]
 
 BlockOptions = typ.Dict[str, typ.Any]
 
@@ -96,7 +95,6 @@ class ProcResult(typ.NamedTuple):
 
 OutputsById     = typ.Dict[LitprogID, str]
 ProgResultsById = typ.Dict[LitprogID, ProcResult]
-MaybeStr        = typ.Optional[str]
 
 
 class BuildContext:

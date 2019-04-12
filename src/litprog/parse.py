@@ -9,17 +9,19 @@
 # This file should not be edited. #
 #  Changes will be overwritten!   #
 ###################################
-
 import os
 import io
 import re
 import sys
 import math
+import time
 import enum
 import os.path
+import collections
 import typing as typ
 import pathlib2 as pl
 import operator as op
+import datetime as dt
 import itertools as it
 import functools as ft
 
@@ -30,8 +32,6 @@ ExitCode = int
 import logging
 
 log = logging.getLogger(__name__)
-import collections
-
 import json
 import toml
 import yaml
@@ -142,7 +142,6 @@ LANGUAGE_COMMENT_PATTERNS = {
 }
 
 
-# parse
 LANGUAGE_COMMENT_TEMPLATES = {
     "c++"          : "// {}",
     'actionscript' : "// {}",

@@ -1,3 +1,17 @@
+
+```yaml
+filepath: "src/litprog/md2html.py"
+inputs  : [
+    "license_header_boilerplate",
+    "generated_preamble",
+    "common.imports",
+    "module_logger",
+    "md2html.code",
+]
+```
+
+```python
+# lpid=md2html.code
 import io
 import re
 import sys
@@ -338,8 +352,8 @@ PRINT_STYLES_PATH      = STATIC_DIR / "print.css"
 PRINT_STYLES           = PRINT_STYLES_PATH.open().read()
 NAVIGATION_STYLES_PATH = STATIC_DIR / "navigation.css"
 NAVIGATION_STYLES      = NAVIGATION_STYLES_PATH.open().read()
-PDF_MODAL_STYLES_PATH  = STATIC_DIR / "pdf_modal.css"
-PDF_MODAL_STYLES       = PDF_MODAL_STYLES_PATH.open().read()
+PDF_MODAL_STYLES_PATH = STATIC_DIR / "pdf_modal.css"
+PDF_MODAL_STYLES      = PDF_MODAL_STYLES_PATH.open().read()
 
 CHECK_RELOADED_JS_PATH = STATIC_DIR / "check_reloaded.js"
 CHECK_RELOADED_JS      = CHECK_RELOADED_JS_PATH.open().read()
@@ -363,6 +377,7 @@ HEAD_HTML = f"""
 <div class="wrapper">
 <div class="content">
 """
+
 
 
 FOOT_HTML = f"""
@@ -510,3 +525,9 @@ def main(args=sys.argv[1:]):
 
 if __name__ == '__main__':
     main()
+```
+
+
+### Future Work
+
+ - Annotation for data sections. Probably only excerpts of these should be displayed/printed by default and on screens there may be styling to expand/collapse these large data blocks. Wasting screen real estate and paper for data is probably not desireable.
