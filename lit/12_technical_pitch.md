@@ -15,7 +15,7 @@ The initial implementation of LitProg is the bare bones minimum needed to start 
 For now we will completely ignore the output as pdf/html tables, footnotes,
 images or anything else.
 
-Of course we have a chicken and egg problem here, so to bootstrap the program the python files will have to be implemented in a non LitProg form. For development the easiest python files to work are the ones in the `src/` directory. Using `source activate` and running `pip install .` will install the `litprog` command, which will use code from the `src/` directory. As soon as possible the program should be self hosted.
+Of course we have a chicken and egg problem here, so to bootstrap the program the python files will have to be implemented in a non LitProg form. For development the easiest python files to work are the ones in the `src/` directory. Using `source activate` and running `pip install .` will install the `litprog` command, which will use code from the `src/` directory. As soon as possible the program should be [self-hosted][ref_wiki_self_hosting].
 
 
 ### Costs and Benefits
@@ -39,3 +39,5 @@ There are various levels at which the reader of a literate program will want to 
 The purpose of the narrative is not only to document for the reader how a program works, but to demonstrate to them by the mere fact of the existence of the document they are reading, that program is correct.
 
 To this end, the `litprog build` command will generate program code, will also execute code in `session` blocks, which can contain code to demonstrate usage, test correctness and to generate images. The output of these `sessions` is caputred and rendered in html/pdf files.
+
+[ref_wiki_self_hosting]: https://en.wikipedia.org/wiki/Self-hosting
