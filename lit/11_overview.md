@@ -24,6 +24,7 @@ manifest: [
     "impl_prelude::impl_prelude",
     "impl_prelude::boilerplate",
     "impl_prelude::code_style",
+    "impl_prelude::test_setup",
     "impl_prelude::types_and_datastructures",
 
     "porcelain::porcelain",
