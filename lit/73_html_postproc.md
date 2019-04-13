@@ -20,18 +20,12 @@ Code file and imports/preamble.
 
 ```yaml
 filepath     : "src/litprog/html_postproc.py"
-inputs       : [
-    "license_header_boilerplate",
-    "generated_preamble",
-    "common.imports",
-    "module_logger",
-    "html_postproc.code",
-]
+inputs       : ["boilerplate::*", "html_postproc::*"]
 ```
 
 
 ```python
-# lpid = html_postproc.code
+# lpid = html_postproc::code
 import re
 import bs4
 import pyphen
@@ -45,7 +39,7 @@ Test file and imports/preamble.
 
 ```yaml
 filepath: "test/test_html_postproc.py"
-inputs  : ["generated_preamble", "test_html_postproc"]
+inputs  : ["boilerplate::preamble::*", "test_html_postproc"]
 ```
 
 
@@ -62,7 +56,7 @@ def test_main():
 ### Utility Code
 
 ```python
-# lpid = html_postproc.code
+# lpid = html_postproc::code
 
 def _iter_filepaths(params: typ.List[str]) -> FilePaths:
     for param in params:

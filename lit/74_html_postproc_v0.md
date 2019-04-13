@@ -1,22 +1,11 @@
 ```yaml
 filepath     : "src/litprog/html_postproc_v1.py"
-inputs       : [
-    "license_header_boilerplate",
-    "generated_preamble",
-    "common.imports",
-    "module_logger",
-    "html_postproc_v1.imports",
-    "html_postproc_v1.code",
-]
+inputs       : ["boilerplate::*", "html_postproc_v1::*"]
 ```
 
 ```python
-# lpid = html_postproc_v1.imports
+# lpid = html_postproc_v1::code
 import html.parser 
-```
-
-```python
-# lpid = html_postproc_v1.code
 
 class Parser(html.parser.HTMLParser):
 

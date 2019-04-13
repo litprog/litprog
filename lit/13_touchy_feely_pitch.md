@@ -4,7 +4,6 @@
 Long term thinking pays of in the long run.
 
 
-
 ### Introduction to `litprog`
 
     "The craft of programming begins, not with formatting or

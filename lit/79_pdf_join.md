@@ -1,16 +1,13 @@
 ```yaml
 filepath     : "src/litprog/pdf_join.py"
 inputs       : [
-    "license_header_boilerplate",
-    "generated_preamble",
-    "common.imports",
-    "module_logger",
-    "pdf_join.code",
+    "boilerplate::preamble::*",
+    "pdf_join::*",
 ]
 ```
 
 ```python
-# lpid=pdf_join.code
+# lpid=pdf_join::code
 import sys
 import math
 import time

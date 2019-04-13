@@ -6,13 +6,7 @@ An `lptyp.ParseContext` object holds all results from the parsing phase. We'll g
 
 ```yaml
 filepath: "src/litprog/parse.py"
-inputs  : [
-    "license_header_boilerplate",
-    "generated_preamble",
-    "common.imports",
-    "module_logger",
-    "parse.code",
-]
+inputs  : ["boilerplate::*", "parse::*"]
 ```
 
 
@@ -23,7 +17,7 @@ Some notes library choices:
 
 
 ```python
-# lpid = parse.code
+# lpid = parse::code
 import json
 import toml
 import yaml
@@ -36,7 +30,7 @@ Test file and imports/preamble.
 
 ```yaml
 filepath: "test/test_parse.py"
-inputs  : ["generated_preamble", "test_parse"]
+inputs  : ["boilerplate::preamble::*", "test_parse"]
 ```
 
 ```python
@@ -52,7 +46,7 @@ import litprog.parse as sut
 As a first step, we want to simply scan for markdown files as if invoking `litprog build lit/` with a directory as an argument.
 
 ```python
-# lpid = parse.code
+# lpid = parse::code
 
 VALID_OPTION_KEYS = {'lptype', 'lpid'}
 
@@ -356,7 +350,10 @@ def _add_to_context(ctx: lptyp.ParseContext, code_block: lptyp.FencedBlock) -> N
         err_msg = f"Duplicated definition of {code_block.lpid}"
         raise ParseError(err_msg)
 
-    ctx.blocks[code_block.lpid].append(code_block)
+    if code_block.lpid in ctx.blocks:
+        ctx.blocks[code_block.lpid].append(code_block)
+    else:
+        ctx.blocks[code_block.lpid] = [code_block]
 
     if code_block.lpid in ctx.options:
         prev_options = ctx.options[code_block.lpid]

@@ -13,17 +13,11 @@ Code file and imports/preamble.
 
 ```yaml
 filepath: "src/litprog/session.py"
-inputs  : [
-    "license_header_boilerplate",
-    "generated_preamble",
-    "common.imports",
-    "module_logger",
-    "session.code",
-]
+inputs  : ["boilerplate::*", "session::*"]
 ```
 
 ```python
-# lpid = session.code
+# lpid = session::code
 
 import time
 import shlex
@@ -37,7 +31,7 @@ Test file and imports/preamble.
 
 ```yaml
 filepath: "test/test_session.py"
-inputs  : ["generated_preamble", "test_session"]
+inputs  : ["boilerplate::preamble::*", "test_session"]
 ```
 
 ```python
@@ -58,7 +52,7 @@ Since the subprocess runs concurrently to litprog and since stdout and stderr ar
 We may have to revisit this and abstract it to `CapturedChunk` so that we don't have to rely on line-wise generation of output.
 
 ```python
-# lpid = session.code
+# lpid = session::code
 
 class SessionException(Exception):
     pass
@@ -72,7 +66,7 @@ _: Environ = os.environ
 The `_gen_captured_lines` is basically a constructor for `lptyp.CapturedLine`, but since the only use case is for streaming data it is written as a generator.
 
 ```python
-# lpid = session.code
+# lpid = session::code
 def _gen_captured_lines(
     raw_lines: typ.Iterable[bytes],
     encoding : str = "utf-8",
@@ -102,7 +96,7 @@ The `_read_loop` function runs in a separate thread, consuming either a `STDOUT`
 The term `output` may be a bit confusing here. It refers to the fact that the parameter relates to the output of a subprocess that is to be captured.
 
 ```python
-# lpid = session.code
+# lpid = session::code
 def _read_loop(
     sp_output_pipe: typ.IO[bytes],
     captured_lines: typ.List[lptyp.CapturedLine],
@@ -119,7 +113,7 @@ def _read_loop(
 Note that `captured_lines` list is modified by the created thread and read from by the current thread. This should be fine, as reading only happens after the writer thread has been joined. If the list is accessed before writing is finished, an append might happen during iteration over the list. This convention is enforced by calling `InteractiveSession._assert_retcode()`. 
 
 ```python
-# lpid = session.code
+# lpid = session::code
 class CapturingThread(typ.NamedTuple):
     thread: threading.Thread
     lines : typ.List[lptyp.CapturedLine]
@@ -155,7 +149,7 @@ def test_start_reader():
 
 
 ```python
-# lpid = session.code
+# lpid = session::code
 AnyCommand = typ.Union[str, typ.List[str]]
 
 def _normalize_command(command: AnyCommand) -> typ.List[str]:
@@ -172,7 +166,7 @@ def _normalize_command(command: AnyCommand) -> typ.List[str]:
 `InteractiveSession` is the public API of the `session` module. It encapsulates running a process, capturing its output, waiting for it to finish and accesing, the captured output.
 
 ```python
-# lpid = session.code
+# lpid = session::code
 class InteractiveSession:
 
     encoding: str
@@ -189,7 +183,7 @@ class InteractiveSession:
 
 
 ```python
-# lpid = session.code
+# lpid = session::code
 # class InteractiveSession: ...
 
     def __init__(
@@ -236,7 +230,7 @@ Using the delay causes processing to be waaay slower that we would like it to be
 
 
 ```python
-# lpid = session.code
+# lpid = session::code
 # class InteractiveSession: ...
     def send(self, input_str: str, delay: float=0.01) -> None:
         self._in_cl.append(lptyp.CapturedLine(time.time(), input_str))
@@ -249,7 +243,7 @@ Using the delay causes processing to be waaay slower that we would like it to be
 ```
 
 ```python
-# lpid = session.code
+# lpid = session::code
 # class InteractiveSession: ...
     @property
     def retcode(self) -> int:
@@ -268,7 +262,7 @@ TODO: What if the subprocess doesn't end,
     maybe retry with more brutal method.
 
 ```python
-# lpid = session.code
+# lpid = session::code
 # class InteractiveSession: ...
     def wait(self, timeout=1) -> int:
         if self._retcode is not None:
@@ -305,7 +299,7 @@ TODO: What if the subprocess doesn't end,
 ```
 
 ```python
-# lpid = session.code
+# lpid = session::code
 # class InteractiveSession: ...
     def iter_stdout(self) -> typ.Iterable[str]:
         self._assert_retcode()
@@ -329,7 +323,7 @@ TODO: What if the subprocess doesn't end,
 Property accessors for convenience.
 
 ```python
-# lpid = session.code
+# lpid = session::code
 # class InteractiveSession: ...
     @property
     def runtime(self) -> float:

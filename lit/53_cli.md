@@ -14,13 +14,7 @@ The module declares/does:
 
 ```yaml
 filepath: "src/litprog/cli.py"
-inputs  : [
-    "license_header_boilerplate",
-    "generated_preamble",
-    "common.imports",
-    "module_logger",
-    "cli.code",
-]
+inputs  : ["boilerplate::*", "cli::*"]
 ```
 
 
@@ -34,7 +28,7 @@ In most cases (when installing with `pip install litprog`) this is strictly spea
 The [`backtrace`](https://github.com/nir0s/backtrace) package produces human friendly tracebacks, but is not a requirement to use litprog. To enable it for just one invocation use `ENABLE_BACKTRACE=1 litprog --help`.
 
 ```python
-# lpid = cli.code
+# lpid = cli::code
 # To enable pretty tracebacks:
 #   echo "export ENABLE_BACKTRACE=1;" >> ~/.bashrc
 if os.environ.get('ENABLE_BACKTRACE') == '1':
@@ -56,7 +50,7 @@ We use the standard python logging module throughout the codebase. Logging is
 initialized using this helper function. The verbosity is set using the `--verbose` flag and controls the logging format and the level.
 
 ```python
-# lpid = cli.code
+# lpid = cli::code
 
 class LogConfig(typ.NamedTuple):
     fmt: str
@@ -84,7 +78,7 @@ def _parse_logging_config(verbosity: int) -> LogConfig:
 Since the `--verbose` flag can be set both via the command group (the `cli` function) and via a sub-command, we need to deal with multiple invocations of `_configure_logging`. There are probably nicer ways of doing this if you want to get into the intricacies of the click library. The choice here is to override any previously configured logging only if the previous verbosity was lower.
 
 ```python
-# lpid = cli.code
+# lpid = cli::code
 
 def _configure_logging(verbosity: int = 0) -> None:
     _prev_verbosity: int = getattr(_configure_logging, '_prev_verbosity', -1)
@@ -112,7 +106,7 @@ def _configure_logging(verbosity: int = 0) -> None:
 Since we're declaring the entry point here, we import most of the other modules directly (and all of them indirectly). While other modules are written in a functional style and have unit tests, this module represents the [imperative shell](https://www.destroyallsoftware.com/screencasts/catalog/functional-core-imperative-shell) and thus only has a basic integration test. 
 
 ```python
-# lpid = cli.code
+# lpid = cli::code
 import click
 
 import litprog.parse
@@ -126,14 +120,14 @@ We'll be using the venerable [click][ref_click_lib] library to implement our CLI
 As far as I can tell, everything is behaving as expected, at least using ascii filenames, so the following is used to supress the warning.
 
 ```python
-# lpid = cli.code
+# lpid = cli::code
 click.disable_unicode_literals_warning = True
 ```
 
 We could implement `litprog` as one command atm. but in anticipation of future subcommands we'll use the `click.group` approach to implement git style cli with subcommands.
 
 ```python
-# lpid = cli.code
+# lpid = cli::code
 
 verbosity_option = click.option(
     '-v',
@@ -157,7 +151,7 @@ def cli(verbose: int = 0) -> None:
 The `litprog build` is the main subcommand. It recursively scans the `input_paths` argument for markdown files, parses them (creating a context object) and then uses the context to build the various outputs (source files, html and pdf). 
 
 ```python
-# lpid = cli.code
+# lpid = cli::code
 @cli.command()
 @click.argument(
     'input_paths',
@@ -191,7 +185,7 @@ def build(
 
 
 ```python
-# lpid = cli.code
+# lpid = cli::code
 @cli.command()
 @click.argument(
     'input_paths',
@@ -225,7 +219,7 @@ def sync_manifest(
 
 
 ```python
-# lpid = cli.code
+# lpid = cli::code
 FileId = str
 PartId = str
 ChapterId = str
@@ -384,7 +378,7 @@ def _init_manifest(ctx: lptyp.ParseContext) -> ExitCode:
 These are the supported file extensions. It may may be worth revisiting this (for example by introducing a dedicated `.litmd` file extension), but for now I expect projects to have a dedicated directory with markdown files and this approach captures the broadest set of files.
 
 ```python
-# lpid = cli.code
+# lpid = cli::code
 
 MARKDOWN_FILE_EXTENSIONS = {
     "markdown",
@@ -404,7 +398,7 @@ This helper function scans the file system based on arguments to a subcommand. N
 
 
 ```python
-# lpid = cli.code
+# lpid = cli::code
 def _iter_markdown_filepaths(
     input_paths: InputPaths
 ) -> FilePaths:
@@ -428,9 +422,8 @@ filepath     : "src/litprog/__main__.py"
 is_executable: true
 inputs       : [
     "shebang_python",
-    "license_header_boilerplate",
-    "generated_preamble",
-    "__main__.code",
+    "boilerplate::preamble::*",
+    "__main__::*",
 ]
 ```
 
@@ -442,7 +435,7 @@ The shebang line is mostly symbolic and indicates, (in case it wasn't obvious) t
 ```
 
 ```python
-# lpid = __main__.code
+# lpid = __main__::code
 import litprog.cli
 
 if __name__ == '__main__':
@@ -456,7 +449,7 @@ This is a good starting point for tests. Just as a sanity check, let's see if we
 
 ```yaml
 filepath     : "test/test_cli.py"
-inputs       : ["generated_preamble", "test_cli"]
+inputs       : ["boilerplate::preamble::*", "test_cli"]
 ```
 
 ```python

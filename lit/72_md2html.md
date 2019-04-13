@@ -1,17 +1,11 @@
 
 ```yaml
 filepath: "src/litprog/md2html.py"
-inputs  : [
-    "license_header_boilerplate",
-    "generated_preamble",
-    "common.imports",
-    "module_logger",
-    "md2html.code",
-]
+inputs  : ["boilerplate::*", "md2html::*"]
 ```
 
 ```python
-# lpid=md2html.code
+# lpid=md2html::code
 import io
 import re
 import sys

@@ -6,7 +6,7 @@
 All files start with some legal boilerplate. I honestly can't say what legal relevance of this is, probably it's mostly just ceremonial.
 
 ```python
-# lpid = license_header_boilerplate
+# lpid = boilerplate::preamble::license_header
 
 # This file is part of the litprog project
 # https://gitlab.com/mbarkhau/litprog
@@ -22,7 +22,7 @@ Since the litprog tool is self hosting, there is a good chance that it breaks it
 In case somebody browses the generated files, we add some more boilerplate to each file to warn them that their changes will be overwriten.
 
 ```python
-# lpid = generated_preamble
+# lpid = boilerplate::preamble::generated
 
 ###################################
 #    This is a generated file.    #
@@ -36,7 +36,7 @@ In case somebody browses the generated files, we add some more boilerplate to ea
 Most modules have their own local logger named `log`. If `litprog` is used as a library, then logging configuration is left to the importing module. If the `litprog` cli command is used, then logging is configured via the `litprog.cli` submodule.
 
 ```python
-# lpid = module_logger
+# lpid = boilerplate::module::logger
 import logging
 
 log = logging.getLogger(__name__)
@@ -49,11 +49,7 @@ All generated code is written to `src/litprog/`, starting with `src/litprog/__in
 
 ```yaml
 filepath: "src/litprog/__init__.py"
-inputs  : [
-    "license_header_boilerplate",
-    "generated_preamble",
-    "dunder_version",
-]
+inputs  : ["boilerplate::preamble::*", "dunder_version"]
 ```
 
 Note that version strings may appear to be hard-coded, but they are in fact programatically updated before each release using `make bump_version` or `pycalver bump`.
@@ -69,7 +65,7 @@ __version__ = "v201901.0001-alpha"
 Across the implementation of LitProg there are commonly used aliases for imported modules. In general, the plain `import x` or `import longlib as ll` imports are preferred over `from x import y` so that usage code always includes the context from where they came.
 
 ```python
-# lpid = common.imports
+# lpid = boilerplate::module::imports
 import os
 import io
 import re

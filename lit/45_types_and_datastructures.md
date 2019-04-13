@@ -5,7 +5,7 @@ The `litprog` program has some types that are used across boundaries of submodul
 ```yaml
 filepath     : "src/litprog/types.py"
 inputs       : [
-    "boilerplate::basic::*",
+    "boilerplate::preamble::*",
     "boilerplate::module::imports",
     "types::*",
 ]
