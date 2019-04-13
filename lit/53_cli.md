@@ -295,10 +295,17 @@ def _sync_manifest(
         chapter_index += 1
         prev_part_id = part_id
 
+    if not any(renames):
+        return 0
+
     for src, tgt in renames:
         print(f"    {str(src):<35} -> {str(tgt):<35}")
 
-    if click.confirm('Do you want to perform these renaming(s)?'):
+    # TODO: perhaps rename should check for git and
+    #   do git mv src tgt
+
+    prompt = "Do you want to perform these renaming(s)?"
+    if click.confirm(prompt):
         for src, tgt in renames:
             src.rename(tgt)
 
