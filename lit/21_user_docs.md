@@ -1,6 +1,12 @@
 
 ## Compile/Build Phases
 
+Tangle
+:   Stich together code
+
+Weave
+:   Generate documents
+
 Some of the considerations that go into what the phases of the compiler do
 are
 

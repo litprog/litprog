@@ -24,7 +24,8 @@ Lang = str
 
 MaybeLang = typ.Optional[Lang]
 
-LitprogID = str
+LitProgId = str
+LitProgIds = typ.List[LitProgId]
 
 
 class Line(typ.NamedTuple):
@@ -50,7 +51,7 @@ class FencedBlock(typ.NamedTuple):
     file_path  : pl.Path
     info_string: str
     lines      : Lines
-    lpid       : LitprogID
+    lpid       : LitProgId
     language   : MaybeLang
     options    : BlockOptions
     content    : str
@@ -62,8 +63,8 @@ Block = typ.Union[RawFencedBlock, FencedBlock]
 ```python
 # lpid = types.code
 
-BlocksById  = typ.Dict[LitprogID, typ.List[FencedBlock]]
-OptionsById = typ.Dict[LitprogID, BlockOptions]
+BlocksById  = typ.Dict[LitProgId, typ.List[FencedBlock]]
+OptionsById = typ.Dict[LitProgId, BlockOptions]
 
 
 class ParseContext:
@@ -90,8 +91,8 @@ class ProcResult(typ.NamedTuple):
 
 
 
-OutputsById = typ.Dict[LitprogID, str       ]
-ProgResultsById = typ.Dict[LitprogID, ProcResult]
+OutputsById = typ.Dict[LitProgId, str       ]
+ProgResultsById = typ.Dict[LitProgId, ProcResult]
 
 
 class BuildContext:

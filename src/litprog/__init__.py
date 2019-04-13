@@ -1,4 +1,3 @@
-
 # This file is part of the litprog project
 # https://gitlab.com/mbarkhau/litprog
 #

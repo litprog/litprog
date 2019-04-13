@@ -139,25 +139,24 @@ If the following code were to fail, the output document would have programatical
 ```yaml
 lpid   : demo
 lptype : session
-command: python3
+command: bash
 timeout: 1
 echo   : False     # output
 term   : True
 expected_exit_code: 1
 ```
 
-```python
+```bash
 # lpid = demo
-assert True
+echo "hello world";
 ```
 
-```python
+This code block continues from the LitProg declarations of the previous block. In this case it is a continuation of the previous session with `lpid=demo`.
+
+```bash
 # lpid = demo
-# This code block inherits the LitProg declarations of
-# the previous block. In this case it is a continuation of the previous
-# "validation" session.
-print(1 + 1)
-assert False          # The captured output should be an error
+echo $(expr 40 + 2);
+exit 1;               # The captured output should be an error
 ```
 
 

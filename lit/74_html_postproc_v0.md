@@ -13,7 +13,6 @@ inputs       : [
 ```python
 # lpid = html_postproc_v1.imports
 import html.parser 
-import html5lib
 ```
 
 ```python

@@ -1,24 +1,8 @@
 ## Parsing
 
-An `lptyp.ParseContext` object holds all results from the parsing phase. We'll get into the other datastructures used here in a moment, but first let's focus on what we're trying get as a result of parsing. The idea here is to find all the fenced blocks in the markdown files and build mappings/dict objects using the `lpid`/`LitprogID` as keys. Note that there can be multiple `FencedBlocks` with the same `lpid`, which are simply concatenated together. To know how these blocks are to be treated, we collect options for each lpid. In the most simple case such an option is for example the language.
+An `lptyp.ParseContext` object holds all results from the parsing phase. We'll get into the other datastructures used here in a moment, but first let's focus on what we're trying get as a result of parsing. The idea here is to find all the fenced blocks in the markdown files and build mappings/dict objects using the `lpid`/`LitProgId` as keys. Note that there can be multiple `FencedBlocks` with the same `lpid`, which are simply concatenated together. To know how these blocks are to be treated, we collect options for each lpid. In the most simple case such an option is for example the language.
 
-Some notes library choices:
-
-- `toml`, `yaml`: In additon to json, the toml format is supported to define litprog metadata.
-- `pathlib2` provides a uniform API for both python2 and python3 which is compatible with the API of the python3 `pathlib` module in the standard library. In other words, if python2 support is every dropped, only the imports have to change.
-
-```python
-# lpid = parse.code
-import json
-import toml
-import yaml
-import uuid
-
-import litprog.types as lptyp
-```
-
-
-### File-System Utilities
+### Files for Code and Tests
 
 ```yaml
 filepath: "src/litprog/parse.py"
@@ -31,6 +15,39 @@ inputs  : [
 ]
 ```
 
+
+Some notes library choices:
+
+- `toml`, `yaml`: In additon to json, the toml format is supported to define litprog metadata.
+- `pathlib2` provides a uniform API for both python2 and python3 which is compatible with the API of the python3 `pathlib` module in the standard library. In other words, if python2 support is every dropped, only the imports have to change.
+
+
+```python
+# lpid = parse.code
+import json
+import toml
+import yaml
+import uuid
+
+import litprog.types as lptyp
+```
+
+Test file and imports/preamble.
+
+```yaml
+filepath: "test/test_parse.py"
+inputs  : ["generated_preamble", "test_parse"]
+```
+
+```python
+# lpid = test_parse
+import pathlib2 as pl
+import litprog.cli
+import litprog.parse as sut
+```
+
+
+### File-System Utilities
 
 As a first step, we want to simply scan for markdown files as if invoking `litprog build lit/` with a directory as an argument.
 
@@ -191,7 +208,7 @@ LANGUAGE_COMMENT_TEMPLATES = {
 def _parse_comment_options(
     maybe_lang: lptyp.MaybeLang, raw_lines: lptyp.Lines
 ) -> typ.Tuple[lptyp.BlockOptions, lptyp.Lines]:
-    # NOTE (2019-03-02 mb): In the case of
+    # NOTE (2019-03-02 mb): In the case of comment
     #   options, each one is on it's own line and
     #   the first line to not declare an option
     #   terminates the options preamble of a
@@ -369,30 +386,15 @@ def _add_to_context(ctx: lptyp.ParseContext, code_block: lptyp.FencedBlock) -> N
         ctx.options[code_block.lpid] = code_block.options
 ```
 
-```yaml
-lpid    : test_parse
-lptype  : session
-command : /usr/bin/env python3
-requires: [
-    'src/litprog/types.py',
-    'src/litprog/parse.py',
-    'src/litprog/build.py',
-    'src/litprog/session.py',
-    'src/litprog/cli.py',
-]
-```
 
 ```python
 # lpid = test_parse
-import pathlib2 as pl
-import litprog.cli
-import litprog.parse
+def test_fs_scanning():
+    lit_paths = list(litprog.cli._iter_markdown_filepaths(["lit/"]))
 
-lit_paths = list(litprog.cli._iter_markdown_filepaths(["lit/"]))
-
-assert len(lit_paths) > 0
-assert all(isinstance(p, pl.Path) for p in lit_paths)
-assert all(p.suffix == ".md" for p in lit_paths)
+    assert len(lit_paths) > 0
+    assert all(isinstance(p, pl.Path) for p in lit_paths)
+    assert all(p.suffix == ".md" for p in lit_paths)
 ```
 
 
@@ -406,6 +408,13 @@ Alternatively, we could add syntax specific parsing for each block, to determine
 
 Some magic is justified if it reduces tedium to bearable levels.
 
+
 #### Carry forward `lpid`
 
 It's redundant and error prone to have to set the lpid on every code block when the most common case is for subsequent fenced blocks to all belong to the same lpid. If no lpid is specified, it should just use the lpid of the previous block.
+
+
+#### Block Templates
+
+Especially for tests it would be great to be able to define blocks without having to declare the corresponding yaml. Probably a comment option like lp_tmpl=
+

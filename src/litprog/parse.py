@@ -1,4 +1,3 @@
-
 # This file is part of the litprog project
 # https://gitlab.com/mbarkhau/litprog
 #
@@ -27,7 +26,7 @@ import itertools as it
 import functools as ft
 
 InputPaths = typ.Sequence[str]
-FilePaths = typ.Iterable[pl.Path]
+FilePaths  = typ.Iterable[pl.Path]
 
 ExitCode = int
 import logging
@@ -70,16 +69,11 @@ def parse_context(md_paths: FilePaths) -> lptyp.ParseContext:
     return ctx
 
 
-def _iter_raw_fenced_blocks(
-    input_path: pl.Path
-) -> typ.Iterable[lptyp.RawFencedBlock]:
+def _iter_raw_fenced_blocks(input_path: pl.Path) -> typ.Iterable[lptyp.RawFencedBlock]:
     with input_path.open(mode="r", encoding="utf-8") as fh:
         input_lines = enumerate(fh)
         for i, line_val in input_lines:
-            is_fence = (
-                line_val.startswith("~~~")
-                or line_val.startswith("```")
-            )
+            is_fence = line_val.startswith("~~~") or line_val.startswith("```")
             if not is_fence:
                 continue
 
@@ -104,6 +98,7 @@ def _iter_fenced_block_lines(
             break
         else:
             yield lptyp.Line(line_no, line_val)
+
 
 LANGUAGE_COMMENT_PATTERNS = {
     "c++"          : (r"^//" , r"$"),
@@ -194,7 +189,7 @@ LANGUAGE_COMMENT_TEMPLATES = {
 def _parse_comment_options(
     maybe_lang: lptyp.MaybeLang, raw_lines: lptyp.Lines
 ) -> typ.Tuple[lptyp.BlockOptions, lptyp.Lines]:
-    # NOTE (2019-03-02 mb): In the case of
+    # NOTE (2019-03-02 mb): In the case of comment
     #   options, each one is on it's own line and
     #   the first line to not declare an option
     #   terminates the options preamble of a
@@ -335,8 +330,7 @@ def _parse_code_block(raw_fenced_block: lptyp.RawFencedBlock) -> lptyp.FencedBlo
 
 def _add_to_context(ctx: lptyp.ParseContext, code_block: lptyp.FencedBlock) -> None:
     is_duplicate_lpid = (
-        code_block.lpid in ctx.blocks
-        and code_block.options['lptype'] != 'raw_block'
+        code_block.lpid in ctx.blocks and code_block.options['lptype'] != 'raw_block'
     )
     if is_duplicate_lpid:
         err_msg = f"Duplicated definition of {code_block.lpid}"
@@ -347,20 +341,11 @@ def _add_to_context(ctx: lptyp.ParseContext, code_block: lptyp.FencedBlock) -> N
     if code_block.lpid in ctx.options:
         prev_options = ctx.options[code_block.lpid]
         for key, val in code_block.options.items():
-            is_redeclared_key = (
-                key in prev_options and prev_options[key] != val
-            )
+            is_redeclared_key = key in prev_options and prev_options[key] != val
 
-            is_block_continuation = (
-                is_redeclared_key 
-                and key == 'lptype' 
-                and val == 'raw_block'
-            )
+            is_block_continuation = is_redeclared_key and key == 'lptype' and val == 'raw_block'
             if is_block_continuation:
-                valid_continuation_options = {
-                    'lpid': code_block.lpid,
-                    'lptype': 'raw_block'
-                }
+                valid_continuation_options = {'lpid': code_block.lpid, 'lptype': 'raw_block'}
                 assert code_block.options == valid_continuation_options
                 continue
             elif is_redeclared_key:

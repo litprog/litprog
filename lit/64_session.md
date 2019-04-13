@@ -6,9 +6,14 @@ This module is based (very loosly) on code by ["Eli Bendersky"][eli_bendersky] a
 
 The current implementation was primarilly developed with interactive interpreters in mind such as `bash` and `python`. The input and output to these interpreters is line oriented and can in principle go on forever.
 
+
+### Files for Code and Tests
+
+Code file and imports/preamble.
+
 ```yaml
-filepath     : "src/litprog/session.py"
-inputs       : [
+filepath: "src/litprog/session.py"
+inputs  : [
     "license_header_boilerplate",
     "generated_preamble",
     "common.imports",
@@ -26,6 +31,24 @@ import threading
 import subprocess as sp
 
 import litprog.types as lptyp
+```
+
+Test file and imports/preamble.
+
+```yaml
+filepath: "test/test_session.py"
+inputs  : ["generated_preamble", "test_session"]
+```
+
+```python
+# lpid = test_session
+import io
+import litprog.session as sut
+
+RAW_TEST_TEXT = b"""
+Hello \xe4\xb8\x96\xe7\x95\x8c!
+foo bar
+"""
 ```
 
 ### Streamed Reading of STDOUT and STDERR
@@ -55,37 +78,23 @@ def _gen_captured_lines(
     encoding : str = "utf-8",
 ) -> typ.Iterable[lptyp.CapturedLine]:
     for raw_line in raw_lines:
-        ts      = time.time()
+        # get timestamp as fast as possible after
+        #   output was read
+        ts = time.time()
+
         line_value = raw_line.decode(encoding)
         log.debug(f"read {len(raw_line)} bytes")
         yield lptyp.CapturedLine(ts, line_value)
 ```
 
-```yaml
-lpid   : session.tests
-lptype : session
-command: /usr/bin/env python3
-requires: [
-    'src/litprog/types.py',
-    'src/litprog/parse.py',
-    'src/litprog/build.py',
-    'src/litprog/session.py',
-    'src/litprog/cli.py',
-]
-```
 
 ```python
-# lpid = session.tests
-import litprog.session
-
-RAW_TEST_TEXT = b"""
-Hello \xe4\xb8\x96\xe7\x95\x8c!
-foo bar
-"""
-raw_lines = RAW_TEST_TEXT.strip().splitlines()
-captured_lines = litprog.session._gen_captured_lines(raw_lines)
-lines = [cl.line for cl in captured_lines]
-assert lines == ["Hello 世界!", "foo bar"]
+# lpid = test_session
+def test_gen_captured_lines():
+    raw_lines = RAW_TEST_TEXT.strip().splitlines()
+    captured_lines = sut._gen_captured_lines(raw_lines)
+    lines = [cl.line for cl in captured_lines]
+    assert lines == ["Hello 世界!", "foo bar"]
 ```
 
 The `_read_loop` function runs in a separate thread, consuming either a `STDOUT` or `STDERR` pipe of a subprocess and modifies `captured_lines`, which is an in/out parameter. In other words, it is not a mistake that this function returns `None`. This function does not terminate of itself, but instead it terminates when the pipe is closed, ie. when `readline` returns empty string. 
@@ -128,16 +137,22 @@ def _start_reader(
     return CapturingThread(read_loop_thread, captured_lines)
 ```
 
-```python
-# lpid = session.tests
-import io
 
-raw_text_buf = io.BytesIO(RAW_TEST_TEXT.strip())
-capture_thread = litprog.session._start_reader(raw_text_buf)
-capture_thread.thread.join()
-lines = [cl.line for cl in capture_thread.lines]
-assert lines == ["Hello 世界!\n", "foo bar"]
+```python
+# lpid = test_session
+def test_start_reader():
+    expected = RAW_TEST_TEXT.decode("utf-8")
+
+    raw_text_buf = io.BytesIO(RAW_TEST_TEXT)
+    capture_thread = sut._start_reader(raw_text_buf)
+    capture_thread.thread.join()
+
+    content = "".join(
+        cl.line for cl in capture_thread.lines
+    )
+    assert content == expected
 ```
+
 
 ```python
 # lpid = session.code
@@ -162,6 +177,7 @@ class InteractiveSession:
 
     encoding: str
     start   : float
+    end     : float
 
     _retcode: typ.Optional[int]
     _proc   : sp.Popen
@@ -190,11 +206,12 @@ class InteractiveSession:
             _env = env
 
         self.encoding = encoding
-        self.start = time.time()
+        self.start    = time.time()
+        self.end      = -1.0
         self._retcode = None
 
         cmd_parts = _normalize_command(cmd)
-        log.info(f"popen {cmd_parts}")
+        log.debug(f"popen {cmd_parts}")
         self._proc = sp.Popen(
             cmd_parts,
             stdin=sp.PIPE,
@@ -246,6 +263,10 @@ Using the delay causes processing to be waaay slower that we would like it to be
             )
 ```
 
+TODO: What if the subprocess doesn't end,
+    ie. doesn't cooperate after doing terminate?
+    maybe retry with more brutal method.
+
 ```python
 # lpid = session.code
 # class InteractiveSession: ...
@@ -253,7 +274,7 @@ Using the delay causes processing to be waaay slower that we would like it to be
         if self._retcode is not None:
             return self._retcode
 
-        log.info(f"wait with timeout={timeout}")
+        log.debug(f"wait with timeout={timeout}")
         returncode: typ.Optional[int] = None
         try:
             self._proc.stdin.close()
@@ -273,13 +294,13 @@ Using the delay causes processing to be waaay slower that we would like it to be
             if self._proc.returncode is None:
                 log.debug("sending SIGTERM")
                 self._proc.terminate()
-                # TODO: What if the subprocess doesn't end?
                 returncode = self._proc.wait()
 
         self._out_ct.thread.join()
         self._err_ct.thread.join()
         assert returncode is not None
         self._retcode = returncode
+        self.end = time.time()
         return returncode
 ```
 
@@ -305,9 +326,29 @@ Using the delay causes processing to be waaay slower that we would like it to be
             yield captured_line.line
 ```
 
+Property accessors for convenience.
+
 ```python
-# lpid = session.tests
-block_0 = r"""
+# lpid = session.code
+# class InteractiveSession: ...
+    @property
+    def runtime(self) -> float:
+        self._assert_retcode()
+        return self.end - self.start
+
+    @property
+    def stdout(self) -> str:
+        return "".join(self.iter_stdout())
+
+    @property
+    def stderr(self) -> str:
+        return "".join(self.iter_stderr())
+```
+
+```python
+# lpid = test_session
+
+BLOCK_0 = r"""
 import sys
 
 def out(s: str):
@@ -319,14 +360,14 @@ def err(s: str):
     sys.stderr.flush()
 """
 
-block_1 = r"""
+BLOCK_1 = r"""
 out("ok1\n")
 err("moep\n")
 assert True
 out("ok2")
 """
 
-block_2 = r"""
+BLOCK_2 = r"""
 out("ok3")
 sys.exit(0)
 import time
@@ -335,13 +376,16 @@ assert False
 out("ok4")
 """
 
-cmd = ["python"]
-blocks = [block_0, block_1, block_2]
-session = litprog.session.InteractiveSession(cmd)
-retcode = session.wait()
-for line in session:
-    print("???", line)
-assert retcode == 0
+
+def test_integration():
+    session = sut.InteractiveSession(cmd=["python"])
+    for block in [BLOCK_0, BLOCK_1, BLOCK_2]:
+        session.send(block)
+    retcode = session.wait()
+    assert session.stdout == "ok1\nok2ok3"
+    assert session.stderr == "moep\n"
+    assert retcode == 0
+    assert session.runtime < 0.2
 ```
 
 ### Links

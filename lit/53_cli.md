@@ -23,6 +23,9 @@ inputs  : [
 ]
 ```
 
+
+### Entry points
+
 In most cases (when installing with `pip install litprog`) this is strictly speaking not top level script. Instead there is a (platform dependent) file generated from the [`entry_points`][setup_py_entry_points] declared in `setup.py`.
 
 
@@ -416,35 +419,6 @@ def _iter_markdown_filepaths(
 ```
 
 
-### Basic Integration Test
-
-This is a good starting point for tests. Just as a sanity check, let's see if we can import and access the `log` logger.
-
-```yaml
-lpid    : test_cli
-lptype  : session
-command : /usr/bin/env python
-requires: [
-    'src/litprog/types.py',
-    'src/litprog/parse.py',
-    'src/litprog/build.py',
-    'src/litprog/session.py',
-    'src/litprog/cli.py',
-]
-```
-
-```python
-# lpid = test_cli
-import os
-import sys
-print("cwd   :", os.getcwd())
-print("python:", sys.executable)
-import litprog.cli as cli
-print("logger:", cli.log.name)
-assert cli.log.name == 'litprog.cli'
-```
-
-
 ### The `__main__` Module
 
 In order to also be able to run when invoked with `python -m litprog`, we need to define a `__main__.py` file.
@@ -474,6 +448,25 @@ import litprog.cli
 if __name__ == '__main__':
     litprog.cli.cli()
 ```
+
+
+### Basic Integration Test
+
+This is a good starting point for tests. Just as a sanity check, let's see if we can import and access the `log` logger.
+
+```yaml
+filepath     : "test/test_cli.py"
+inputs       : ["generated_preamble", "test_cli"]
+```
+
+```python
+# lpid = test_cli
+import litprog.cli as sut
+
+def test_sanity():
+    assert sut.log.name == 'litprog.cli'
+```
+
 
 [ref_click_lib]: https://click.palletsprojects.com
 

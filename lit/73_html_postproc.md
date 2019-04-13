@@ -14,20 +14,24 @@ which `litprog` generates from the program text.
  - Contributor Stats
 
 
+### Files for Code and Tests
+
+Code file and imports/preamble.
+
 ```yaml
-filepath     : "src/litprog/html_postproc_v2.py"
+filepath     : "src/litprog/html_postproc.py"
 inputs       : [
     "license_header_boilerplate",
     "generated_preamble",
     "common.imports",
     "module_logger",
-    "html_postproc_v2.imports",
-    "html_postproc_v2.code",
+    "html_postproc.code",
 ]
 ```
 
+
 ```python
-# lpid = html_postproc_v2.imports
+# lpid = html_postproc.code
 import re
 import bs4
 import pyphen
@@ -36,8 +40,29 @@ PARSER_MODULE = 'html.parser'
 PARSER_MODULE = 'lxml'
 ```
 
+
+Test file and imports/preamble.
+
+```yaml
+filepath: "test/test_html_postproc.py"
+inputs  : ["generated_preamble", "test_html_postproc"]
+```
+
+
 ```python
-# lpid = html_postproc_v2.code
+# lpid = test_html_postproc
+import litprog.html_postproc as sut
+
+def test_main():
+    # litprog.html_postproc.main(["lit_out/out.html"])
+    pass
+```
+
+
+### Utility Code
+
+```python
+# lpid = html_postproc.code
 
 def _iter_filepaths(params: typ.List[str]) -> FilePaths:
     for param in params:
@@ -184,15 +209,3 @@ if __name__ == '__main__':
     sys.exit(main())
 ```
 
-```yaml
-lpid   : html_postproc_v2.test
-lptype : session
-command: /usr/bin/env python3
-requires: [src/litprog/html_postproc_v2.py]
-```
-
-```python
-# lpid = html_postproc_v2.test
-import litprog.html_postproc_v2
-# litprog.html_postproc_v2.main(["lit_out/out.html"])
-```

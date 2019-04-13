@@ -1,4 +1,3 @@
-
 # This file is part of the litprog project
 # https://gitlab.com/mbarkhau/litprog
 #
@@ -27,26 +26,25 @@ import itertools as it
 import functools as ft
 
 InputPaths = typ.Sequence[str]
-FilePaths = typ.Iterable[pl.Path]
+FilePaths  = typ.Iterable[pl.Path]
 
 ExitCode = int
 import logging
 
 log = logging.getLogger(__name__)
-import html.parser 
-import html5lib
+import html.parser
+
 
 class Parser(html.parser.HTMLParser):
-
     def __init__(self, strict: bool = False, *, convert_charrefs: bool = True) -> None:
         super().__init__(strict, convert_charrefs=convert_charrefs)
-    
+
     def handle_decl(self, decl) -> None:
         """Handle an HTML doctype declaration (e.g. <!DOCTYPE html>).
 
         The decl parameter will be the entire contents of the declaration
         inside the <!...> markup (e.g. 'DOCTYPE html').
-        """    
+        """
 
     def handle_starttag(self, tag, attrs) -> None:
         """Handle the start of a tag (e.g. <div id="main">).
@@ -64,13 +62,13 @@ class Parser(html.parser.HTMLParser):
         All entity references from html.entities are replaced in the attribute
                 values.
         """
-  
+
     def handle_endtag(self, tag) -> None:
         """Handle the end tag of an element (e.g. </div>).
 
         The tag argument is the name of the tag converted to lower case.
         """
-    
+
     def handle_data(self, data) -> None:
         """Handle arbitrary data (e.g. text nodes and the content of
         <script>...</script> and <style>...</style>).
@@ -88,7 +86,7 @@ class Parser(html.parser.HTMLParser):
         content<![endif]'.
         """
 
-    
+
 #     def handle_pi(self, data) -> None:
 # Method called when a processing instruction is encountered. The data parameter will contain the entire processing instruction. For example, for the processing instruction <?proc color='red'>, this method would be called as handle_pi("proc color='red'"). It is intended to be overridden by a derived class; the base class implementation does nothing.
 
@@ -97,7 +95,6 @@ class Parser(html.parser.HTMLParser):
 # This method is called when an unrecognized declaration is read by the parser.
 
 # The data parameter will be the entire contents of the declaration inside the <![...]> markup. It is sometimes useful to be overridden by a derived class. The base class implementation raises an HTMLParseError when strict is True.
-
 
 
 def main() -> int:
