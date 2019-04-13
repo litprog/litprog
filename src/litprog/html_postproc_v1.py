@@ -32,10 +32,10 @@ InputPaths = typ.Sequence[str]
 FilePaths  = typ.Iterable[pl.Path]
 
 ExitCode = int
-import html.parser
+import html.parser as html_parser
 
 
-class Parser(html.parser.HTMLParser):
+class Parser(html_parser.HTMLParser):
     def __init__(self, strict: bool = False, *, convert_charrefs: bool = True) -> None:
         super().__init__(strict, convert_charrefs=convert_charrefs)
 

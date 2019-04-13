@@ -5,9 +5,9 @@ inputs       : ["boilerplate::*", "html_postproc_v1::*"]
 
 ```python
 # lpid = html_postproc_v1::code
-import html.parser 
+import html.parser as html_parser
 
-class Parser(html.parser.HTMLParser):
+class Parser(html_parser.HTMLParser):
 
     def __init__(self, strict: bool = False, *, convert_charrefs: bool = True) -> None:
         super().__init__(strict, convert_charrefs=convert_charrefs)
