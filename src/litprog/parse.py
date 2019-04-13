@@ -9,6 +9,9 @@
 # This file should not be edited. #
 #  Changes will be overwritten!   #
 ###################################
+import logging
+
+log = logging.getLogger(__name__)
 import os
 import io
 import re
@@ -29,9 +32,6 @@ InputPaths = typ.Sequence[str]
 FilePaths  = typ.Iterable[pl.Path]
 
 ExitCode = int
-import logging
-
-log = logging.getLogger(__name__)
 import json
 import toml
 import yaml
@@ -336,7 +336,10 @@ def _add_to_context(ctx: lptyp.ParseContext, code_block: lptyp.FencedBlock) -> N
         err_msg = f"Duplicated definition of {code_block.lpid}"
         raise ParseError(err_msg)
 
-    ctx.blocks[code_block.lpid].append(code_block)
+    if code_block.lpid in ctx.blocks:
+        ctx.blocks[code_block.lpid].append(code_block)
+    else:
+        ctx.blocks[code_block.lpid] = [code_block]
 
     if code_block.lpid in ctx.options:
         prev_options = ctx.options[code_block.lpid]

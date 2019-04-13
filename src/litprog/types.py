@@ -81,7 +81,7 @@ class ParseContext:
 
     def __init__(self) -> None:
         self.md_paths = []
-        self.blocks   = collections.defaultdict(list)
+        self.blocks   = collections.OrderedDict()
         self.options  = {}
 
 

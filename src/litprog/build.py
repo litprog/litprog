@@ -9,6 +9,9 @@
 # This file should not be edited. #
 #  Changes will be overwritten!   #
 ###################################
+import logging
+
+log = logging.getLogger(__name__)
 import os
 import io
 import re
@@ -29,9 +32,6 @@ InputPaths = typ.Sequence[str]
 FilePaths  = typ.Iterable[pl.Path]
 
 ExitCode = int
-import logging
-
-log = logging.getLogger(__name__)
 import signal
 import fnmatch
 
@@ -79,16 +79,14 @@ def gen_multi_block_output(ctx: lptyp.BuildContext, lpid: lptyp.LitProgId) -> Ge
 
 
 def parse_all_ids(ctx: lptyp.BuildContext) -> typ.Sequence[lptyp.LitProgId]:
-    option_ids = set(ctx.options.keys())
-    block_ids  = set(ctx.blocks.keys())
-    return option_ids | block_ids
+    assert isinstance(ctx.blocks, collections.OrderedDict)
+    return list(ctx.blocks.keys())
 
 
 def iter_expanded_lpids(
     ctx: lptyp.BuildContext, lpids: typ.Iterable[lptyp.LitProgId]
 ) -> typ.Iterable[lptyp.LitProgId]:
-    all_ids      = parse_all_ids(ctx)
-    captured_ids = set(ctx.captured_outputs.keys())
+    all_ids = parse_all_ids(ctx)
     for glob_or_lpid in lpids:
         is_lp_id = not ("*" in glob_or_lpid or "?" in glob_or_lpid)
         if is_lp_id:

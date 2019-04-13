@@ -5,10 +5,9 @@ The `litprog` program has some types that are used across boundaries of submodul
 ```yaml
 filepath     : "src/litprog/types.py"
 inputs       : [
-    "license_header_boilerplate",
-    "generated_preamble",
-    "common.imports",
-    "types.code",
+    "boilerplate::basic::*",
+    "boilerplate::module::imports",
+    "types::*",
 ]
 ```
 
@@ -18,7 +17,7 @@ These types relate to the interaction between the `parse` and `build` modules. `
 
     
 ```python
-# lpid = types.code
+# lpid = types::code
 
 Lang = str
 
@@ -61,7 +60,7 @@ Block = typ.Union[RawFencedBlock, FencedBlock]
 
 
 ```python
-# lpid = types.code
+# lpid = types::code
 
 BlocksById  = typ.Dict[LitProgId, typ.List[FencedBlock]]
 OptionsById = typ.Dict[LitProgId, BlockOptions]
@@ -75,8 +74,8 @@ class ParseContext:
 
     def __init__(self) -> None:
         self.md_paths = []
-        self.blocks  = collections.defaultdict(list)
-        self.options = {}
+        self.blocks   = collections.OrderedDict()
+        self.options  = {}
 
 
 class CapturedLine(typ.NamedTuple):

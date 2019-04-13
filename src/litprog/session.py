@@ -9,6 +9,9 @@
 # This file should not be edited. #
 #  Changes will be overwritten!   #
 ###################################
+import logging
+
+log = logging.getLogger(__name__)
 import os
 import io
 import re
@@ -29,9 +32,6 @@ InputPaths = typ.Sequence[str]
 FilePaths  = typ.Iterable[pl.Path]
 
 ExitCode = int
-import logging
-
-log = logging.getLogger(__name__)
 
 import time
 import shlex
