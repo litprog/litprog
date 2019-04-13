@@ -34,3 +34,8 @@ snakeviz
 # add one after you've tested it and found it to be actually useful.
 
 ipython     # nuff said
+
+# These get rid of some warnings related to 
+# collections -> collections.abc deprication
+git+https://github.com/mcmtroffaes/pathlib2.git@develop#egg=pathlib2
+git+https://github.com/html5lib/html5lib-python.git@master#egg=html5lib
