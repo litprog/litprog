@@ -143,7 +143,7 @@ def gen_session_output(
             isession.send(line.val)
 
     exit_code = isession.wait(timeout=2)
-    output    = "\n".join(iter(isession))
+    output    = "".join(iter(isession))
 
     expected_exit_code = options.get('expected_exit_code', 0)
     if exit_code == expected_exit_code:
