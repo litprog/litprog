@@ -20,4 +20,10 @@ beautifulsoup4
 
 toml
 PyYAML
-ujson
+# ujson
+
+# https://github.com/gorakhargosh/watchdog
+# From readme:
+# > If you want to use an old version of Python,
+# > you should stick with watchdog < 0.10.0.
+watchdog<0.10.0
