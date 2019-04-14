@@ -18,7 +18,7 @@ import fnmatch
 
 import litprog.parse
 import litprog.session
-import litprog.types as lptyp
+import litprog.lptyp as lptyp
 ```
 
 

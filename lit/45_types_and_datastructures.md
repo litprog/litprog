@@ -3,7 +3,7 @@
 The `litprog` program has some types that are used across boundaries of submodules. They are declared in `types.py` and imported as `import litprog.types as lptyp`.
 
 ```yaml
-filepath     : "src/litprog/types.py"
+filepath     : "src/litprog/lptyp.py"
 inputs       : [
     "boilerplate::preamble::*",
     "boilerplate::module::imports",

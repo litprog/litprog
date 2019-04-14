@@ -49,11 +49,20 @@ Lines = typ.List[Line]
 BlockOptions = typ.Dict[str, typ.Any]
 
 
+class RawProse(typ.NamedTuple):
+
+    file_path: pl.Path
+    lines    : Lines
+
+
 class RawFencedBlock(typ.NamedTuple):
 
     file_path  : pl.Path
     info_string: str
     lines      : Lines
+
+
+RawMarkdown = typ.Union[RawProse, RawFencedBlock]
 
 
 class FencedBlock(typ.NamedTuple):
@@ -76,12 +85,14 @@ OptionsById = typ.Dict[LitProgId, BlockOptions]
 class ParseContext:
 
     md_paths  : FilePaths
+    prose     : typ.List[RawProse]
     blocks    : BlocksById
     options   : OptionsById
     prev_block: typ.Optional[FencedBlock]
 
     def __init__(self) -> None:
         self.md_paths   = []
+        self.prose      = []
         self.blocks     = collections.OrderedDict()
         self.options    = {}
         self.prev_block = None
@@ -105,6 +116,7 @@ ProgResultsById = typ.Dict[LitProgId, ProcResult]
 class BuildContext:
 
     md_paths        : FilePaths
+    prose           : typ.List[RawProse]
     blocks          : BlocksById
     options         : OptionsById
     captured_outputs: OutputsById
@@ -112,6 +124,7 @@ class BuildContext:
 
     def __init__(self, pctx: ParseContext) -> None:
         self.md_paths         = pctx.md_paths
+        self.prose            = pctx.prose
         self.blocks           = pctx.blocks
         self.options          = pctx.options
         self.captured_outputs = {}

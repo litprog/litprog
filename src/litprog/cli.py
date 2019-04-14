@@ -75,14 +75,16 @@ def _configure_logging(verbosity: int = 0) -> None:
 
 import click
 
+import watchdog.events
+import watchdog.observers
+
 import litprog.parse
 import litprog.build
 import litprog.session
-import litprog.types as lptyp
+import litprog.lptyp as lptyp
 
 click.disable_unicode_literals_warning = True
-
-verbosity_option = click.option(
+verbosity_option                       = click.option(
     '-v', '--verbose', count=True, help="Control log level. -vv for debug level."
 )
 
@@ -135,11 +137,58 @@ def sync_manifest(input_paths: InputPaths, verbose: int = 0) -> None:
         return _sync_manifest(ctx, maybe_manifest)
 
 
+@cli.command()
+@click.argument('input_paths', nargs=-1, type=click.Path(exists=True))
+@verbosity_option
+def watch(input_paths: InputPaths, verbose: int = 0) -> None:
+    _configure_logging(verbose)
+    # TODO: figure out how to share this code between sub-commands
+    md_paths = sorted(_iter_markdown_filepaths(input_paths))
+    if len(md_paths) == 0:
+        log.error("No markdown files found for {input_paths}.")
+        click.secho("No markdown files found", fg='red')
+        sys.exit(1)
+
+    sys.exit(_watch(input_paths, md_paths))
+
+
+def _watch(input_paths: InputPaths, md_paths: FilePaths) -> ExitCode:
+    valid_md_paths = set(md_paths)
+    observer       = watchdog.observers.Observer()
+    handler        = WatchHandler()
+
+    for path in input_paths:
+        observer.schedule(handler, str(path))
+
+    observer.start()
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        observer.stop()
+    observer.join()
+
+
+FSEvent = watchdog.events.FileSystemEvent
+
+
+class WatchHandler(watchdog.events.FileSystemEventHandler):
+    def on_modified(self, event: FSEvent) -> None:
+        path = pl.Path(event.src_path)
+        if path.is_file:
+            _handle_modified(path)
+
+
+def _handle_modified(path: pl.Path) -> None:
+    print("---", path)
+
+
 FileId     = str
 PartId     = str
 ChapterId  = str
 ChapterNum = str  # eg. "00"
-ChapterKey = typ.Tuple[PartId, ChapterId]
+
+Manifest = typ.List[FileId]
 
 
 class ChapterItem(typ.NamedTuple):
@@ -149,9 +198,8 @@ class ChapterItem(typ.NamedTuple):
     md_path   : pl.Path
 
 
+ChapterKey    = typ.Tuple[PartId, ChapterId]
 ChaptersByKey = typ.Dict[ChapterKey, ChapterItem]
-
-Manifest = typ.List[FileId]
 
 
 def _sync_manifest(ctx: lptyp.ParseContext, manifest: Manifest) -> ExitCode:

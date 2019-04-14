@@ -23,7 +23,7 @@ import toml
 import yaml
 import uuid
 
-import litprog.types as lptyp
+import litprog.lptyp as lptyp
 ```
 
 Test file and imports/preamble.

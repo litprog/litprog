@@ -24,7 +24,7 @@ import shlex
 import threading
 import subprocess as sp
 
-import litprog.types as lptyp
+import litprog.lptyp as lptyp
 ```
 
 Test file and imports/preamble.

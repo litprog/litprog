@@ -32,13 +32,12 @@ InputPaths = typ.Sequence[str]
 FilePaths  = typ.Iterable[pl.Path]
 
 ExitCode = int
-
 import time
 import shlex
 import threading
 import subprocess as sp
 
-import litprog.types as lptyp
+import litprog.lptyp as lptyp
 
 
 class SessionException(Exception):
@@ -113,7 +112,6 @@ class InteractiveSession:
     _in_cl : typ.List[lptyp.CapturedLine]
     _out_ct: CapturingThread
     _err_ct: CapturingThread
-    # class InteractiveSession: ...
 
     def __init__(
         self, cmd: AnyCommand, *, env: typ.Optional[Environ] = None, encoding: str = "utf-8"
@@ -139,7 +137,6 @@ class InteractiveSession:
         self._out_ct = _start_reader(self._proc.stdout, _enc)
         self._err_ct = _start_reader(self._proc.stderr, _enc)
 
-    # class InteractiveSession: ...
     def send(self, input_str: str, delay: float = 0.01) -> None:
         self._in_cl.append(lptyp.CapturedLine(time.time(), input_str))
         input_data = input_str.encode(self.encoding)
@@ -149,7 +146,6 @@ class InteractiveSession:
         if delay:
             time.sleep(delay)
 
-    # class InteractiveSession: ...
     @property
     def retcode(self) -> int:
         return self.wait()
@@ -160,7 +156,6 @@ class InteractiveSession:
                 "'InteractiveSession.wait()' must be called " + " before accessing captured output."
             )
 
-    # class InteractiveSession: ...
     def wait(self, timeout=1) -> int:
         if self._retcode is not None:
             return self._retcode
@@ -189,7 +184,6 @@ class InteractiveSession:
         self.end      = time.time()
         return returncode
 
-    # class InteractiveSession: ...
     def iter_stdout(self) -> typ.Iterable[str]:
         self._assert_retcode()
         for ts, line in self._out_ct.lines:
@@ -206,7 +200,6 @@ class InteractiveSession:
         for captured_line in sorted(all_lines):
             yield captured_line.line
 
-    # class InteractiveSession: ...
     @property
     def runtime(self) -> float:
         self._assert_retcode()
