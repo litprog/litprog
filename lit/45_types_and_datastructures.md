@@ -68,14 +68,16 @@ OptionsById = typ.Dict[LitProgId, BlockOptions]
 
 class ParseContext:
 
-    md_paths: FilePaths
-    blocks  : BlocksById
-    options : OptionsById
+    md_paths  : FilePaths
+    blocks    : BlocksById
+    options   : OptionsById
+    prev_block: typ.Optional[FencedBlock]
 
     def __init__(self) -> None:
-        self.md_paths = []
-        self.blocks   = collections.OrderedDict()
-        self.options  = {}
+        self.md_paths   = []
+        self.blocks     = collections.OrderedDict()
+        self.options    = {}
+        self.prev_block = None
 
 
 class CapturedLine(typ.NamedTuple):
@@ -87,7 +89,6 @@ class ProcResult(typ.NamedTuple):
     exit_code: int
     stdout   : typ.List[CapturedLine]
     stderr   : typ.List[CapturedLine]
-
 
 
 OutputsById = typ.Dict[LitProgId, str       ]

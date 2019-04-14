@@ -49,8 +49,10 @@ As a first step, we want to simply scan for markdown files as if invoking `litpr
 # lpid = parse::code
 
 VALID_OPTION_KEYS = {'lptype', 'lpid'}
+```
 
 
+```python
 class ParseError(Exception):
     def __init__(self, msg: str, block: lptyp.Block) -> None:
         file_path  = block.file_path
@@ -63,8 +65,10 @@ class ParseError(Exception):
 
         msg += f" on line {line_no} of {file_path}"
         super(ParseError, self).__init__(msg)
+```
 
 
+```python
 def parse_context(md_paths: FilePaths) -> lptyp.ParseContext:
     ctx = lptyp.ParseContext()
     ctx.md_paths.extend(md_paths)
@@ -72,33 +76,41 @@ def parse_context(md_paths: FilePaths) -> lptyp.ParseContext:
     for path in ctx.md_paths:
         log.debug(f"parsing {path}")
         for rfb in _iter_raw_fenced_blocks(path):
-            code_block = _parse_code_block(rfb)
+            code_block = _parse_code_block(ctx, rfb)
             _add_to_context(ctx, code_block)
 
     return ctx
+```
 
 
+```python
 def _iter_raw_fenced_blocks(
     input_path: pl.Path
 ) -> typ.Iterable[lptyp.RawFencedBlock]:
     with input_path.open(mode="r", encoding="utf-8") as fh:
         input_lines = enumerate(fh)
         for i, line_val in input_lines:
-            is_fence = (
-                line_val.startswith("~~~")
-                or line_val.startswith("```")
-            )
+            is_fence = line_val.startswith("```")
             if not is_fence:
                 continue
 
             fence_str   = line_val[:3]
             info_string = line_val[3:].strip()
-            block_lines = list(_iter_fenced_block_lines(fence_str, input_lines))
-            yield lptyp.RawFencedBlock(input_path, info_string, block_lines)
+            block_lines = _iter_fenced_block_lines(
+                fence_str, input_lines,
+            )
+            yield lptyp.RawFencedBlock(
+                input_path,
+                info_string,
+                list(block_lines),
+            )
+```
 
 
+```python
 def _iter_fenced_block_lines(
-    fence_str: str, input_lines: typ.Iterable[typ.Tuple[int, str]]
+    fence_str: str,
+    input_lines: typ.Iterable[typ.Tuple[int, str]],
 ) -> typ.Iterable[lptyp.Line]:
     for i, line_val in input_lines:
         line_no     = i + 1
@@ -112,7 +124,10 @@ def _iter_fenced_block_lines(
             break
         else:
             yield lptyp.Line(line_no, line_val)
+```
 
+
+```python
 LANGUAGE_COMMENT_PATTERNS = {
     "c++"          : (r"^//" , r"$"),
     'actionscript' : (r"^//" , r"$"),
@@ -154,8 +169,10 @@ LANGUAGE_COMMENT_PATTERNS = {
     'sql'          : (r"^--" , r"$"),
     'typescript'   : (r"^//" , r"$"),
 }
+```
 
 
+```python
 LANGUAGE_COMMENT_TEMPLATES = {
     "c++"          : "// {}",
     'actionscript' : "// {}",
@@ -197,8 +214,10 @@ LANGUAGE_COMMENT_TEMPLATES = {
     'sql'          : "-- {}",
     'typescript'   : "// {}",
 }
+```
 
 
+```python
 def _parse_comment_options(
     maybe_lang: lptyp.MaybeLang, raw_lines: lptyp.Lines
 ) -> typ.Tuple[lptyp.BlockOptions, lptyp.Lines]:
@@ -247,8 +266,10 @@ def _parse_comment_options(
     filtered_lines = raw_lines[last_options_line:]
 
     return options, filtered_lines
+```
 
 
+```python
 def _parse_language(info_string: str) -> lptyp.MaybeLang:
     info_string = info_string.strip()
 
@@ -256,8 +277,10 @@ def _parse_language(info_string: str) -> lptyp.MaybeLang:
         return info_string.split(" ", 1)[0]
     else:
         return None
+```
 
 
+```python
 def _parse_maybe_options(
     lang: lptyp.Lang, raw_lines: lptyp.Lines
 ) -> typ.Optional[lptyp.BlockOptions]:
@@ -298,9 +321,14 @@ def _parse_maybe_options(
         return maybe_options
     else:
         return None
+```
 
 
-def _parse_code_block(raw_fenced_block: lptyp.RawFencedBlock) -> lptyp.FencedBlock:
+```python
+def _parse_code_block(
+    ctx             : lptyp.ParseContext,
+    raw_fenced_block: lptyp.RawFencedBlock
+) -> lptyp.FencedBlock:
     maybe_lang = _parse_language(raw_fenced_block.info_string)
     raw_lines  = raw_fenced_block.lines
 
@@ -319,11 +347,27 @@ def _parse_code_block(raw_fenced_block: lptyp.RawFencedBlock) -> lptyp.FencedBlo
 
     filtered_content = "".join(line.val for line in filtered_lines)
 
+    prev_lpid = None
+    if ctx.prev_block:
+        prev_path = ctx.prev_block.file_path
+        curr_path = raw_fenced_block.file_path
+        prev_lang = ctx.prev_block.language
+        curr_lang = maybe_lang
+
+        is_valid_continuation = (
+            prev_path == curr_path
+            and prev_lang == curr_lang
+        )
+        if is_valid_continuation:
+            prev_lpid = ctx.prev_block.lpid
+
     lpid: LitprogID
     if 'lpid' in options:
         lpid = options['lpid']
     elif 'filepath' in options:
         lpid = options['filepath']
+    elif prev_lpid:
+        lpid = prev_lpid
     else:
         lpid = str(uuid.uuid4())
 
@@ -339,9 +383,14 @@ def _parse_code_block(raw_fenced_block: lptyp.RawFencedBlock) -> lptyp.FencedBlo
         options,
         filtered_content,
     )
+```
 
 
-def _add_to_context(ctx: lptyp.ParseContext, code_block: lptyp.FencedBlock) -> None:
+```python
+def _add_to_context(
+    ctx       : lptyp.ParseContext,
+    code_block: lptyp.FencedBlock,
+) -> None:
     is_duplicate_lpid = (
         code_block.lpid in ctx.blocks
         and code_block.options['lptype'] != 'raw_block'
@@ -354,6 +403,8 @@ def _add_to_context(ctx: lptyp.ParseContext, code_block: lptyp.FencedBlock) -> N
         ctx.blocks[code_block.lpid].append(code_block)
     else:
         ctx.blocks[code_block.lpid] = [code_block]
+
+    ctx.prev_block = code_block
 
     if code_block.lpid in ctx.options:
         prev_options = ctx.options[code_block.lpid]

@@ -63,7 +63,7 @@ def parse_context(md_paths: FilePaths) -> lptyp.ParseContext:
     for path in ctx.md_paths:
         log.debug(f"parsing {path}")
         for rfb in _iter_raw_fenced_blocks(path):
-            code_block = _parse_code_block(rfb)
+            code_block = _parse_code_block(ctx, rfb)
             _add_to_context(ctx, code_block)
 
     return ctx
@@ -73,14 +73,14 @@ def _iter_raw_fenced_blocks(input_path: pl.Path) -> typ.Iterable[lptyp.RawFenced
     with input_path.open(mode="r", encoding="utf-8") as fh:
         input_lines = enumerate(fh)
         for i, line_val in input_lines:
-            is_fence = line_val.startswith("~~~") or line_val.startswith("```")
+            is_fence = line_val.startswith("```")
             if not is_fence:
                 continue
 
             fence_str   = line_val[:3]
             info_string = line_val[3:].strip()
-            block_lines = list(_iter_fenced_block_lines(fence_str, input_lines))
-            yield lptyp.RawFencedBlock(input_path, info_string, block_lines)
+            block_lines = _iter_fenced_block_lines(fence_str, input_lines)
+            yield lptyp.RawFencedBlock(input_path, info_string, list(block_lines))
 
 
 def _iter_fenced_block_lines(
@@ -141,8 +141,6 @@ LANGUAGE_COMMENT_PATTERNS = {
     'sql'          : (r"^--" , r"$"),
     'typescript'   : (r"^//" , r"$"),
 }
-
-
 LANGUAGE_COMMENT_TEMPLATES = {
     "c++"          : "// {}",
     'actionscript' : "// {}",
@@ -287,7 +285,9 @@ def _parse_maybe_options(
         return None
 
 
-def _parse_code_block(raw_fenced_block: lptyp.RawFencedBlock) -> lptyp.FencedBlock:
+def _parse_code_block(
+    ctx: lptyp.ParseContext, raw_fenced_block: lptyp.RawFencedBlock
+) -> lptyp.FencedBlock:
     maybe_lang = _parse_language(raw_fenced_block.info_string)
     raw_lines  = raw_fenced_block.lines
 
@@ -306,11 +306,24 @@ def _parse_code_block(raw_fenced_block: lptyp.RawFencedBlock) -> lptyp.FencedBlo
 
     filtered_content = "".join(line.val for line in filtered_lines)
 
+    prev_lpid = None
+    if ctx.prev_block:
+        prev_path = ctx.prev_block.file_path
+        curr_path = raw_fenced_block.file_path
+        prev_lang = ctx.prev_block.language
+        curr_lang = maybe_lang
+
+        is_valid_continuation = prev_path == curr_path and prev_lang == curr_lang
+        if is_valid_continuation:
+            prev_lpid = ctx.prev_block.lpid
+
     lpid: LitprogID
     if 'lpid' in options:
         lpid = options['lpid']
     elif 'filepath' in options:
         lpid = options['filepath']
+    elif prev_lpid:
+        lpid = prev_lpid
     else:
         lpid = str(uuid.uuid4())
 
@@ -340,6 +353,8 @@ def _add_to_context(ctx: lptyp.ParseContext, code_block: lptyp.FencedBlock) -> N
         ctx.blocks[code_block.lpid].append(code_block)
     else:
         ctx.blocks[code_block.lpid] = [code_block]
+
+    ctx.prev_block = code_block
 
     if code_block.lpid in ctx.options:
         prev_options = ctx.options[code_block.lpid]

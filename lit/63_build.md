@@ -23,8 +23,6 @@ import litprog.types as lptyp
 
 
 ```python
-# lpid = build::code
-
 class GeneratorResult:
     output: typ.Optional[str]
     done  : bool
@@ -52,7 +50,6 @@ GeneratorFunc = typ.Callable[
 
 
 ```python
-# lpid = build::code
 def gen_meta_output(
     ctx : lptyp.BuildContext,
     lpid: lptyp.LitProgId,
@@ -63,7 +60,6 @@ def gen_meta_output(
 
 
 ```python
-# lpid = build::code
 def gen_raw_block_output(
     ctx : lptyp.BuildContext,
     lpid: lptyp.LitProgId,
@@ -78,7 +74,6 @@ def gen_raw_block_output(
 NOTE: Now that we have glob expansion on ids, this may be obsolete. A vast majority of use cases for this may be covered with a simple naming convention.
 
 ```python
-# lpid = build::code
 def gen_multi_block_output(
     ctx : lptyp.BuildContext,
     lpid: lptyp.LitProgId,
@@ -88,14 +83,14 @@ def gen_multi_block_output(
 ```
 
 ```python
-# lpid = build::code
 def parse_all_ids(
     ctx: lptyp.BuildContext
 ) -> typ.Sequence[lptyp.LitProgId]:
     assert isinstance(ctx.blocks, collections.OrderedDict)
     return list(ctx.blocks.keys())
+```
 
-
+```python
 def iter_expanded_lpids(
     ctx  : lptyp.BuildContext,
     lpids: typ.Iterable[lptyp.LitProgId],
@@ -114,8 +109,9 @@ def iter_expanded_lpids(
         for lpid in all_ids:
             if lpid_re.match(lpid):
                 yield lpid
+```
 
-
+```python
 def parse_missing_ids(
     ctx : lptyp.BuildContext,
     lpid: lptyp.LitProgId,
@@ -136,15 +132,15 @@ NOTE: In some cases the order of lpids doesn't matter, but in the case of inputs
 
 
 ```python
-# lpid = build::code
 def parse_input_ids(
     options: lptyp.BlockOptions,
 ) -> lptyp.LitProgIds:
     maybe_input_ids = options['inputs']
     # TODO: validate
     return typ.cast(lptyp.LitProgIds, maybe_input_ids)
+```
 
-
+```python
 def gen_out_file_output(
     ctx : lptyp.BuildContext,
     lpid: lptyp.LitProgId,
@@ -175,7 +171,6 @@ TODO (mb):
  - option to ignore exit codes
 
 ```python
-# lpid = build::code
 TIMEOUT_RETCODE = -signal.SIGTERM.value
        
 
@@ -224,7 +219,6 @@ def gen_session_output(
 ```
 
 ```python
-# lpid = build::code
 OUTPUT_GENERATORS_BY_TYPE: typ.Mapping[str, GeneratorFunc] = {
     'meta'       : gen_meta_output,
     'raw_block'  : gen_raw_block_output,
@@ -236,7 +230,6 @@ OUTPUT_GENERATORS_BY_TYPE: typ.Mapping[str, GeneratorFunc] = {
 
 
 ```python
-# lpid = build::code
 def write_output(
     lpid: lptyp.LitProgId,
     ctx: lptyp.BuildContext,
@@ -259,7 +252,6 @@ def write_output(
 
 
 ```python
-# lpid = build::code
 def build(parse_ctx: lptyp.ParseContext) -> ExitCode:
     ctx = lptyp.BuildContext(parse_ctx)
     all_ids = parse_all_ids(ctx)
