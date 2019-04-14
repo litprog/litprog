@@ -5,7 +5,7 @@ LitProg is a self-hosting compiler written in pure python. The compiler source c
 
 ## manifest
 
-The literate source is orderd according to the following manifest. Using the `litprog sync-manfest` sub-command makes it easy to add new chapters and have the chapter number prefixes of the markdown files be updated appropriatly.
+The literate source is ordered according to the following manifest. Using the `litprog sync-manifest` sub-command makes it easy to add new chapters and have the chapter number prefixes of the markdown files be updated appropriately.
 
 ```yaml
 lptype  : meta
@@ -42,6 +42,7 @@ manifest: [
     "porcelain::watch",
 
     "plumbing::plumbing",
+    "plumbing::context",
     "plumbing::parse",
     "plumbing::build",
     "plumbing::session",

@@ -19,7 +19,7 @@ Since the litprog tool is self hosting, there is a good chance that it breaks it
 
 ### Generated Preamble
 
-In case somebody browses the generated files, we add some more boilerplate to each file to warn them that their changes will be overwriten.
+In case somebody browses the generated files, we add some more boilerplate to each file to warn them that their changes will be overwritten.
 
 ```python
 # lpid = boilerplate::preamble::generated
@@ -52,7 +52,7 @@ filepath: "src/litprog/__init__.py"
 inputs  : ["boilerplate::preamble::*", "dunder_version"]
 ```
 
-Note that version strings may appear to be hard-coded, but they are in fact programatically updated before each release using `make bump_version` or `pycalver bump`.
+Note that version strings may appear to be hard-coded, but they are in fact programmatically updated before each release using `make bump_version` or `pycalver bump`.
 
 ```python
 # lpid = dunder_version
@@ -88,5 +88,5 @@ FilePaths = typ.Iterable[pl.Path]
 ExitCode = int
 ```
 
-Since the reader may not have access to the output files and be able to look at all symbols that have been imported into a module, it is better to establish ideoms/conventions about imported modules and have fully qualified references to the attributes of a module, rather than relying on those attributes having been imported and injected into the scope of the current module.
+Since the reader may not have access to the output files and be able to look at all symbols that have been imported into a module, it is better to establish idioms/conventions about imported modules and have fully qualified references to the attributes of a module, rather than relying on those attributes having been imported and injected into the scope of the current module.
 

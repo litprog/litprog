@@ -1,14 +1,14 @@
 ### Writing Style
 
-While there are many (much more authoritative) sources on writing good prose, the specific kind of prose of a literate program, and the specific tooling used to compile it, does lend some justification for a short chapter with reccomendations on writing style.
+While there are many (much more authoritative) sources on writing good prose, the specific kind of prose of a literate program, and the specific tooling used to compile it, does lend some justification for a short chapter with recommendations on writing style.
 
 #### Itemised Lists are Fantastic
 
 Comma separation should be reserved for very short lists, where
 the commas are separated by only a very few words. It is
-irritating to be in the middle of reading a sentance, to
+irritating to be in the middle of reading a sentence, to
 then encounter a comma, to have to judge what kind of comma it is,
-realse it's for the separation of items, reflect on the last
+realise it's for the separation of items, reflect on the last
 6 words of a sentence you've been reading are not just a
 continuation of the previous sentence, but in fact the first item
 in a list of items, so you have to reinterpret them before you
@@ -20,7 +20,7 @@ since it gives an immediate visual queue to the reader.
 
 State early and directly what it is that you want to communicate,
 the idea that you want to stick in the mind of your reader. The
-reader then has the oportunity to skip past a section because
+reader then has the opportunity to skip past a section because
 they are already convinced, or to read on and judge if you are
 making sense.
 
@@ -39,7 +39,7 @@ Assume good faith on the part of the reader. A reader who does not have good fai
 
 ### Single Source of Truth
 
-### DRY and Metaprogramming
+### DRY and Programming
 
 ### Avoid Synonyms, be explicit
 
@@ -77,14 +77,14 @@ for your text to be stilted.
 I'm undecided on this. If your going to have a convention in
 program code, then this should be it, however for documentation
 it is probably better to focus the attention of the reader on
-usage code first, ie. to give the definition only later in the
+usage code first, i.e. to give the definition only later in the
 text.
 
 Declarations always have to precede their usage in the order of
 execution, however this is not true for their lexical order in
 the source code. A function can be declared after code in another
 function which depends on it, just so long as the depending
-function is only invoked after its dependancy has been declared.
+function is only invoked after its dependency has been declared.
 
 Since there are quite a few cases where the order of execution
 and order in the program text must be the same, if we have to

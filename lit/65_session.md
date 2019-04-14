@@ -4,7 +4,7 @@ A code block with `lptype: session` can be used to run arbitrary commands. This 
 
 This module is based (very loosly) on code by ["Eli Bendersky"][eli_bendersky] and ["John Sharp"][john_sharp].
 
-The current implementation was primarilly developed with interactive interpreters in mind such as `bash` and `python`. The input and output to these interpreters is line oriented and can in principle go on forever.
+The current implementation was primarilly developed with interactive interpreters in mind such as `bash` and `python`. The input and output to these interpreters is line oriented and can in principle go on forever, but in practice a process will be terminated if a timeout is reached.
 
 
 ### Files for Code and Tests
@@ -17,8 +17,7 @@ inputs  : ["boilerplate::*", "session::*"]
 ```
 
 ```python
-# lpid = session::code
-
+# lpid = session::imports
 import time
 import shlex
 import threading
@@ -31,11 +30,11 @@ Test file and imports/preamble.
 
 ```yaml
 filepath: "test/test_session.py"
-inputs  : ["boilerplate::preamble::*", "test_session"]
+inputs  : ["boilerplate::preamble::*", "test_session::*"]
 ```
 
 ```python
-# lpid = test_session
+# lpid = test_session::imports
 import io
 import litprog.session as sut
 
@@ -52,8 +51,7 @@ Since the subprocess runs concurrently to litprog and since stdout and stderr ar
 We may have to revisit this and abstract it to `CapturedChunk` so that we don't have to rely on line-wise generation of output.
 
 ```python
-# lpid = session::code
-
+# lpid = session::types
 class SessionException(Exception):
     pass
 
@@ -66,7 +64,7 @@ _: Environ = os.environ
 The `_gen_captured_lines` is basically a constructor for `lptyp.CapturedLine`, but since the only use case is for streaming data it is written as a generator.
 
 ```python
-# lpid = session::code
+# lpid = session::capture_util
 def _gen_captured_lines(
     raw_lines: typ.Iterable[bytes],
     encoding : str = "utf-8",
@@ -83,7 +81,7 @@ def _gen_captured_lines(
 
 
 ```python
-# lpid = test_session
+# lpid = test_session::testcase
 def test_gen_captured_lines():
     raw_lines = RAW_TEST_TEXT.strip().splitlines()
     captured_lines = sut._gen_captured_lines(raw_lines)
@@ -96,7 +94,7 @@ The `_read_loop` function runs in a separate thread, consuming either a `STDOUT`
 The term `output` may be a bit confusing here. It refers to the fact that the parameter relates to the output of a subprocess that is to be captured.
 
 ```python
-# lpid = session::code
+# lpid = session::capture_util
 def _read_loop(
     sp_output_pipe: typ.IO[bytes],
     captured_lines: typ.List[lptyp.CapturedLine],
@@ -113,12 +111,15 @@ def _read_loop(
 Note that `captured_lines` list is modified by the created thread and read from by the current thread. This should be fine, as reading only happens after the writer thread has been joined. If the list is accessed before writing is finished, an append might happen during iteration over the list. This convention is enforced by calling `InteractiveSession._assert_retcode()`. 
 
 ```python
-# lpid = session::code
+# lpid = session::capture_util
 class CapturingThread(typ.NamedTuple):
     thread: threading.Thread
     lines : typ.List[lptyp.CapturedLine]
+```
 
 
+```python
+# lpid = session::capture_util
 def _start_reader(
     sp_output_pipe: typ.IO[bytes], encoding: str = "utf-8"
 ) -> CapturingThread:
@@ -133,7 +134,7 @@ def _start_reader(
 
 
 ```python
-# lpid = test_session
+# lpid = test_session::testcase
 def test_start_reader():
     expected = RAW_TEST_TEXT.decode("utf-8")
 
@@ -149,7 +150,7 @@ def test_start_reader():
 
 
 ```python
-# lpid = session::code
+# lpid = session::util
 AnyCommand = typ.Union[str, typ.List[str]]
 
 def _normalize_command(command: AnyCommand) -> typ.List[str]:
@@ -166,7 +167,7 @@ def _normalize_command(command: AnyCommand) -> typ.List[str]:
 `InteractiveSession` is the public API of the `session` module. It encapsulates running a process, capturing its output, waiting for it to finish and accesing, the captured output.
 
 ```python
-# lpid = session::code
+# lpid = session::InteractiveSession
 class InteractiveSession:
 
     encoding: str
@@ -183,9 +184,7 @@ class InteractiveSession:
 
 
 ```python
-# lpid = session::code
-# class InteractiveSession: ...
-
+# lpid = session::InteractiveSession
     def __init__(
         self,
         cmd: AnyCommand,
@@ -219,7 +218,6 @@ class InteractiveSession:
         self._in_cl = []
         self._out_ct = _start_reader(self._proc.stdout, _enc)
         self._err_ct = _start_reader(self._proc.stderr, _enc)
-
 ```
 
 The `send` method simply encodes and writes a string to the stdin of the subprocess.
@@ -230,8 +228,7 @@ Using the delay causes processing to be waaay slower that we would like it to be
 
 
 ```python
-# lpid = session::code
-# class InteractiveSession: ...
+# lpid = session::InteractiveSession
     def send(self, input_str: str, delay: float=0.01) -> None:
         self._in_cl.append(lptyp.CapturedLine(time.time(), input_str))
         input_data = input_str.encode(self.encoding)
@@ -243,8 +240,7 @@ Using the delay causes processing to be waaay slower that we would like it to be
 ```
 
 ```python
-# lpid = session::code
-# class InteractiveSession: ...
+# lpid = session::InteractiveSession
     @property
     def retcode(self) -> int:
         return self.wait()
@@ -262,8 +258,7 @@ TODO: What if the subprocess doesn't end,
     maybe retry with more brutal method.
 
 ```python
-# lpid = session::code
-# class InteractiveSession: ...
+# lpid = session::InteractiveSession
     def wait(self, timeout=1) -> int:
         if self._retcode is not None:
             return self._retcode
@@ -299,8 +294,7 @@ TODO: What if the subprocess doesn't end,
 ```
 
 ```python
-# lpid = session::code
-# class InteractiveSession: ...
+# lpid = session::InteractiveSession
     def iter_stdout(self) -> typ.Iterable[str]:
         self._assert_retcode()
         for ts, line in self._out_ct.lines:
@@ -323,8 +317,7 @@ TODO: What if the subprocess doesn't end,
 Property accessors for convenience.
 
 ```python
-# lpid = session::code
-# class InteractiveSession: ...
+# lpid = session::InteractiveSession
     @property
     def runtime(self) -> float:
         self._assert_retcode()
@@ -340,7 +333,7 @@ Property accessors for convenience.
 ```
 
 ```python
-# lpid = test_session
+# lpid = test_session::testcase
 
 BLOCK_0 = r"""
 import sys

@@ -28,7 +28,7 @@ In most cases (when installing with `pip install litprog`) this is strictly spea
 The [`backtrace`](https://github.com/nir0s/backtrace) package produces human friendly tracebacks, but is not a requirement to use litprog. To enable it for just one invocation use `ENABLE_BACKTRACE=1 litprog --help`.
 
 ```python
-# lpid = cli::code
+# lpid = cli::backtrace_setup
 # To enable pretty tracebacks:
 #   echo "export ENABLE_BACKTRACE=1;" >> ~/.bashrc
 if os.environ.get('ENABLE_BACKTRACE') == '1':
@@ -50,8 +50,7 @@ We use the standard python logging module throughout the codebase. Logging is
 initialized using this helper function. The verbosity is set using the `--verbose` flag and controls the logging format and the level.
 
 ```python
-# lpid = cli::code
-
+# lpid = cli::logging_config
 class LogConfig(typ.NamedTuple):
     fmt: str
     lvl: int
@@ -78,8 +77,7 @@ def _parse_logging_config(verbosity: int) -> LogConfig:
 Since the `--verbose` flag can be set both via the command group (the `cli` function) and via a sub-command, we need to deal with multiple invocations of `_configure_logging`. There are probably nicer ways of doing this if you want to get into the intricacies of the click library. The choice here is to override any previously configured logging only if the previous verbosity was lower.
 
 ```python
-# lpid = cli::code
-
+# lpid = cli::logging_config
 def _configure_logging(verbosity: int = 0) -> None:
     _prev_verbosity: int = getattr(_configure_logging, '_prev_verbosity', -1)
 
@@ -106,13 +104,19 @@ def _configure_logging(verbosity: int = 0) -> None:
 Since we're declaring the entry point here, we import most of the other modules directly (and all of them indirectly). While other modules are written in a functional style and have unit tests, this module represents the [imperative shell](https://www.destroyallsoftware.com/screencasts/catalog/functional-core-imperative-shell) and thus only has a basic integration test. 
 
 ```python
-# lpid = cli::code
+# lpid = cli::imports
+import hashlib
+
 import click
+
+import watchdog.events 
+import watchdog.observers 
 
 import litprog.parse
 import litprog.build
+# import litprog.watch
 import litprog.session
-import litprog.types as lptyp
+import litprog.lptyp as lptyp
 ```
 
 We'll be using the venerable [click][ref_click_lib] library to implement our CLI. `click` complains about use of `from __future__ import unicode_literals` [for some reason that I haven't dug into yet][ref_click_py3]. In the course of compiling LitProg to universal python using `lib3to6` the import is added. 
@@ -120,23 +124,24 @@ We'll be using the venerable [click][ref_click_lib] library to implement our CLI
 As far as I can tell, everything is behaving as expected, at least using ascii filenames, so the following is used to supress the warning.
 
 ```python
-# lpid = cli::code
+# lpid = cli::click_setup
 click.disable_unicode_literals_warning = True
 ```
 
 We could implement `litprog` as one command atm. but in anticipation of future subcommands we'll use the `click.group` approach to implement git style cli with subcommands.
 
 ```python
-# lpid = cli::code
-
+# lpid = cli::click_setup
 verbosity_option = click.option(
     '-v',
     '--verbose',
     count=True,
     help="Control log level. -vv for debug level.",
 )
+```
 
-
+```python
+# lpid = cli::click_setup
 @click.group()
 @click.version_option(version="v201901.0001-alpha")
 @verbosity_option
@@ -151,7 +156,7 @@ def cli(verbose: int = 0) -> None:
 The `litprog build` is the main subcommand. It recursively scans the `input_paths` argument for markdown files, parses them (creating a context object) and then uses the context to build the various outputs (source files, html and pdf). 
 
 ```python
-# lpid = cli::code
+# lpid = cli::click_subcommand
 @cli.command()
 @click.argument(
     'input_paths',
@@ -179,13 +184,40 @@ def build(
 ```
 
 
+### CLI sub-command `litprog watch`
+
+```python
+# lpid = cli::click_subcommand
+@cli.command()
+@click.argument(
+    'input_paths',
+    nargs=-1,
+    type=click.Path(exists=True),
+)
+@verbosity_option
+def watch(
+    input_paths: InputPaths,
+    verbose    : int = 0,
+) -> None:
+    _configure_logging(verbose)
+    # TODO: figure out how to share this code between sub-commands
+    md_paths = sorted(_iter_markdown_filepaths(input_paths))
+    if len(md_paths) == 0:
+        log.error("No markdown files found for {input_paths}.")
+        click.secho("No markdown files found", fg='red')
+        sys.exit(1)
+
+    sys.exit(_watch(input_paths, md_paths))
+```
+
+
 ### CLI sub-command `litprog sync-manifest`
 
 `litprog sync-manifest` may eventually be implemented as a plugin, but until the plugin system is ready (and to get an idea of how to implement the plugin system), it is implemented as a sub-command
 
 
 ```python
-# lpid = cli::code
+# lpid = cli::click_subcommand
 @cli.command()
 @click.argument(
     'input_paths',
@@ -215,18 +247,172 @@ def sync_manifest(
 ```
 
 
+```python
+# lpid = cli::watch
+
+def _watch(input_paths: InputPaths, md_paths: FilePaths) -> ExitCode:
+    valid_md_paths = set(md_paths)
+    observer = watchdog.observers.Observer()
+    handler = WatchHandler()
+
+    for path in input_paths:
+        observer.schedule(handler, str(path))
+
+    observer.start()
+    try:
+        while True:
+            time.sleep(0.1)
+    except KeyboardInterrupt:
+        observer.stop()
+    observer.join()
+```
+
+
+```python
+# lpid = cli::watch
+FSEvent = watchdog.events.FileSystemEvent
+
+class WatchHandler(watchdog.events.FileSystemEventHandler):
+
+    def on_modified(self, event: FSEvent) -> None:
+        path = pl.Path(event.src_path)
+        if path.is_file:
+            _handle_modified(path)
+```
+
+
+```python
+# lpid = cli::watch
+
+AUTOFIX_PATTERNS = {
+    r"\bapi\b"                : "API",
+    r"\bhtml/pdf\b"           : "HTML/PDF",
+    r"\b(B|b)urdon\b"         : r"\1urden",
+    r"\b(P|p)receed\b"        : r"\1recede",
+    r"\b(E|e)xtreem\b"        : r"\1xtreme",
+    r"\b(N|n)ecessarry\b"     : r"\1ecessary",
+    r"\b(N|n)ecessarilly\b"   : r"\1ecessarily",
+    r"\b(P|p)rimarilly\b"     : r"\1rimarily",
+    r"\b(P|p)rograming\b"     : r"\1rogramming",
+    r"\b(A|a)sside\b"         : r"\1side",
+    r"\b(S|s)entance\b"       : r"\1entence",
+    r"\b(D|d)ependancy\b"     : r"\1ependency",
+    r"\b(A|a)ppropriatly\b"   : r"\1ppropriately",
+    r"\b(P|p)rogramatically\b": r"\1rogrammatically",
+    r"\b(A|a)ccuratly"        : r"\1ccurately",
+}
+
+AUTOFIX_REGEXPS = {}
+```
+
+
+```python
+# lpid = cli::watch
+
+WORD_RE = re.compile(r"\w+", flags=re.UNICODE)
+
+def _iter_fixed_elements(
+    ctx: lptyp.ParseContext
+) -> typ.Iterable[lptyp.MardownElement]:
+    for elem in ctx.elements:
+        if isinstance(elem, lptyp.FencedBlockMeta):
+            yield elem
+        elif isinstance(elem, lptyp.FencedBlockData):
+            yield elem
+        else:
+            text = "".join(l.val for l in elem.lines)
+            fixed_text = _autofix(text)
+            if text == fixed_text:
+                yield elem
+                continue
+
+            keepends = True
+            fixed_line_vals = fixed_text.splitlines(keepends)
+            # TODO: so what if they're different,?
+            #   well, we would at least have to make sure
+            #   we write all the fixed lines (maybe zip_longest).
+            assert len(fixed_line_vals) == len(elem.lines)
+            line_pairs = zip(elem.lines, fixed_line_vals)
+            fixed_lines = [
+                lptyp.Line(old_line.line_no, fixed_line_val)
+                for old_line, fixed_line_val in line_pairs
+            ]
+            yield lptyp.RawElement(elem.file_path, fixed_lines)
+```            
+
+
+```python
+# lpid = cli::watch
+def file_id(path: pl.Path) -> bytes:
+    stat = path.stat()
+    stat_data = f"{stat.st_ino}_{stat.st_size}_{stat.st_mtime}"
+
+    id_sum = hashlib.sha1()
+    id_sum.udpate(stat_data.encode("ascii"))
+    with path.open(mode="rb") as fh:
+        id_sum.update(fh.read())
+    return id_sum.digest()
+
+
+def _handle_modified(path: pl.Path) -> None:
+    if path.is_dir() or path.suffix != ".md":
+        return
+
+    old_file_id = file_id(path)
+    ctx = litprog.parse.parse_context([path])
+
+    for search, repl in AUTOFIX_PATTERNS.items():
+        AUTOFIX_REGEXPS[re.compile(search)] = repl
+
+    fixed_elements = list(_iter_fixed_elements(ctx))
+    if fixed_elements == ctx.elements:
+        return
+
+    fixed_content = "".join(
+        # line number prefix for debugging
+        # "".join(f"{l.line_no:03d} " +  l.val for l in elem.lines)
+        "".join(l.val for l in elem.lines)
+        for elem in fixed_elements
+    )
+
+    tmp_path = pl.Path(path.parent, path.name + ".tmp")
+    with tmp_path.open(mode="w") as fh:
+        fh.write(fixed_content)
+
+    new_file_id = file_id(path)
+    if old_file_id == new_file_id:
+        # nothing changed -> we can update with the fix
+        tmp_path.rename(path)
+    else:
+        tmp_path.unlink()
+    print("updated", path)
+```
+
+
+```python
+def _autofix(text: str) -> str:
+    for regexp, repl in AUTOFIX_REGEXPS.items():
+        text, n = regexp.subn(repl, text)
+    return text
+```
+
+
 #### Sync Manifest and File System
 
 
 ```python
-# lpid = cli::code
+# lpid = cli::sync_manifest::types
 FileId = str
 PartId = str
 ChapterId = str
 ChapterNum = str    # eg. "00"
-ChapterKey = typ.Tuple[PartId, ChapterId]
+
+Manifest = typ.List[FileId]
+```
 
 
+```python
+# lpid = cli::sync_manifest::types
 class ChapterItem(typ.NamedTuple):
     num       : ChapterNum
     part_id   : PartId
@@ -234,11 +420,13 @@ class ChapterItem(typ.NamedTuple):
     md_path   : pl.Path
 
 
+ChapterKey = typ.Tuple[PartId, ChapterId]
 ChaptersByKey = typ.Dict[ChapterKey, ChapterItem]
+```
 
-Manifest = typ.List[FileId]
 
-
+```python
+# lpid = cli::sync_manifest::impl
 def _sync_manifest(
     ctx: lptyp.ParseContext,
     manifest: Manifest,
@@ -310,8 +498,10 @@ def _sync_manifest(
             src.rename(tgt)
 
     return 0
+``` 
 
-
+```python
+# lpid = cli::sync_manifest
 CHAPTER_NUM_RE = re.compile(r"^[0-9A-Za-z]{2,3}_")
 
 
@@ -352,21 +542,25 @@ def _parse_chapters(ctx: lptyp.ParseContext) -> ChaptersByKey:
         chapters[chapter_key] = chapter_item 
 
     return chapters
+``` 
 
-
+```python
 def _parse_manifest(ctx: lptyp.ParseContext) -> typ.Optional[Manifest]:
-    for blocks in ctx.blocks.values():
-        for block in blocks:
-            if block.options.get('lptype') != 'meta':
-                continue
-            manifest = block.options.get('manifest')
-            if manifest is None:
-                continue
-            return manifest
+    for elem in ctx.elements:
+        if not isinstance(elem, lptyp.FencedBlockMeta):
+            continue
+
+        meta_block = elem
+        manifest = meta_block.options.get('manifest')
+        if manifest is None:
+            continue
+
+        return manifest
 
     return None
+``` 
 
-
+```python
 def _init_manifest(ctx: lptyp.ParseContext) -> ExitCode:
     first_md_filepath = min(ctx.md_paths)
     print(
@@ -385,7 +579,7 @@ def _init_manifest(ctx: lptyp.ParseContext) -> ExitCode:
 These are the supported file extensions. It may may be worth revisiting this (for example by introducing a dedicated `.litmd` file extension), but for now I expect projects to have a dedicated directory with markdown files and this approach captures the broadest set of files.
 
 ```python
-# lpid = cli::code
+# lpid = cli::constants
 
 MARKDOWN_FILE_EXTENSIONS = {
     "markdown",
@@ -405,7 +599,7 @@ This helper function scans the file system based on arguments to a subcommand. N
 
 
 ```python
-# lpid = cli::code
+# lpid = cli::util
 def _iter_markdown_filepaths(
     input_paths: InputPaths
 ) -> FilePaths:

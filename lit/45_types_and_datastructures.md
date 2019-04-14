@@ -38,44 +38,67 @@ Lines = typ.List[Line]
 BlockOptions = typ.Dict[str, typ.Any]
 
 
+class RawElement(typ.NamedTuple):
+
+    file_path  : pl.Path
+    lines      : Lines
+
+
 class RawFencedBlock(typ.NamedTuple):
 
     file_path  : pl.Path
-    info_string: str
     lines      : Lines
+    info_string: str
 
 
-class FencedBlock(typ.NamedTuple):
+RawMarkdown = typ.Union[RawElement, RawFencedBlock]
+
+
+class FencedBlockData(typ.NamedTuple):
 
     file_path  : pl.Path
-    info_string: str
     lines      : Lines
+    info_string: str
     lpid       : LitProgId
     language   : MaybeLang
     options    : BlockOptions
     content    : str
 
-Block = typ.Union[RawFencedBlock, FencedBlock]
+
+class FencedBlockMeta(typ.NamedTuple):
+
+    file_path  : pl.Path
+    lines      : Lines
+    info_string: str
+    lpid       : LitProgId
+    language   : MaybeLang
+    options    : BlockOptions
+
+
+FencedBlock = typ.Union[FencedBlockData, FencedBlockMeta]
+Block = typ.Union[RawFencedBlock, FencedBlockData, FencedBlockMeta]
+
+
+MardownElement = typ.Union[RawElement, RawFencedBlock]
 ```
 
 
 ```python
 # lpid = types::code
 
-BlocksById  = typ.Dict[LitProgId, typ.List[FencedBlock]]
 OptionsById = typ.Dict[LitProgId, BlockOptions]
 
 
 class ParseContext:
 
     md_paths  : FilePaths
-    blocks    : BlocksById
+    elements  : typ.List[MardownElement]
     options   : OptionsById
-    prev_block: typ.Optional[FencedBlock]
+    prev_block: typ.Optional[FencedBlockData]
 
     def __init__(self) -> None:
         self.md_paths   = []
-        self.blocks     = collections.OrderedDict()
+        self.elements   = []
         self.options    = {}
         self.prev_block = None
 
@@ -98,14 +121,14 @@ ProgResultsById = typ.Dict[LitProgId, ProcResult]
 class BuildContext:
 
     md_paths        : FilePaths
-    blocks          : BlocksById
+    elements        : typ.List[MardownElement]
     options         : OptionsById
     captured_outputs: OutputsById
     captured_procs  : ProgResultsById
     
     def __init__(self, pctx: ParseContext) -> None:
         self.md_paths         = pctx.md_paths
-        self.blocks           = pctx.blocks
+        self.elements         = pctx.elements
         self.options          = pctx.options
         self.captured_outputs = {}
         self.captured_procs   = {}

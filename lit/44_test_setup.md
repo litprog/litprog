@@ -2,9 +2,9 @@
 
 ### Testing Performance
 
-For devs to not get frustrated with testing, and for them to not resent the practice of testing, it is important for tests to be as fast as possible. Creating an interactive session is pretty fast, but even just importing the `litprog.cli` cli module can take 300-400ms, so testing using interactive sessions would slow things down quite a bit. Unfortunately this messes with the capturing of output, which technically is generated all in one subprocess which invokes the `pytest` command.
+For developers to not get frustrated with testing, and for them to not resent the practice of testing, it is important for tests to be as fast as possible. Creating an interactive session is pretty fast, but even just importing the `litprog.cli` cli module can take 300-400ms, so testing using interactive sessions would slow things down quite a bit. Unfortunately this messes with the capturing of output, which technically is generated all in one sub-process which invokes the `pytest` command.
 
-The workaround is to have the output capture be a second pass over the output of the test run. This way the generated documents still accuratly refelct the correctness based on executed tests.
+The workaround is to have the output capture be a second pass over the output of the test run. This way the generated documents still accurately refelct the correctness based on executed tests.
 
 We want to run using [`py.test`][ref_pytest], which allows us to import the (stateless) `litprog` library only once and thus ammortize the cost of the imports.
 

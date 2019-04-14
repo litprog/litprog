@@ -16,7 +16,7 @@ Long term thinking pays of in the long run.
                                 - Martin Fowler
 
 
-I have spent most of my programming carreer as the sole or main
+I have spent most of my programming career as the sole or main
 developer of the software I've developed. As I look to the
 future, with the prospect of writing software that more people
 have to understand, I know that I must change my ways. In the
@@ -49,7 +49,7 @@ I cannot count the times I have witnessed a comments and code being inconsistent
 As much as possible the code should express by itself what it actually does, but code can rarely express why it was written or why it was written the way it was.
 
  - Tech Choices
- - Tradeoffs
+ - Trade-offs
  - Business Needs
 
 
@@ -64,7 +64,7 @@ should be focused on:
 
  - The existence of the code.
  - The correctness of the code
- - The continued correctess of your code. Ensured through
+ - The continued correctness of your code. Ensured through
    tests that catch regressions.
  - The simplicity of your API. Reduce the cognitive
    load of your users as much as possible.
@@ -86,7 +86,7 @@ should be focused on:
 
 With automated testing, when using a continuous integration environment, members of the project who are not intimately involved in the details of the code-base can gain some insight into the health of the codebase. Programmers who diligently write tests with high coverage can keep themselves honest and the temptation to cut corners is either kept in check or at the very least exposed. If coverage goes down, if builds are failing and if deployments are happening anyway, then all of this may be justified in the context of a project, but it is a sure sign of degeneration in the standards of the project and may reduce the long-run viability of the project.
 
-Literate programming offers a similar kind of exposure. Programmers who express the intent, the abstractions, the work-arounds and the trade-offs in plain english, who express ideas that are not expressed in the code, will keep themselves more honest as they can assume that their peers will not simply gloss over an undocumented and cryptic part of the codebase. If they simply hack together some code and only half understand what it's actually doing, then the lack of or incoherence of documentation will more readilly expose the degraded health and long-run viability of the project.
+Literate programming offers a similar kind of exposure. Programmers who express the intent, the abstractions, the workarounds and the trade-offs in plain English, who express ideas that are not expressed in the code, will keep themselves more honest as they can assume that their peers will not simply gloss over an undocumented and cryptic part of the codebase. If they simply hack together some code and only half understand what it's actually doing, then the lack of or incoherence of documentation will more readily expose the degraded health and long-run viability of the project.
 
 
 ### Sync vs Async Communication
@@ -97,7 +97,9 @@ Literate programming offers a similar kind of exposure. Programmers who express 
  - Remote developers
  - Onboarding Speed
  - Shared Language
- - Deep Work: Scurrying around at the surface, running frantically but getting nowhere fast. Know the limits of YAGNI, build foundations and the top layer will be thin and easy to write.
+ - Deep Work: Scurrying around at the surface, running frantically but getting nowhere fast. Know the limits of [YAGNI][ref_wiki_yagni], build foundations and the top layer will be thin and easy to write.
+
+
 
 ### Ownership and Accountability
 
@@ -114,7 +116,7 @@ Literate programming offers a similar kind of exposure. Programmers who express 
 
 
     The saying goes: "By their fruits ye shall know them.", not
-    "By their words ye shall know them.". Actions speek louder
+    "By their words ye shall know them.". Actions speak louder
     than words.
 
 Humans are sentimental creatures. I want to write good software,
@@ -133,7 +135,7 @@ programming as a wonderful mix of the arts of engineering,
 mathematics and writing.
 
 
-If the following code were to fail, the output document would have programatically generatiod visual indication that this was the case.
+If the following code were to fail, the output document would have pragmatically generated visual indication that this was the case.
 
 ```yaml
 lpid   : demo
@@ -181,7 +183,7 @@ can think, can only think about a limited number of things."
 > If you plan to go through a jungle, do you march forward with
 > your bare feet? Do you at least get some provisions and a good
 > pair of boots and a sharp machete? Or, do you stand back for
-> a moment and think? Think about what you're trying to acomplish,
+> a moment and think? Think about what you're trying to accomplish,
 > about how often you're going to make this trip in the future,
 > about all the other people who are on the same journey as you
 > are, and perhaps the right way forward is not to march through
@@ -189,7 +191,7 @@ can think, can only think about a limited number of things."
 
 Programmers often forge ahead when writing software, churning out
 code until the compiler stops complaining and ship it. This is
-fine for one off programms, and it's even fine as a first step.
+fine for one off programs, and it's even fine as a first step.
 Code that runs and does what you want is better than no code at
 all. Any effort you would have spent to make your program more
 maintainable would have come at the expense of functionality.
@@ -211,7 +213,7 @@ in some idealized scenario. Just to name some things, you might
 for example be better off spending your time on:
 
  - Better developer tooling to catch errors earlier
- - Writing a metaprogram, to reduce boilerplate
+ - Writing a meta-program, to reduce boilerplate
  - Rewrite a module with the wisdom of hindsight.
 
 None of these produce a direct result in terms of features. They
@@ -224,7 +226,7 @@ Whenever it is that we come to the realization, that
 ### Focus on Writing vs Layout
 
 
-In order to make integration with existing tools easy and so that LitProg is language agnostic, the macro and plugin system works strictly with text, and does not do any ast/parsing of code blocks. The exception to this is LitProg metadata in the form of code block options.
+In order to make integration with existing tools easy and so that LitProg is language agnostic, the macro and plugin system works strictly with text, and does not do any AST/parsing of code blocks. The exception to this is LitProg metadata in the form of code block options.
 
 - `litprog` declarations for code blocks use language specific comment syntax.
   In other words, a LitProg declaration in a python code block the first line
@@ -235,5 +237,4 @@ In order to make integration with existing tools easy and so that LitProg is lan
 
 
 
-
-[ref_wiki_litprog]: https://en.wikipedia.org/wiki/Literate_programming
+[ref_wiki_yagni]: https://en.wikipedia.org/wiki/You_aren%27t_gonna_need_it

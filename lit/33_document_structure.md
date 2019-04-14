@@ -28,14 +28,14 @@ For links/references only. It should be possible to understand
 a text without reading footnotes.
 
 
-### Asside
+### Aside
 
 For anecdotes or other text not directly related to understanding
 the program.
 
 
 
-### Definitions/Vocuabulary
+### Definitions/Vocabulary
 
 TODO: Syntax
 
@@ -46,7 +46,7 @@ TODO: Syntax
     :     Another Markdown-superset converter
 
 The glossary is used as a source for spell checking. In addition
-to a standard english word list and
+to a standard English word list and
 
 
 ### Editor Affordances

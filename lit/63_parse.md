@@ -1,6 +1,6 @@
 ## Parsing
 
-An `lptyp.ParseContext` object holds all results from the parsing phase. We'll get into the other datastructures used here in a moment, but first let's focus on what we're trying get as a result of parsing. The idea here is to find all the fenced blocks in the markdown files and build mappings/dict objects using the `lpid`/`LitProgId` as keys. Note that there can be multiple `FencedBlocks` with the same `lpid`, which are simply concatenated together. To know how these blocks are to be treated, we collect options for each lpid. In the most simple case such an option is for example the language.
+An `lptyp.ParseContext` object holds all results from the parsing phase. We'll get into the other datastructures used here in a moment, but first let's focus on what we're trying get as a result of parsing. The idea here is to find all the fenced blocks in the markdown files and build mappings/dict objects using the `lpid`/`LitProgId` as keys. Note that there can be multiple `FencedBlock` elements with the same `lpid`, which are simply concatenated together. To know how these blocks are to be treated, we collect options for each lpid. In the most simple case such an option is for example the language.
 
 ### Files for Code and Tests
 
@@ -75,42 +75,72 @@ def parse_context(md_paths: FilePaths) -> lptyp.ParseContext:
 
     for path in ctx.md_paths:
         log.debug(f"parsing {path}")
-        for rfb in _iter_raw_fenced_blocks(path):
-            code_block = _parse_code_block(ctx, rfb)
-            _add_to_context(ctx, code_block)
+        for md in _iter_markdown(path):
+            _add_to_context(ctx, md)
 
     return ctx
 ```
 
 
 ```python
-def _iter_raw_fenced_blocks(
+InputLines = typ.Iterable[typ.Tuple[int, str]]
+
+def is_fence(line_val: str) -> bool:
+    return (
+        line_val.startswith("```")
+        or line_val.startswith("~~~")
+    )
+
+def _iter_markdown(
     input_path: pl.Path
-) -> typ.Iterable[lptyp.RawFencedBlock]:
+) -> typ.Iterable[lptyp.RawMarkdown]:
+    prose_lines: lptyp.Lines = []
+
+    # TODO: encoding from config
     with input_path.open(mode="r", encoding="utf-8") as fh:
         input_lines = enumerate(fh)
         for i, line_val in input_lines:
-            is_fence = line_val.startswith("```")
-            if not is_fence:
-                continue
+            if is_fence(line_val):
+                # TODO: The separation here isn't very nice. 
+                #   Mentally keeping track of the state of the
+                #   line iterator (has it gone past the fence?) is 
+                #   more complicated than it probably has to be.
+                if prose_lines:
+                    yield lptyp.RawElement(input_path, prose_lines)
+                    prose_lines = []
 
-            fence_str   = line_val[:3]
-            info_string = line_val[3:].strip()
-            block_lines = _iter_fenced_block_lines(
-                fence_str, input_lines,
-            )
-            yield lptyp.RawFencedBlock(
-                input_path,
-                info_string,
-                list(block_lines),
-            )
+                fence_str   = line_val[:3]
+                info_string = line_val[3:].strip()
+                inner_block_lines = list(_iter_fenced_block_lines(
+                    fence_str, input_lines,
+                ))
+                lineno = i + 1
+                first_line = lptyp.Line(lineno, line_val)
+                last_line = lptyp.Line(
+                    lineno + len(inner_block_lines) + 1,
+                    fence_str + "\n",
+                )
+                block_lines = [first_line] + inner_block_lines + [last_line]
+
+                yield lptyp.RawFencedBlock(
+                    input_path,
+                    block_lines,
+                    info_string,
+                )
+            else:
+                line_no = i + 1
+                line = lptyp.Line(line_no, line_val)
+                prose_lines.append(line)
+
+    if prose_lines:
+        yield lptyp.RawElement(input_path, prose_lines)
 ```
 
 
 ```python
 def _iter_fenced_block_lines(
-    fence_str: str,
-    input_lines: typ.Iterable[typ.Tuple[int, str]],
+    fence_str  : str,
+    input_lines: InputLines,
 ) -> typ.Iterable[lptyp.Line]:
     for i, line_val in input_lines:
         line_no     = i + 1
@@ -229,7 +259,7 @@ def _parse_comment_options(
 
     options: lptyp.BlockOptions = {}
     if not (maybe_lang and maybe_lang in LANGUAGE_COMMENT_PATTERNS):
-        return options, raw_lines
+        return options, raw_lines[1:-1]
 
     assert maybe_lang is not None
     language = maybe_lang
@@ -237,13 +267,17 @@ def _parse_comment_options(
     key_val_pattern = r"(?P<key>lp\w+)\s*=\s*(?P<val>[^\s,]+?)?\s*$"
     key_val_re      = re.compile(key_val_pattern)
 
-    comment_start_pattern, comment_end_pattern = LANGUAGE_COMMENT_PATTERNS[language]
-    options_pattern = comment_start_pattern + r"\s*(.+?)\s*" + comment_end_pattern
+    start_pattern, end_pattern = LANGUAGE_COMMENT_PATTERNS[language]
+
+    options_pattern = start_pattern + r"\s*(.+?)\s*" + end_pattern
     options_re      = re.compile(options_pattern)
 
-    last_options_line = 0
+    last_options_line = 1
 
-    for line in raw_lines:
+    raw_lines_iter = iter(raw_lines)
+    first_line = next(raw_lines_iter)
+    assert is_fence(first_line.val)
+    for line in raw_lines_iter:
         match = options_re.match(line.val)
         if match is None:
             break
@@ -263,8 +297,7 @@ def _parse_comment_options(
         options[key] = val
         last_options_line += 1
 
-    filtered_lines = raw_lines[last_options_line:]
-
+    filtered_lines = raw_lines[last_options_line:-1]
     return options, filtered_lines
 ```
 
@@ -291,7 +324,7 @@ def _parse_maybe_options(
 
     maybe_options: typ.Any = None
     if lang in ('toml', 'yaml', 'json'):
-        maybe_options_data = "".join(line.val for line in raw_lines)
+        maybe_options_data = "".join(l.val for l in raw_lines[1:-1])
 
         if lang == 'toml':
             maybe_options = toml.loads(maybe_options_data)
@@ -337,15 +370,13 @@ def _parse_code_block(
     else:
         maybe_options = None
 
-    filtered_lines: lptyp.Lines
-
     if maybe_options is None:
-        options, filtered_lines = _parse_comment_options(maybe_lang, raw_lines)
+        options, content_lines = _parse_comment_options(maybe_lang, raw_lines)
     else:
-        options        = typ.cast(lptyp.BlockOptions, maybe_options)
-        filtered_lines = []
+        content_lines = raw_lines[1:-1]
+        options = typ.cast(lptyp.BlockOptions, maybe_options)
 
-    filtered_content = "".join(line.val for line in filtered_lines)
+    content = "".join(l.val for l in content_lines)
 
     prev_lpid = None
     if ctx.prev_block:
@@ -374,64 +405,88 @@ def _parse_code_block(
     if 'lptype' not in options:
         options['lptype'] = 'raw_block'
 
-    return lptyp.FencedBlock(
-        raw_fenced_block.file_path,
-        raw_fenced_block.info_string,
-        filtered_lines,
-        lpid,
-        maybe_lang,
-        options,
-        filtered_content,
-    )
+    if maybe_options is None:
+        assert not content.startswith("```")
+        assert not content.endswith("```")
+
+        return lptyp.FencedBlockData(
+            raw_fenced_block.file_path,
+            raw_lines,
+            raw_fenced_block.info_string,
+            lpid,
+            maybe_lang,
+            options,
+            content,
+        )
+    else:
+        return lptyp.FencedBlockMeta(
+            raw_fenced_block.file_path,
+            raw_lines,
+            raw_fenced_block.info_string,
+            lpid,
+            maybe_lang,
+            options,
+        )
 ```
 
+```python
+
+def _add_to_context(
+    ctx: lptyp.ParseContext,
+    md : lptyp.MardownElement,
+) -> None:
+    if isinstance(md, lptyp.RawFencedBlock):
+        _add_block_to_context(ctx, md)
+    else:
+        ctx.elements.append(md)
+```
 
 ```python
-def _add_to_context(
-    ctx       : lptyp.ParseContext,
-    code_block: lptyp.FencedBlock,
+def _add_block_to_context(
+    ctx      : lptyp.ParseContext,
+    raw_block: lptyp.RawFencedBlock,
 ) -> None:
+    block = _parse_code_block(ctx, raw_block)
     is_duplicate_lpid = (
-        code_block.lpid in ctx.blocks
-        and code_block.options['lptype'] != 'raw_block'
+        block.lpid in ctx.options
+        and block.options['lptype'] != 'raw_block'
     )
     if is_duplicate_lpid:
-        err_msg = f"Duplicated definition of {code_block.lpid}"
+        err_msg = f"Duplicated definition of {block.lpid}"
         raise ParseError(err_msg)
 
-    if code_block.lpid in ctx.blocks:
-        ctx.blocks[code_block.lpid].append(code_block)
-    else:
-        ctx.blocks[code_block.lpid] = [code_block]
+    ctx.elements.append(block)
+    ctx.prev_block = block
 
-    ctx.prev_block = code_block
+    if block.lpid not in ctx.options:
+        ctx.options[block.lpid] = block.options
+        return
 
-    if code_block.lpid in ctx.options:
-        prev_options = ctx.options[code_block.lpid]
-        for key, val in code_block.options.items():
-            is_redeclared_key = (
-                key in prev_options and prev_options[key] != val
-            )
+    # add additional options
+    prev_options = ctx.options[block.lpid]
+    for key, val in block.options.items():
+        is_redeclared_key = (
+            key in prev_options and prev_options[key] != val
+        )
 
-            is_block_continuation = (
-                is_redeclared_key 
-                and key == 'lptype' 
-                and val == 'raw_block'
-            )
-            if is_block_continuation:
-                valid_continuation_options = {
-                    'lpid': code_block.lpid,
-                    'lptype': 'raw_block'
-                }
-                assert code_block.options == valid_continuation_options
-                continue
-            elif is_redeclared_key:
-                err_msg = f"Redeclaration of option {key} for lpid={code_block.lpid}"
-                raise ParseError(err_msg, code_block)
-            else:
-                prev_options[key] = val
-    else:
-        ctx.options[code_block.lpid] = code_block.options
+        is_block_continuation = (
+            is_redeclared_key 
+            and key == 'lptype' 
+            and val == 'raw_block'
+        )
+        if is_block_continuation:
+            valid_continuation_options = {
+                'lpid': block.lpid,
+                'lptype': 'raw_block'
+            }
+            assert block.options == valid_continuation_options
+            continue
+
+        if is_redeclared_key:
+            err_msg = f"Redeclaration of option {key} for lpid={block.lpid}"
+            raise ParseError(err_msg, block)
+
+        prev_options[key] = val
 ```
 
 

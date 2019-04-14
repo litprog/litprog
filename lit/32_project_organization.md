@@ -19,7 +19,7 @@ prefix*.
 
 With a non literate program the order of files is usually not so important. The compiler or interpreter can figure out how to process the the files and in which order based on include/import declarations and the developer doesn't have to pay much attention. For a Literate Program this is of course different. To establish a narrative, some things should come before others.
 
-LitProg processes markdown files in lexiographical/alphabetical order, so you can add a prefix to your files that enforce a certain ordering. 
+LitProg processes markdown files in lexicographical/alphabetical order, so you can add a prefix to your files that enforce a certain ordering. 
 
 
 ```
