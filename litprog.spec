@@ -1,5 +1,8 @@
 # -*- mode: python -*-
 
+# pyinstaller specfile
+# https://pyinstaller.readthedocs.io/en/stable/spec-files.html
+
 block_cipher = None
 
 

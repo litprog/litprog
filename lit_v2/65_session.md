@@ -180,44 +180,51 @@ class InteractiveSession:
     _in_cl: typ.List[lptyp.CapturedLine]
     _out_ct: CapturingThread
     _err_ct: CapturingThread
+
+    # lpinclude: def __init__
+    # lpinclude: def send
+    # lpinclude: def _assert_retcode
+    # lpinclude: def wait
+    # lpinclude: def iter_stdout
+    # lpinclude: @property def retcode
+    # lpinclude: @property def runtime
 ```
 
 
 ```python
-# lpid = session::InteractiveSession
-    def __init__(
-        self,
-        cmd: AnyCommand,
-        *,
-        env     : typ.Optional[Environ] = None,
-        encoding: str = "utf-8",
-    ) -> None:
-        _env: Environ      
-        if env is None:
-            _env = os.environ.copy()
-        else:
-            _env = env
+def __init__(
+    self,
+    cmd: AnyCommand,
+    *,
+    env     : typ.Optional[Environ] = None,
+    encoding: str = "utf-8",
+) -> None:
+    _env: Environ      
+    if env is None:
+        _env = os.environ.copy()
+    else:
+        _env = env
 
-        self.encoding = encoding
-        self.start    = time.time()
-        self.end      = -1.0
-        self._retcode = None
+    self.encoding = encoding
+    self.start    = time.time()
+    self.end      = -1.0
+    self._retcode = None
 
-        cmd_parts = _normalize_command(cmd)
-        log.debug(f"popen {cmd_parts}")
-        self._proc = sp.Popen(
-            cmd_parts,
-            stdin=sp.PIPE,
-            stdout=sp.PIPE,
-            stderr=sp.PIPE,
-            env=_env,
-        )
+    cmd_parts = _normalize_command(cmd)
+    log.debug(f"popen {cmd_parts}")
+    self._proc = sp.Popen(
+        cmd_parts,
+        stdin=sp.PIPE,
+        stdout=sp.PIPE,
+        stderr=sp.PIPE,
+        env=_env,
+    )
 
-        _enc = encoding
+    _enc = encoding
 
-        self._in_cl = []
-        self._out_ct = _start_reader(self._proc.stdout, _enc)
-        self._err_ct = _start_reader(self._proc.stderr, _enc)
+    self._in_cl = []
+    self._out_ct = _start_reader(self._proc.stdout, _enc)
+    self._err_ct = _start_reader(self._proc.stderr, _enc)
 ```
 
 The `send` method simply encodes and writes a string to the stdin of the subprocess.
@@ -228,29 +235,29 @@ Using the delay causes processing to be waaay slower that we would like it to be
 
 
 ```python
-# lpid = session::InteractiveSession
-    def send(self, input_str: str, delay: float=0.01) -> None:
-        self._in_cl.append(lptyp.CapturedLine(time.time(), input_str))
-        input_data = input_str.encode(self.encoding)
-        log.debug(f"sending {len(input_data)} bytes")
-        self._proc.stdin.write(input_data)
-        self._proc.stdin.flush()
-        if delay:
-            time.sleep(delay)
+def send(self, input_str: str, delay: float=0.01) -> None:
+    self._in_cl.append(lptyp.CapturedLine(time.time(), input_str))
+    input_data = input_str.encode(self.encoding)
+    log.debug(f"sending {len(input_data)} bytes")
+    self._proc.stdin.write(input_data)
+    self._proc.stdin.flush()
+    if delay:
+        time.sleep(delay)
 ```
 
 ```python
-# lpid = session::InteractiveSession
-    @property
-    def retcode(self) -> int:
-        return self.wait()
+def _assert_retcode(self) -> None:
+    if self._retcode is None:
+        raise AssertionError(
+            "'InteractiveSession.wait()' must be called "
+            + " before accessing captured output."
+        )
+```
 
-    def _assert_retcode(self) -> None:
-        if self._retcode is None:
-            raise AssertionError(
-                "'InteractiveSession.wait()' must be called "
-                + " before accessing captured output."
-            )
+```python
+@property
+def retcode(self) -> int:
+    return self.wait()
 ```
 
 TODO: What if the subprocess doesn't end,
@@ -258,79 +265,77 @@ TODO: What if the subprocess doesn't end,
     maybe retry with more brutal method.
 
 ```python
-# lpid = session::InteractiveSession
-    def wait(self, timeout=1) -> int:
-        if self._retcode is not None:
-            return self._retcode
+def wait(self, timeout=1) -> int:
+    if self._retcode is not None:
+        return self._retcode
 
-        log.debug(f"wait with timeout={timeout}")
-        returncode: typ.Optional[int] = None
-        try:
-            self._proc.stdin.close()
-            max_time = self.start + timeout
-            while (
-                returncode is None
-                and max_time > time.time()
-            ):
-                time_left = max_time - time.time()
-                # print("poll", max_time - time.time())
-                log.debug(f"poll {time_left}")
-                time.sleep(
-                    min(0.01, max(0, time_left))
-                )
-                returncode = self._proc.poll()
-        finally:
-            if self._proc.returncode is None:
-                log.debug("sending SIGTERM")
-                self._proc.terminate()
-                returncode = self._proc.wait()
+    log.debug(f"wait with timeout={timeout}")
+    returncode: typ.Optional[int] = None
+    try:
+        self._proc.stdin.close()
+        max_time = self.start + timeout
+        while (
+            returncode is None
+            and max_time > time.time()
+        ):
+            time_left = max_time - time.time()
+            # print("poll", max_time - time.time())
+            log.debug(f"poll {time_left}")
+            time.sleep(
+                min(0.01, max(0, time_left))
+            )
+            returncode = self._proc.poll()
+    finally:
+        if self._proc.returncode is None:
+            log.debug("sending SIGTERM")
+            self._proc.terminate()
+            returncode = self._proc.wait()
 
-        self._out_ct.thread.join()
-        self._err_ct.thread.join()
-        assert returncode is not None
-        self._retcode = returncode
-        self.end = time.time()
-        return returncode
+    self._out_ct.thread.join()
+    self._err_ct.thread.join()
+    assert returncode is not None
+    self._retcode = returncode
+    self.end = time.time()
+    return returncode
 ```
 
 ```python
-# lpid = session::InteractiveSession
-    def iter_stdout(self) -> typ.Iterable[str]:
-        self._assert_retcode()
-        for ts, line in self._out_ct.lines:
-            yield line
+def iter_stdout(self) -> typ.Iterable[str]:
+    self._assert_retcode()
+    for ts, line in self._out_ct.lines:
+        yield line
 
-    def iter_stderr(self) -> typ.Iterable[str]:
-        self._assert_retcode()
-        for ts, line in self._err_ct.lines:
-            yield line
+def iter_stderr(self) -> typ.Iterable[str]:
+    self._assert_retcode()
+    for ts, line in self._err_ct.lines:
+        yield line
 
-    def __iter__(self) -> typ.Iterable[str]:
-        self._assert_retcode()
-        all_lines = (
-            self._in_cl + self._out_ct.lines + self._err_ct.lines
-        )
-        for captured_line in sorted(all_lines):
-            yield captured_line.line
+def __iter__(self) -> typ.Iterable[str]:
+    self._assert_retcode()
+    all_lines = (
+        self._in_cl + self._out_ct.lines + self._err_ct.lines
+    )
+    for captured_line in sorted(all_lines):
+        yield captured_line.line
 ```
 
 Property accessors for convenience.
 
 ```python
-# lpid = session::InteractiveSession
-    @property
-    def runtime(self) -> float:
-        self._assert_retcode()
-        return self.end - self.start
+@property
+def runtime(self) -> float:
+    self._assert_retcode()
+    return self.end - self.start
 
-    @property
-    def stdout(self) -> str:
-        return "".join(self.iter_stdout())
+@property
+def stdout(self) -> str:
+    return "".join(self.iter_stdout())
 
-    @property
-    def stderr(self) -> str:
-        return "".join(self.iter_stderr())
+@property
+def stderr(self) -> str:
+    return "".join(self.iter_stderr())
 ```
+
 
 ```python
 # lpid = test_session::testcase

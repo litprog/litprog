@@ -6,7 +6,7 @@ For developers to not get frustrated with testing, and for them to not resent th
 
 The workaround is to have the output capture be a second pass over the output of the test run. This way the generated documents still accurately refelct the correctness based on executed tests.
 
-We want to run using [`py.test`][ref_pytest], which allows us to import the (stateless) `litprog` library only once and thus ammortize the cost of the imports.
+We want to run using [`py.test`][ref_pytest], which allows us to import the (stateless) `litprog` library only once and thus amortize the cost of the imports.
 
 
 ### Test Execution

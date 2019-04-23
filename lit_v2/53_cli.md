@@ -303,6 +303,10 @@ AUTOFIX_PATTERNS = {
 }
 
 AUTOFIX_REGEXPS = {}
+
+def _init_autofix_regexps():
+    for search, repl in AUTOFIX_PATTERNS.items():
+        AUTOFIX_REGEXPS[re.compile(search)] = repl
 ```
 
 
@@ -347,8 +351,8 @@ def file_id(path: pl.Path) -> bytes:
     stat = path.stat()
     stat_data = f"{stat.st_ino}_{stat.st_size}_{stat.st_mtime}"
 
-    id_sum = hashlib.sha1()
-    id_sum.udpate(stat_data.encode("ascii"))
+    id_sum = hashlib.new('sha1')
+    id_sum.update(stat_data.encode('ascii'))
     with path.open(mode="rb") as fh:
         id_sum.update(fh.read())
     return id_sum.digest()
@@ -358,11 +362,9 @@ def _handle_modified(path: pl.Path) -> None:
     if path.is_dir() or path.suffix != ".md":
         return
 
+    _init_autofix_regexps()
     old_file_id = file_id(path)
     ctx = litprog.parse.parse_context([path])
-
-    for search, repl in AUTOFIX_PATTERNS.items():
-        AUTOFIX_REGEXPS[re.compile(search)] = repl
 
     fixed_elements = list(_iter_fixed_elements(ctx))
     if fixed_elements == ctx.elements:

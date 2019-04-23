@@ -49,7 +49,7 @@ Lines = typ.List[Line]
 BlockOptions = typ.Dict[str, typ.Any]
 
 
-class RawProse(typ.NamedTuple):
+class RawElement(typ.NamedTuple):
 
     file_path: pl.Path
     lines    : Lines
@@ -58,42 +58,53 @@ class RawProse(typ.NamedTuple):
 class RawFencedBlock(typ.NamedTuple):
 
     file_path  : pl.Path
-    info_string: str
     lines      : Lines
+    info_string: str
 
 
-RawMarkdown = typ.Union[RawProse, RawFencedBlock]
+RawMarkdown = typ.Union[RawElement, RawFencedBlock]
 
 
-class FencedBlock(typ.NamedTuple):
+class FencedBlockData(typ.NamedTuple):
 
     file_path  : pl.Path
-    info_string: str
     lines      : Lines
+    info_string: str
     lpid       : LitProgId
     language   : MaybeLang
     options    : BlockOptions
     content    : str
 
 
-Block = typ.Union[RawFencedBlock, FencedBlock]
+class FencedBlockMeta(typ.NamedTuple):
 
-BlocksById  = typ.Dict[LitProgId, typ.List[FencedBlock]]
+    file_path  : pl.Path
+    lines      : Lines
+    info_string: str
+    lpid       : LitProgId
+    language   : MaybeLang
+    options    : BlockOptions
+
+
+FencedBlock = typ.Union[FencedBlockData, FencedBlockMeta]
+Block       = typ.Union[RawFencedBlock , FencedBlockData, FencedBlockMeta]
+
+
+MardownElement = typ.Union[RawElement, RawFencedBlock]
+
 OptionsById = typ.Dict[LitProgId, BlockOptions]
 
 
 class ParseContext:
 
     md_paths  : FilePaths
-    prose     : typ.List[RawProse]
-    blocks    : BlocksById
+    elements  : typ.List[MardownElement]
     options   : OptionsById
-    prev_block: typ.Optional[FencedBlock]
+    prev_block: typ.Optional[FencedBlockData]
 
     def __init__(self) -> None:
         self.md_paths   = []
-        self.prose      = []
-        self.blocks     = collections.OrderedDict()
+        self.elements   = []
         self.options    = {}
         self.prev_block = None
 
@@ -116,16 +127,14 @@ ProgResultsById = typ.Dict[LitProgId, ProcResult]
 class BuildContext:
 
     md_paths        : FilePaths
-    prose           : typ.List[RawProse]
-    blocks          : BlocksById
+    elements        : typ.List[MardownElement]
     options         : OptionsById
     captured_outputs: OutputsById
     captured_procs  : ProgResultsById
 
     def __init__(self, pctx: ParseContext) -> None:
         self.md_paths         = pctx.md_paths
-        self.prose            = pctx.prose
-        self.blocks           = pctx.blocks
+        self.elements         = pctx.elements
         self.options          = pctx.options
         self.captured_outputs = {}
         self.captured_procs   = {}

@@ -68,8 +68,17 @@ def gen_meta_output(ctx: lptyp.BuildContext, lpid: lptyp.LitProgId) -> Generator
     return GeneratorResult(done=True)
 
 
+def _iter_lpid_blocks(
+    ctx: lptyp.BuildContext, lpid: lptyp.LitProgId
+) -> typ.Iterable[lptyp.FencedBlock]:
+    for elem in ctx.elements:
+        if isinstance(elem, lptyp.FencedBlockData):
+            if elem.lpid == lpid:
+                yield elem
+
+
 def gen_raw_block_output(ctx: lptyp.BuildContext, lpid: lptyp.LitProgId) -> GeneratorResult:
-    output = "".join("".join(l.val for l in block.lines) for block in ctx.blocks[lpid])
+    output = "".join(block.content for block in _iter_lpid_blocks(ctx, lpid))
     return GeneratorResult(output)
 
 
@@ -79,8 +88,7 @@ def gen_multi_block_output(ctx: lptyp.BuildContext, lpid: lptyp.LitProgId) -> Ge
 
 
 def parse_all_ids(ctx: lptyp.BuildContext) -> typ.Sequence[lptyp.LitProgId]:
-    assert isinstance(ctx.blocks, collections.OrderedDict)
-    return list(ctx.blocks.keys())
+    return list(ctx.options.keys())
 
 
 def iter_expanded_lpids(
@@ -146,9 +154,10 @@ def gen_session_output(ctx: lptyp.BuildContext, lpid: lptyp.LitProgId) -> Genera
     log.info(f"starting session {lpid}. cmd: {command}")
     isession = litprog.session.InteractiveSession(command)
 
-    for block in ctx.blocks[lpid]:
-        for line in block.lines:
-            isession.send(line.val)
+    keepends = True
+    for block in _iter_lpid_blocks(ctx, lpid):
+        for line in block.content.splitlines(keepends):
+            isession.send(line)
 
     exit_code  = isession.wait(timeout=timeout)
     runtime_ms = isession.runtime * 1000

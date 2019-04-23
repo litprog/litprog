@@ -1,47 +1,58 @@
-# This file is part of the litprog project
-# https://gitlab.com/mbarkhau/litprog
-#
-# Copyright (c) 2019 Manuel Barkhau (mbarkhau@gmail.com) - MIT License
-# SPDX-License-Identifier: MIT
+## Parsing
 
-###################################
-#    This is a generated file.    #
-# This file should not be edited. #
-#  Changes will be overwritten!   #
-###################################
-import logging
+An `lptyp.ParseContext` object holds all results from the parsing phase. We'll get into the other datastructures used here in a moment, but first let's focus on what we're trying get as a result of parsing. The idea here is to find all the fenced blocks in the markdown files and build mappings/dict objects using the `lpid`/`LitProgId` as keys. Note that there can be multiple `FencedBlock` elements with the same `lpid`, which are simply concatenated together. To know how these blocks are to be treated, we collect options for each lpid. In the most simple case such an option is for example the language.
 
-log = logging.getLogger(__name__)
-import os
-import io
-import re
-import sys
-import math
-import time
-import enum
-import os.path
-import collections
-import typing as typ
-import pathlib2 as pl
-import operator as op
-import datetime as dt
-import itertools as it
-import functools as ft
+### Files for Code and Tests
 
-InputPaths = typ.Sequence[str]
-FilePaths  = typ.Iterable[pl.Path]
+```yaml
+filepath: "src/litprog/parse.py"
+inputs  : ["boilerplate::*", "parse::*"]
+```
 
-ExitCode = int
+
+Some notes library choices:
+
+- `toml`, `yaml`: In additon to json, the toml format is supported to define litprog metadata.
+- `pathlib2` provides a uniform API for both python2 and python3 which is compatible with the API of the python3 `pathlib` module in the standard library. In other words, if python2 support is every dropped, only the imports have to change.
+
+
+```python
+# lpid = parse::code
 import json
 import toml
 import yaml
 import uuid
 
 import litprog.lptyp as lptyp
+```
+
+Test file and imports/preamble.
+
+```yaml
+filepath: "test/test_parse.py"
+inputs  : ["boilerplate::preamble::*", "test_parse"]
+```
+
+```python
+# lpid = test_parse
+import pathlib2 as pl
+import litprog.cli
+import litprog.parse as sut
+```
+
+
+### File-System Utilities
+
+As a first step, we want to simply scan for markdown files as if invoking `litprog build lit/` with a directory as an argument.
+
+```python
+# lpid = parse::code
 
 VALID_OPTION_KEYS = {'lptype', 'lpid'}
+```
 
 
+```python
 class ParseError(Exception):
     def __init__(self, msg: str, block: lptyp.Block) -> None:
         file_path  = block.file_path
@@ -54,8 +65,10 @@ class ParseError(Exception):
 
         msg += f" on line {line_no} of {file_path}"
         super(ParseError, self).__init__(msg)
+```
 
 
+```python
 def parse_context(md_paths: FilePaths) -> lptyp.ParseContext:
     ctx = lptyp.ParseContext()
     ctx.md_paths.extend(md_paths)
@@ -63,48 +76,72 @@ def parse_context(md_paths: FilePaths) -> lptyp.ParseContext:
     for path in ctx.md_paths:
         log.debug(f"parsing {path}")
         for md in _iter_markdown(path):
-            if isinstance(md, lptyp.RawFencedBlock):
-                _add_block_to_context(ctx, md)
-            elif isinstance(md, lptyp.RawProse):
-                _add_prose_to_context(ctx, md)
+            _add_to_context(ctx, md)
 
     return ctx
+```
 
 
+```python
 InputLines = typ.Iterable[typ.Tuple[int, str]]
 
+def is_fence(line_val: str) -> bool:
+    return (
+        line_val.startswith("```")
+        or line_val.startswith("~~~")
+    )
 
-def _iter_markdown(input_path: pl.Path) -> typ.Iterable[lptyp.RawMarkdown]:
+def _iter_markdown(
+    input_path: pl.Path
+) -> typ.Iterable[lptyp.RawMarkdown]:
     prose_lines: lptyp.Lines = []
 
     # TODO: encoding from config
     with input_path.open(mode="r", encoding="utf-8") as fh:
         input_lines = enumerate(fh)
         for i, line_val in input_lines:
-            is_fence = line_val.startswith("```") or line_val.startswith("~~~")
-            if is_fence:
-                # TODO: The separation here isn't very nice.
+            if is_fence(line_val):
+                # TODO: The separation here isn't very nice. 
                 #   Mentally keeping track of the state of the
-                #   line iterator (has it gone past the fence?) is
+                #   line iterator (has it gone past the fence?) is 
                 #   more complicated than it probably has to be.
                 if prose_lines:
-                    yield lptyp.RawProse(input_path, prose_lines)
+                    yield lptyp.RawElement(input_path, prose_lines)
                     prose_lines = []
 
                 fence_str   = line_val[:3]
                 info_string = line_val[3:].strip()
-                block_lines = _iter_fenced_block_lines(fence_str, input_lines)
-                yield lptyp.RawFencedBlock(input_path, info_string, list(block_lines))
+                inner_block_lines = list(_iter_fenced_block_lines(
+                    fence_str, input_lines,
+                ))
+                lineno = i + 1
+                first_line = lptyp.Line(lineno, line_val)
+                last_line = lptyp.Line(
+                    lineno + len(inner_block_lines) + 1,
+                    fence_str + "\n",
+                )
+                block_lines = [first_line] + inner_block_lines + [last_line]
+
+                yield lptyp.RawFencedBlock(
+                    input_path,
+                    block_lines,
+                    info_string,
+                )
             else:
                 line_no = i + 1
-                line    = lptyp.Line(line_no, line_val)
+                line = lptyp.Line(line_no, line_val)
                 prose_lines.append(line)
 
     if prose_lines:
-        yield lptyp.RawProse(input_path, prose_lines)
+        yield lptyp.RawElement(input_path, prose_lines)
+```
 
 
-def _iter_fenced_block_lines(fence_str: str, input_lines: InputLines) -> typ.Iterable[lptyp.Line]:
+```python
+def _iter_fenced_block_lines(
+    fence_str  : str,
+    input_lines: InputLines,
+) -> typ.Iterable[lptyp.Line]:
     for i, line_val in input_lines:
         line_no     = i + 1
         maybe_fence = line_val.rstrip()
@@ -117,8 +154,11 @@ def _iter_fenced_block_lines(fence_str: str, input_lines: InputLines) -> typ.Ite
             break
         else:
             yield lptyp.Line(line_no, line_val)
+```
 
+[ref_rcgcom_languages]: http://www.rubycoloredglasses.com/2013/04/languages-supported-by-github-flavored-markdown/
 
+```python
 LANGUAGE_COMMENT_PATTERNS = {
     "c++"          : (r"^//" , r"$"),
     'actionscript' : (r"^//" , r"$"),
@@ -150,6 +190,8 @@ LANGUAGE_COMMENT_PATTERNS = {
     'scheme'       : (r"^;"  , r"$"),
     'clojure'      : (r"^;"  , r"$"),
     'lisp'         : (r"^;"  , r"$"),
+    'coffee'       : (r"^#"  , r"$"),
+    'coffeescript' : (r"^#"  , r"$"),
     'coffee-script': (r"^#"  , r"$"),
     'python'       : (r"^#"  , r"$"),
     'ruby'         : (r"^#"  , r"$"),
@@ -159,7 +201,13 @@ LANGUAGE_COMMENT_PATTERNS = {
     'shell'        : (r"^#"  , r"$"),
     'sql'          : (r"^--" , r"$"),
     'typescript'   : (r"^//" , r"$"),
+    'odin'         : (r"^//" , r"$"),
+    'zig'          : (r"^//" , r"$"),
 }
+```
+
+
+```python
 LANGUAGE_COMMENT_TEMPLATES = {
     "c++"          : "// {}",
     'actionscript' : "// {}",
@@ -191,6 +239,8 @@ LANGUAGE_COMMENT_TEMPLATES = {
     'scheme'       : "; {}",
     'clojure'      : "; {}",
     'lisp'         : "; {}",
+    'coffee'       : "# {}",
+    'coffeescript' : "# {}",
     'coffee-script': "# {}",
     'python'       : "# {}",
     'ruby'         : "# {}",
@@ -200,9 +250,13 @@ LANGUAGE_COMMENT_TEMPLATES = {
     'shell'        : "# {}",
     'sql'          : "-- {}",
     'typescript'   : "// {}",
+    'odin'         : "// {}",
+    'zig'          : "// {}",
 }
+```
 
 
+```python
 def _parse_comment_options(
     maybe_lang: lptyp.MaybeLang, raw_lines: lptyp.Lines
 ) -> typ.Tuple[lptyp.BlockOptions, lptyp.Lines]:
@@ -214,7 +268,7 @@ def _parse_comment_options(
 
     options: lptyp.BlockOptions = {}
     if not (maybe_lang and maybe_lang in LANGUAGE_COMMENT_PATTERNS):
-        return options, raw_lines
+        return options, raw_lines[1:-1]
 
     assert maybe_lang is not None
     language = maybe_lang
@@ -222,13 +276,17 @@ def _parse_comment_options(
     key_val_pattern = r"(?P<key>lp\w+)\s*=\s*(?P<val>[^\s,]+?)?\s*$"
     key_val_re      = re.compile(key_val_pattern)
 
-    comment_start_pattern, comment_end_pattern = LANGUAGE_COMMENT_PATTERNS[language]
-    options_pattern = comment_start_pattern + r"\s*(.+?)\s*" + comment_end_pattern
+    start_pattern, end_pattern = LANGUAGE_COMMENT_PATTERNS[language]
+
+    options_pattern = start_pattern + r"\s*(.+?)\s*" + end_pattern
     options_re      = re.compile(options_pattern)
 
-    last_options_line = 0
+    last_options_line = 1
 
-    for line in raw_lines:
+    raw_lines_iter = iter(raw_lines)
+    first_line = next(raw_lines_iter)
+    assert is_fence(first_line.val)
+    for line in raw_lines_iter:
         match = options_re.match(line.val)
         if match is None:
             break
@@ -248,11 +306,12 @@ def _parse_comment_options(
         options[key] = val
         last_options_line += 1
 
-    filtered_lines = raw_lines[last_options_line:]
-
+    filtered_lines = raw_lines[last_options_line:-1]
     return options, filtered_lines
+```
 
 
+```python
 def _parse_language(info_string: str) -> lptyp.MaybeLang:
     info_string = info_string.strip()
 
@@ -260,8 +319,10 @@ def _parse_language(info_string: str) -> lptyp.MaybeLang:
         return info_string.split(" ", 1)[0]
     else:
         return None
+```
 
 
+```python
 def _parse_maybe_options(
     lang: lptyp.Lang, raw_lines: lptyp.Lines
 ) -> typ.Optional[lptyp.BlockOptions]:
@@ -272,7 +333,7 @@ def _parse_maybe_options(
 
     maybe_options: typ.Any = None
     if lang in ('toml', 'yaml', 'json'):
-        maybe_options_data = "".join(line.val for line in raw_lines)
+        maybe_options_data = "".join(l.val for l in raw_lines[1:-1])
 
         if lang == 'toml':
             maybe_options = toml.loads(maybe_options_data)
@@ -302,10 +363,13 @@ def _parse_maybe_options(
         return maybe_options
     else:
         return None
+```
 
 
+```python
 def _parse_code_block(
-    ctx: lptyp.ParseContext, raw_fenced_block: lptyp.RawFencedBlock
+    ctx             : lptyp.ParseContext,
+    raw_fenced_block: lptyp.RawFencedBlock
 ) -> lptyp.FencedBlock:
     maybe_lang = _parse_language(raw_fenced_block.info_string)
     raw_lines  = raw_fenced_block.lines
@@ -315,15 +379,13 @@ def _parse_code_block(
     else:
         maybe_options = None
 
-    filtered_lines: lptyp.Lines
-
     if maybe_options is None:
-        options, filtered_lines = _parse_comment_options(maybe_lang, raw_lines)
+        options, content_lines = _parse_comment_options(maybe_lang, raw_lines)
     else:
-        options        = typ.cast(lptyp.BlockOptions, maybe_options)
-        filtered_lines = []
+        content_lines = raw_lines[1:-1]
+        options = typ.cast(lptyp.BlockOptions, maybe_options)
 
-    filtered_content = "".join(line.val for line in filtered_lines)
+    content = "".join(l.val for l in content_lines)
 
     prev_lpid = None
     if ctx.prev_block:
@@ -332,7 +394,10 @@ def _parse_code_block(
         prev_lang = ctx.prev_block.language
         curr_lang = maybe_lang
 
-        is_valid_continuation = prev_path == curr_path and prev_lang == curr_lang
+        is_valid_continuation = (
+            prev_path == curr_path
+            and prev_lang == curr_lang
+        )
         if is_valid_continuation:
             prev_lpid = ctx.prev_block.lpid
 
@@ -349,49 +414,119 @@ def _parse_code_block(
     if 'lptype' not in options:
         options['lptype'] = 'raw_block'
 
-    return lptyp.FencedBlock(
-        raw_fenced_block.file_path,
-        raw_fenced_block.info_string,
-        filtered_lines,
-        lpid,
-        maybe_lang,
-        options,
-        filtered_content,
+    if maybe_options is None:
+        assert not content.startswith("```")
+        assert not content.endswith("```")
+
+        return lptyp.FencedBlockData(
+            raw_fenced_block.file_path,
+            raw_lines,
+            raw_fenced_block.info_string,
+            lpid,
+            maybe_lang,
+            options,
+            content,
+        )
+    else:
+        return lptyp.FencedBlockMeta(
+            raw_fenced_block.file_path,
+            raw_lines,
+            raw_fenced_block.info_string,
+            lpid,
+            maybe_lang,
+            options,
+        )
+```
+
+```python
+
+def _add_to_context(
+    ctx: lptyp.ParseContext,
+    md : lptyp.MardownElement,
+) -> None:
+    if isinstance(md, lptyp.RawFencedBlock):
+        _add_block_to_context(ctx, md)
+    else:
+        ctx.elements.append(md)
+```
+
+```python
+def _add_block_to_context(
+    ctx      : lptyp.ParseContext,
+    raw_block: lptyp.RawFencedBlock,
+) -> None:
+    block = _parse_code_block(ctx, raw_block)
+    is_duplicate_lpid = (
+        block.lpid in ctx.options
+        and block.options['lptype'] != 'raw_block'
     )
-
-
-def _add_prose_to_context(ctx: lptyp.ParseContext, raw_prose: lptyp.RawProse) -> None:
-    ctx.prose.append(raw_prose)
-
-
-def _add_block_to_context(ctx: lptyp.ParseContext, raw_block: lptyp.RawFencedBlock) -> None:
-    block             = _parse_code_block(ctx, raw_block)
-    is_duplicate_lpid = block.lpid in ctx.blocks and block.options['lptype'] != 'raw_block'
     if is_duplicate_lpid:
         err_msg = f"Duplicated definition of {block.lpid}"
         raise ParseError(err_msg)
 
-    if block.lpid in ctx.blocks:
-        ctx.blocks[block.lpid].append(block)
-    else:
-        ctx.blocks[block.lpid] = [block]
-
+    ctx.elements.append(block)
     ctx.prev_block = block
 
-    if block.lpid in ctx.options:
-        prev_options = ctx.options[block.lpid]
-        for key, val in block.options.items():
-            is_redeclared_key = key in prev_options and prev_options[key] != val
-
-            is_block_continuation = is_redeclared_key and key == 'lptype' and val == 'raw_block'
-            if is_block_continuation:
-                valid_continuation_options = {'lpid': block.lpid, 'lptype': 'raw_block'}
-                assert block.options == valid_continuation_options
-                continue
-            elif is_redeclared_key:
-                err_msg = f"Redeclaration of option {key} for lpid={block.lpid}"
-                raise ParseError(err_msg, block)
-            else:
-                prev_options[key] = val
-    else:
+    if block.lpid not in ctx.options:
         ctx.options[block.lpid] = block.options
+        return
+
+    # add additional options
+    prev_options = ctx.options[block.lpid]
+    for key, val in block.options.items():
+        is_redeclared_key = (
+            key in prev_options and prev_options[key] != val
+        )
+
+        is_block_continuation = (
+            is_redeclared_key 
+            and key == 'lptype' 
+            and val == 'raw_block'
+        )
+        if is_block_continuation:
+            valid_continuation_options = {
+                'lpid': block.lpid,
+                'lptype': 'raw_block'
+            }
+            assert block.options == valid_continuation_options
+            continue
+
+        if is_redeclared_key:
+            err_msg = f"Redeclaration of option {key} for lpid={block.lpid}"
+            raise ParseError(err_msg, block)
+
+        prev_options[key] = val
+```
+
+
+```python
+# lpid = test_parse
+def test_fs_scanning():
+    lit_paths = list(litprog.cli._iter_markdown_filepaths(["lit/"]))
+
+    assert len(lit_paths) > 0
+    assert all(isinstance(p, pl.Path) for p in lit_paths)
+    assert all(p.suffix == ".md" for p in lit_paths)
+```
+
+
+### Future Work
+
+#### Better Handling of dependencies
+
+Currently a `session` block must specify each recursive dependency in the `requires` field, not just those it directly depends upon. It would be nice if for example the `test_parse` session would only have to declare its dependency direct dependencies, eg. `src/litprog/parse.py` and `src/litprog/cli.py`. 
+
+Alternatively, we could add syntax specific parsing for each block, to determine what each one provides and requires. For the python syntax for example, we could parse `import <module_name>` lines to determine what the requirements for a code block are and we could parse from the field `filepath: module_name.py` to determine that it provides that python module.
+
+Some magic is justified if it reduces tedium to bearable levels.
+
+
+#### Carry forward `lpid`
+
+It's redundant and error prone to have to set the lpid on every code block when the most common case is for subsequent fenced blocks to all belong to the same lpid. If no lpid is specified, it should just use the lpid of the previous block.
+
+
+#### Block Templates
+
+Especially for tests it would be great to be able to define blocks without having to declare the corresponding yaml. Probably a comment option like lp_tmpl=
+
