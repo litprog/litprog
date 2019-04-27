@@ -25,6 +25,14 @@ import datetime as dt
 import itertools as it
 import functools as ft
 
+import litprog.parse
+import litprog.build
+
+if os.environ.get('ENABLE_BACKTRACE') == '1':
+    import backtrace
+
+    backtrace.hook(align=True, strip_path=True, enable_on_envvar_only=True)
+
 InputPaths = typ.Sequence[str]
 FilePaths  = typ.Iterable[pl.Path]
 
@@ -87,3 +95,35 @@ def build(input_paths: InputPaths, verbose: int = 0) -> None:
         log.error("No markdown files found for {input_paths}.")
         click.secho("No markdown files found", fg='red')
         sys.exit(1)
+
+    ctx = litprog.parse.parse_context(md_paths)
+    litprog.build.build(ctx)
+
+
+MARKDOWN_FILE_EXTENSIONS = {
+    "markdown",
+    "mdown",
+    "mkdn",
+    "md",
+    "mkd",
+    "mdwn",
+    "mdtxt",
+    "mdtext",
+    "text",
+    "Rmd",
+}
+
+
+def _iter_markdown_filepaths(input_paths: InputPaths) -> FilePaths:
+    for path_str in input_paths:
+        path = pl.Path(path_str)
+        if path.is_file():
+            yield path
+        else:
+            for ext in MARKDOWN_FILE_EXTENSIONS:
+                for fpath in path.glob(f"**/*.{ext}"):
+                    yield fpath
+
+
+if __name__ == '__main__':
+    cli()

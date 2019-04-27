@@ -38,7 +38,10 @@
 pytest
 
 # We want to test other languages at some point. Since go comes
-# with its own formatter, it's an ideal candidate.
+# with its own formatter, it's a reasonable candidate.
 #
 # https://anaconda.org/conda-forge/go
 # go
+
+# To use KaTex, nodejs must be installed ;-(
+nodejs

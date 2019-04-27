@@ -14,6 +14,7 @@ click
 pyphen
 pygments
 markdown
+markdown-svgbob
 weasyprint
 PyPDF2
 beautifulsoup4
@@ -27,3 +28,6 @@ PyYAML
 # > If you want to use an old version of Python,
 # > you should stick with watchdog < 0.10.0.
 watchdog<0.10.0
+
+# https://github.com/WojciechMula/aspell-python
+aspell-python-ctypes

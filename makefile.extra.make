@@ -46,7 +46,7 @@ lit_out/out.html.tmp.html: lit/*.md
 
 
 src/litprog/__main__.py: lit/*.md
-	$(DEV_ENV)/bin/litprog build -v lit/*.md
+	ENABLE_BACKTRACE=0 $(DEV_ENV)/bin/litprog build -v lit/*.md
 
 .PHONY: it
 it: src/litprog/__main__.py
