@@ -98,7 +98,7 @@ class CheckResult(typ.NamedTuple):
     #   calculate the digest twice; once when
     #   checking if an entry is valid, and once
     #   again when updating the entry.
-    ok: bool
+    ok    : bool
     digest: HexDigest
 
 
@@ -117,10 +117,7 @@ class IndexEntry(typ.NamedTuple):
     digest: HexDigest
 
 
-def make_entry(
-    path: pl.Path,
-    check: CheckResult,
-) -> typ.Optional[IndexEntry]:
+def make_entry(path: pl.Path, check: CheckResult) -> typ.Optional[IndexEntry]:
 
     if not path.exists():
         return None
@@ -128,17 +125,14 @@ def make_entry(
     digest_val = check.digest or file_digest(path)
 
     return IndexEntry(
-        path=path,
-        stat=path.stat(),
-        mtime=os.path.getmtime(str(path)),
-        digest=digest_val,
+        path=path, stat=path.stat(), mtime=os.path.getmtime(str(path)), digest=digest_val
     )
 
 
 class Index:
 
-    machine_id : str
-    index_file : pl.Path
+    machine_id: str
+    index_file: pl.Path
     # The index_mtime serves two purposes:
     #   1. To detect a concurrent build
     #   2. To invalidate cached digest of recently
@@ -147,27 +141,24 @@ class Index:
     index_mtime: float
 
     entries: typ.Dict[EntryKey, typ.Optional[IndexEntry]]
-    targets: typ.Dict[str, typ.Set[EntryKey]]
+    targets: typ.Dict[str     , typ.Set[EntryKey]]
 
     def __init__(self, index_file: pl.Path) -> None:
         self.index_file = index_file
         self.machine_id = machine_id()
-        self.entries = {}
-        self.targets = {}
+        self.entries    = {}
+        self.targets    = {}
 
         try:
             if self.index_file.exists():
                 self.load_index()
         except Exception:
-            warn_msg = (
-                f"Ignoring invalid/corrupted index file "
-                f"'{self.index_file}'"
-            )
+            warn_msg = f"Ignoring invalid/corrupted index file " f"'{self.index_file}'"
             log.warning(warn_msg, exc_info=True)
 
         self.index_file.touch()
-        self.index_stat = self.index_file.stat()
-        mtime = os.path.getmtime(str(self.index_file))
+        self.index_stat  = self.index_file.stat()
+        mtime            = os.path.getmtime(str(self.index_file))
         self.index_mtime = mtime
 
     def load_index(self) -> None:
@@ -217,17 +208,10 @@ class Index:
                 }
             entries[key] = entry_data
 
-        targets = {
-            target: list(deps)
-            for target, deps in self.targets.items()
-        }
-        data = {
-            'machine_id': self.machine_id,
-            'entries'   : entries,
-            'targets'   : targets,
-        }
+        targets = {target: list(deps) for target, deps in self.targets.items()}
+        data    = {'machine_id': self.machine_id, 'entries': entries, 'targets': targets}
 
-        nonce = time.time()
+        nonce    = time.time()
         tmp_name = self.index_file.name + f".{nonce}.tmp"
         tmp_file = self.index_file.parent / tmp_name
         with tmp_file.open(mode="wb") as fh:
@@ -296,7 +280,7 @@ class Index:
 
         # fallback to digest check
         new_digest = file_digest(path)
-        ok = new_digest == entry.digest
+        ok         = new_digest == entry.digest
         return CheckResult(ok, new_digest)
 
     def is_target_done(self, target: str, deps: typ.Set[pl.Path]) -> bool:
@@ -305,7 +289,7 @@ class Index:
             if not digest.ok:
                 return False
 
-        new_deps = {key(dep) for dep in deps}
+        new_deps  = {key(dep) for dep in deps}
         prev_deps = self.targets.get(target)
         return new_deps == prev_deps
 
@@ -334,7 +318,7 @@ def selftest() -> int:
     for dirpath in dirpaths:
         filepaths.extend(_iter_paths(dirpath))
 
-    idx = Index(pl.Path(".litprog.index"))
+    idx  = Index(pl.Path(".litprog.index"))
     deps = set(_iter_paths(pl.Path("lit_v3")))
     print("done?", idx.is_target_done('moep', deps))
 

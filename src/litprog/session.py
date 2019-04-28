@@ -38,10 +38,9 @@ import threading
 import subprocess as sp
 
 
-
 class RawCapturedLine(typ.NamedTuple):
-    ts    : float
-    line  : str
+    ts  : float
+    line: str
 
 
 class CapturedLine(typ.NamedTuple):
@@ -206,8 +205,8 @@ class InteractiveSession:
     def iter_lines(self) -> typ.Iterable[CapturedLine]:
         out_lines = iter(self.out_lines)
         err_lines = iter(self.err_lines)
-        ol = next(out_lines, None)
-        el = next(err_lines, None)
+        ol        = next(out_lines, None)
+        el        = next(err_lines, None)
 
         while ol or el:
             if el is None:

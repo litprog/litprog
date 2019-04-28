@@ -1,6 +1,5 @@
-# -*- coding: utf-8 -*-
-# lp_file: examples/fib.py
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -16,12 +15,13 @@ _fib_cache = {}
 
 
 def fast_fib(n):
-    if n < 2:
-        _fib_cache[n] = n
+    if n <= 1:
+        return n
     if n in _fib_cache:
         return _fib_cache[n]
+    _fib_cache[n - 2] = fast_fib(n - 2)
     _fib_cache[n - 1] = fast_fib(n - 1)
-    assert n - 2 in _fib_cache, n
+    assert n - 1 in _fib_cache, n
     return _fib_cache[n - 1] + _fib_cache[n - 2]
 
 
@@ -39,7 +39,6 @@ def pretty_print_fibs(ns):
         print('{0} => {1}'.format(in_str, res_str), end='  ')
         if (n + 1) % 3 == 0:
             print()
-    print()
 
 
 def parse_args(args):

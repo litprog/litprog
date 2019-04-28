@@ -70,46 +70,46 @@ ELEMENT_PATTERN = f"""
 
 
 LANGUAGE_COMMENT_PATTERNS = {
-    "c++"          : (r"^\s*//" , r"$"),
-    'actionscript' : (r"^\s*//" , r"$"),
-    'actionscript3': (r"^\s*//" , r"$"),
-    'bash'         : (r"^\s*[#]", r"$"),
-    'c'            : (r"^\s*//" , r"$"),
-    'd'            : (r"^\s*//" , r"$"),
-    'elixir'       : (r"^\s*[#]", r"$"),
-    'erlang'       : (r"^\s*%"  , r"$"),
-    'go'           : (r"^\s*//" , r"$"),
-    'zig'          : (r"^\s*//" , r"$"),
-    'java'         : (r"^\s*//" , r"$"),
-    'javascript'   : (r"^\s*//" , r"$"),
-    'json'         : (r"^\s*//" , r"$"),
-    'swift'        : (r"^\s*//" , r"$"),
-    'r'            : (r"^\s*//" , r"$"),
-    'php'          : (r"^\s*//" , r"$"),
+    "c++"          : (r"^\s*//"  , r"$"),
+    'actionscript' : (r"^\s*//"  , r"$"),
+    'actionscript3': (r"^\s*//"  , r"$"),
+    'bash'         : (r"^\s*[#]" , r"$"),
+    'c'            : (r"^\s*//"  , r"$"),
+    'd'            : (r"^\s*//"  , r"$"),
+    'elixir'       : (r"^\s*[#]" , r"$"),
+    'erlang'       : (r"^\s*%"   , r"$"),
+    'go'           : (r"^\s*//"  , r"$"),
+    'zig'          : (r"^\s*//"  , r"$"),
+    'java'         : (r"^\s*//"  , r"$"),
+    'javascript'   : (r"^\s*//"  , r"$"),
+    'json'         : (r"^\s*//"  , r"$"),
+    'swift'        : (r"^\s*//"  , r"$"),
+    'r'            : (r"^\s*//"  , r"$"),
+    'php'          : (r"^\s*//"  , r"$"),
     'svg'          : (r"^\s*<!--", r"-->"),
     'html'         : (r"^\s*<!--", r"-->"),
-    'css'          : (r"^\s*/\*", r"\*/"),
-    'csharp'       : (r"^\s*//" , r"$"),
-    'fsharp'       : (r"^\s*//" , r"$"),
-    'kotlin'       : (r"^\s*//" , r"$"),
-    'make'         : (r"^\s*[#]", r"$"),
-    'nim'          : (r"^\s*[#]", r"$"),
-    'perl'         : (r"^\s*[#]", r"$"),
-    'php'          : (r"^\s*[#]", r"$"),
-    'yaml'         : (r"^\s*[#]", r"$"),
-    'prolog'       : (r"^\s*%"  , r"$"),
-    'scheme'       : (r"^\s*;"  , r"$"),
-    'clojure'      : (r"^\s*;"  , r"$"),
-    'lisp'         : (r"^\s*;"  , r"$"),
-    'coffee-script': (r"^\s*[#]", r"$"),
-    'python'       : (r"^\s*[#]", r"$"),
-    'ruby'         : (r"^\s*[#]", r"$"),
-    'rust'         : (r"^\s*//" , r"$"),
-    'scala'        : (r"^\s*//" , r"$"),
-    'sh'           : (r"^\s*[#]", r"$"),
-    'shell'        : (r"^\s*[#]", r"$"),
-    'sql'          : (r"^\s*--" , r"$"),
-    'typescript'   : (r"^\s*//" , r"$"),
+    'css'          : (r"^\s*/\*" , r"\*/"),
+    'csharp'       : (r"^\s*//"  , r"$"),
+    'fsharp'       : (r"^\s*//"  , r"$"),
+    'kotlin'       : (r"^\s*//"  , r"$"),
+    'make'         : (r"^\s*[#]" , r"$"),
+    'nim'          : (r"^\s*[#]" , r"$"),
+    'perl'         : (r"^\s*[#]" , r"$"),
+    'php'          : (r"^\s*[#]" , r"$"),
+    'yaml'         : (r"^\s*[#]" , r"$"),
+    'prolog'       : (r"^\s*%"   , r"$"),
+    'scheme'       : (r"^\s*;"   , r"$"),
+    'clojure'      : (r"^\s*;"   , r"$"),
+    'lisp'         : (r"^\s*;"   , r"$"),
+    'coffee-script': (r"^\s*[#]" , r"$"),
+    'python'       : (r"^\s*[#]" , r"$"),
+    'ruby'         : (r"^\s*[#]" , r"$"),
+    'rust'         : (r"^\s*//"  , r"$"),
+    'scala'        : (r"^\s*//"  , r"$"),
+    'sh'           : (r"^\s*[#]" , r"$"),
+    'shell'        : (r"^\s*[#]" , r"$"),
+    'sql'          : (r"^\s*--"  , r"$"),
+    'typescript'   : (r"^\s*//"  , r"$"),
 }
 
 
@@ -206,47 +206,41 @@ InfoString = str
 
 class Block(typ.NamedTuple):
 
-    md_path    : pl.Path
-    elem_index : int
-    content    : str
-    info_string: InfoString
-    directives : typ.List[str]
+    md_path      : pl.Path
+    elem_index   : int
+    content      : str
+    info_string  : InfoString
+    directives   : typ.List[str]
     inner_content: str
 
 
 class Directive(typ.NamedTuple):
 
-    name: str
-    value : str
+    name : str
+    value: str
 
     raw_text: str
 
 
 VALID_DIRECTIVE_NAMES = {
     'lp_language',
-    'lp_include',
+    'lp_add',
     'lp_const',
-
-    'lp_session',
+    'lp_run',
     'lp_debug',
-    'lp_command',
     'lp_expect',
-    'lp_hidden',
     'lp_timeout',
     # NOTE: lp_input_delay might allow the accurate
     #   association of input/output as long as output
     #   is always captured by the time the delay passes.
-    # 'lp_input_delay',
-
-    'lp_output',
-    'lp_session_info',
-    'lp_out_color',
-    'lp_err_color',
+    'lp_input_delay',
+    'lp_out',
+    'lp_proc_info',
     'lp_out_prefix',
     'lp_err_prefix',
-
+    'lp_out_color',
+    'lp_err_color',
     'lp_file',
-
     'lp_deps',
     'lp_make',
     'lp_use_macro',
@@ -257,13 +251,13 @@ VALID_DIRECTIVE_NAMES = {
 def _parse_directive(directive_text: str, raw_text: str) -> Directive:
     if ":" in directive_text:
         name, value = directive_text.split(":", 1)
-        name = name.strip()
+        name  = name.strip()
         value = value.strip()
     else:
-        name = directive_text.strip()
+        name  = directive_text.strip()
         value = ""
 
-    assert name in VALID_DIRECTIVE_NAMES
+    assert name in VALID_DIRECTIVE_NAMES, name
     return Directive(name, value, raw_text)
 
 
@@ -273,17 +267,15 @@ class MarkdownFile:
     elements: typ.List[MarkdownElement]
 
     def __init__(
-        self,
-        md_path: pl.Path,
-        elements: typ.Optional[typ.List[MarkdownElement]] = None,
+        self, md_path: pl.Path, elements: typ.Optional[typ.List[MarkdownElement]] = None
     ) -> None:
-        self.md_path  = md_path
+        self.md_path = md_path
         if elements is None:
             self.elements = _parse_md_elements(md_path)
         else:
             self.elements = elements
 
-    def copy(self) -> "MarkdownFile":
+    def copy(self) -> 'MarkdownFile':
         return MarkdownFile(self.md_path, list(self.elements))
 
     @property
@@ -314,10 +306,6 @@ class MarkdownFile:
             if elem.md_type != 'block':
                 continue
 
-            inner_content = elem.content
-            inner_content = inner_content.split("\n", 1)[-1]
-            inner_content = inner_content.rsplit("\n", 1)[0]
-
             start_match = BLOCK_START_RE.match(elem.content)
             assert start_match is not None
             info_string = start_match.group('info_string') or ""
@@ -326,54 +314,57 @@ class MarkdownFile:
 
             is_valid_language = info_string in LANGUAGE_COMMENT_REGEXES
             if not is_valid_language:
-                yield Block(
-                    self.md_path,
-                    elem_index,
-                    elem.content,
-                    info_string,
-                    [],
-                    inner_content,
-                )
+                inner_content = elem.content
+                inner_content = inner_content.split("\n", 1)[-1]
+                # trim off final fence
+                inner_content = inner_content.rsplit("\n", 1)[0]
+
+                yield Block(self.md_path, elem_index, elem.content, info_string, [], inner_content)
                 continue
 
             language = info_string
             comment_start_re, comment_end_re = LANGUAGE_COMMENT_REGEXES[language]
 
-            directives = [
-                Directive('lp_language', language, info_string)
-            ]
+            directives = [Directive('lp_language', language, info_string)]
 
-            rest = elem.content[start_match.end() :]
+            inner_content_chunks = []
+            rest                 = elem.content[start_match.end() :]
             while rest:
                 start_match = comment_start_re.search(rest)
                 if start_match is None:
+                    inner_content_chunks.append(rest)
                     break
+
+                chunk = rest[: start_match.start()]
+                if chunk:
+                    inner_content_chunks.append(chunk)
 
                 rest      = rest[start_match.end() :]
                 end_match = comment_end_re.search(rest)
                 if end_match is None:
-                    directive_text = rest
-                    rest           = ""
+                    comment_text = rest
+                    rest         = ""
                 else:
-                    directive_text = rest[: end_match.start()]
-                    rest           = rest[end_match.end() :]
+                    comment_text = rest[: end_match.start()]
+                    rest         = rest[end_match.end() :]
 
-                raw_text = start_match.group(0) + directive_text
+                raw_text = start_match.group(0) + comment_text
                 raw_text = raw_text.lstrip("\n")
                 assert raw_text in elem.content
 
-                directive_text = directive_text.strip()
-                if directive_text.startswith("lp_"):
-                    directive = _parse_directive(directive_text, raw_text)
+                comment_text = comment_text.strip()
+                if comment_text.startswith("lp_"):
+                    directive = _parse_directive(comment_text, raw_text)
                     directives.append(directive)
+                else:
+                    inner_content_chunks.append(raw_text)
+
+            inner_content = "".join(inner_content_chunks)
+            # trim off final fence
+            inner_content = inner_content.rsplit("\n", 1)[0]
 
             yield Block(
-                self.md_path,
-                elem_index,
-                elem.content,
-                info_string,
-                directives,
-                inner_content,
+                self.md_path, elem_index, elem.content, info_string, directives, inner_content
             )
 
     def __lt__(self, other: MarkdownElement) -> bool:
@@ -436,11 +427,7 @@ def _parse_md_elements(md_path: pl.Path) -> typ.List[MarkdownElement]:
     elements = []
     for elem_index, raw_elem in enumerate(_iter_raw_md_elements(content)):
         elem = MarkdownElement(
-            md_path,
-            elem_index,
-            raw_elem.md_type,
-            raw_elem.content,
-            raw_elem.first_line,
+            md_path, elem_index, raw_elem.md_type, raw_elem.content, raw_elem.first_line
         )
         elements.append(elem)
 
@@ -473,7 +460,7 @@ class Context:
             for block in md_file.blocks:
                 yield block
 
-    def copy(self) -> "Context":
+    def copy(self) -> 'Context':
         return Context([f.copy() for f in self.files])
 
 
