@@ -42,6 +42,3 @@ pytest
 #
 # https://anaconda.org/conda-forge/go
 # go
-
-# To use KaTex, nodejs must be installed ;-(
-nodejs

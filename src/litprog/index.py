@@ -57,15 +57,18 @@ def machine_id() -> str:
     return f"{node}_{host}"
 
 
-if hasattr(hashlib, 'algorithms_available'):
-    ALGOS = hashlib.algorithms_available
-else:
-    ALGOS = set(hashlib.algorithms)
+IS_BLAKE2_AVAILABLE = False
+
+try:
+    hashlib.new('blake2b')
+except ValueError as ex:
+    assert "unsupported hash type blake2b" in str(ex)
+    IS_BLAKE2_AVAILABLE = False
 
 
-def new_digest():
+def new_digest() -> hashlib._Hash:
     # https://blake2.net/
-    if 'blake2b' in ALGOS:
+    if IS_BLAKE2_AVAILABLE:
         return hashlib.new('blake2b')
     else:
         return hashlib.new('sha1')
@@ -84,8 +87,11 @@ def file_digest(path: pl.Path) -> str:
 
 
 def file_id(path: pl.Path) -> str:
-    stat      = str(path.stat())
-    stat_data = f"{stat.st_ino}_{stat.st_size}_{stat.st_mtime}"
+    st     = mk_stat(path)
+    st_str = f"{st.ino}_{st.size}_{st.mtime}"
+    id_sum = new_digest()
+    id_sum.update(st_str.encode("ascii"))
+    return id_sum.hexdigest()
 
 
 HexDigest = str
@@ -103,45 +109,84 @@ class CheckResult(typ.NamedTuple):
 
 
 EntryKey = str
+Target   = str
 
 
 def key(path: pl.Path) -> EntryKey:
     return str(path.absolute())
 
 
+# NOTE: mypy doesn't like the stat_result type :-/, so we
+#   convert it to something it knows how to deal with.
+
+
+class Stat(typ.NamedTuple):
+
+    mode : int
+    ino  : int
+    dev  : int
+    nlink: int
+    uid  : int
+    gid  : int
+    size : int
+    atime: float
+    mtime: float
+    ctime: float
+
+
+def mk_stat(path: pl.Path) -> Stat:
+    s = path.stat()
+
+    # NOTE: getmtime is more precise than s.st_mtime
+    mtime: float = os.path.getmtime(str(path))
+
+    return Stat(
+        s.st_mode,
+        s.st_ino,
+        s.st_dev,
+        s.st_nlink,
+        s.st_uid,
+        s.st_gid,
+        s.st_size,
+        s.st_atime,
+        mtime,
+        s.st_ctime,
+    )
+
+
 class IndexEntry(typ.NamedTuple):
 
     path  : pl.Path
-    stat  : os.stat_result
-    mtime : float
+    stat  : Stat
     digest: HexDigest
 
 
-def make_entry(path: pl.Path, check: CheckResult) -> typ.Optional[IndexEntry]:
+MaybeEntry        = typ.Optional[IndexEntry]
+EntryByKey        = typ.Dict[EntryKey, MaybeEntry]
+EntryKeysByTarget = typ.Dict[Target  , typ.Set[EntryKey]]
 
+
+def make_entry(path: pl.Path, check: CheckResult) -> MaybeEntry:
     if not path.exists():
         return None
 
     digest_val = check.digest or file_digest(path)
 
-    return IndexEntry(
-        path=path, stat=path.stat(), mtime=os.path.getmtime(str(path)), digest=digest_val
-    )
+    return IndexEntry(path=path, stat=mk_stat(path), digest=digest_val)
 
 
 class Index:
 
     machine_id: str
     index_file: pl.Path
-    # The index_mtime serves two purposes:
+    # The index_stat serves two purposes:
     #   1. To detect a concurrent build
     #   2. To invalidate cached digest of recently
     #       updated files.
-    index_stat : os.stat_result
-    index_mtime: float
+    index_stat: Stat
 
-    entries: typ.Dict[EntryKey, typ.Optional[IndexEntry]]
-    targets: typ.Dict[str     , typ.Set[EntryKey]]
+    entries: EntryByKey
+    targets: EntryKeysByTarget
 
     def __init__(self, index_file: pl.Path) -> None:
         self.index_file = index_file
@@ -157,9 +202,7 @@ class Index:
             log.warning(warn_msg, exc_info=True)
 
         self.index_file.touch()
-        self.index_stat  = self.index_file.stat()
-        mtime            = os.path.getmtime(str(self.index_file))
-        self.index_mtime = mtime
+        self.index_stat = mk_stat(self.index_file)
 
     def load_index(self) -> None:
         with self.index_file.open(mode="rb") as fh:
@@ -175,19 +218,16 @@ class Index:
             )
             raise Exception(err_msg)
 
-        entries = {}
+        entries: EntryByKey = {}
         for key, entry in data['entries'].items():
             if entry is None:
                 entries[key] = entry
             else:
                 entries[key] = IndexEntry(
-                    pl.Path(entry['path']),
-                    os.stat_result(entry['stat']),
-                    entry['mtime'],
-                    entry['digest'],
+                    pl.Path(entry['path']), Stat(*entry['stat']), entry['digest']
                 )
 
-        targets = {}
+        targets: EntryKeysByTarget = {}
         for target, deps in data['targets'].items():
             targets[target] = set(deps)
 
@@ -195,18 +235,18 @@ class Index:
         self.targets = targets
 
     def dump_index(self) -> None:
-        entries = {}
+        EntryData = typ.Optional[typ.Dict[str, typ.Any]]
+        entries: typ.Dict[str, EntryData] = {}
+
         for key, entry in self.entries.items():
-            if entry is None:
-                entry_data = None
-            else:
-                entry_data = {
+            if entry:
+                entries[key] = {
                     'path'  : str(entry.path),
                     'stat'  : list(entry.stat),
-                    'mtime' : entry.mtime,
                     'digest': entry.digest,
                 }
-            entries[key] = entry_data
+            else:
+                entries[key] = None
 
         targets = {target: list(deps) for target, deps in self.targets.items()}
         data    = {'machine_id': self.machine_id, 'entries': entries, 'targets': targets}
@@ -233,11 +273,10 @@ class Index:
         if not self.index_file.exists():
             return True
 
-        if self.index_stat != self.index_file.stat():
+        if self.index_stat != mk_stat(self.index_file):
             return True
 
-        mtime = os.path.getmtime(str(self.index_file))
-        return self.index_mtime != mtime
+        return False
 
     def add_files(self, paths: typ.Iterable[pl.Path]) -> None:
         for path in paths:
@@ -266,16 +305,11 @@ class Index:
         if not entry.path.exists():
             return CheckResult(False, "")
 
-        if entry.stat != path.stat():
+        if entry.stat != mk_stat(path):
             return CheckResult(False, "")
 
-        mtime = os.path.getmtime(str(path))
-
-        if mtime != entry.mtime:
-            return CheckResult(False, "")
-
-        # We only trust mtime that is a bit old
-        if entry.mtime <= self.index_mtime - 2:
+        # If mtime is very new, then it can't be trusted.
+        if entry.stat.mtime <= self.index_stat.mtime - 2:
             return CheckResult(True, entry.digest)
 
         # fallback to digest check
@@ -283,7 +317,7 @@ class Index:
         ok         = new_digest == entry.digest
         return CheckResult(ok, new_digest)
 
-    def is_target_done(self, target: str, deps: typ.Set[pl.Path]) -> bool:
+    def is_target_done(self, target: Target, deps: typ.Set[pl.Path]) -> bool:
         for dep in deps:
             digest = self.check_path(dep)
             if not digest.ok:
@@ -293,20 +327,23 @@ class Index:
         prev_deps = self.targets.get(target)
         return new_deps == prev_deps
 
-    def mark_target_done(self, target: str, deps: typ.Set[pl.Path]) -> None:
+    def mark_target_done(self, target: Target, deps: typ.Set[pl.Path]) -> None:
         for dep in deps:
             self.add_file(dep)
 
         self.targets[target] = {key(dep) for dep in deps}
 
 
-def _iter_paths(dirpath):
+def _iter_paths(dirpath: pl.Path) -> typ.Iterable[pl.Path]:
     for root, dirnames, filenames in os.walk(dirpath):
         for filename in filenames:
             yield pl.Path(root) / filename
 
 
-def selftest() -> int:
+ExitStatus = int
+
+
+def selftest() -> ExitStatus:
     dirpaths = [
         pl.Path("src"),
         pl.Path("src_v2"),
@@ -314,7 +351,7 @@ def selftest() -> int:
         pl.Path("lit_v3"),
         pl.Path("fonts"),
     ]
-    filepaths = []
+    filepaths: typ.List[pl.Path] = []
     for dirpath in dirpaths:
         filepaths.extend(_iter_paths(dirpath))
 
@@ -331,6 +368,7 @@ def selftest() -> int:
 
     idx.add_files(filepaths)
     idx.dump_index()
+    return 0
 
 
 if __name__ == '__main__':

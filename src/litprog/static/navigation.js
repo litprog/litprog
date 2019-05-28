@@ -67,11 +67,17 @@
     //     window.scrollBy(0, extra_scroll);
     // }
 
-    if (e.key == "n") {
+    if (e.key == "j") {
         // Next Headline
     }
-    if (e.key == "p") {
+    if (e.key == "k") {
         // Previous Headline
+    }
+    if (e.key == "l") {
+        // Next Chapter
+    }
+    if (e.key == "h") {
+        // Previous Chapter
     }
     if (e.key == "t") {
         toggle_typeface(e);

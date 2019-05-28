@@ -1,0 +1,15 @@
+@media print {
+    div.firstpara {
+        page-break-inside: avoid;
+    }
+
+    code {
+        padding: 0.07em 0.20em 0.14em 0.20em;
+    }
+
+    p a {
+        color: black;
+        text-decoration: none;
+        border-bottom: 1px dashed #666;
+    }
+}

@@ -1,6 +1,4 @@
-(function() {
-
-/*! instant.page v1.0.0 - (C) 2019 Alexandre Dieulot - https://instant.page/license */
+/*! instant.page v1.2.2 - (C) 2019 Alexandre Dieulot - https://instant.page/license */
 
 let urlToPreload
 let mouseoverTimer
@@ -8,9 +6,11 @@ let lastTouchTimestamp
 
 const prefetcher = document.createElement('link')
 const isSupported = prefetcher.relList && prefetcher.relList.supports && prefetcher.relList.supports('prefetch')
+const isDataSaverEnabled = navigator.connection && navigator.connection.saveData
 const allowQueryString = 'instantAllowQueryString' in document.body.dataset
+const allowExternalLinks = 'instantAllowExternalLinks' in document.body.dataset
 
-if (isSupported) {
+if (isSupported && !isDataSaverEnabled) {
   prefetcher.rel = 'prefetch'
   document.head.appendChild(prefetcher)
 
@@ -28,10 +28,6 @@ function touchstartListener(event) {
   lastTouchTimestamp = performance.now()
 
   const linkElement = event.target.closest('a')
-
-  if (!linkElement) {
-    return
-  }
 
   if (!isPreloadable(linkElement)) {
     return
@@ -55,10 +51,6 @@ function mouseoverListener(event) {
   }
 
   const linkElement = event.target.closest('a')
-
-  if (!linkElement) {
-    return
-  }
 
   if (!isPreloadable(linkElement)) {
     return
@@ -90,21 +82,33 @@ function mouseoutListener(event) {
 }
 
 function isPreloadable(linkElement) {
+  if (!linkElement || !linkElement.href) {
+    return
+  }
+
   if (urlToPreload == linkElement.href) {
     return
   }
 
-  const urlObject = new URL(linkElement.href)
+  const preloadLocation = new URL(linkElement.href)
 
-  if (urlObject.origin != location.origin) {
+  if (!allowExternalLinks && preloadLocation.origin != location.origin && !('instant' in linkElement.dataset)) {
     return
   }
 
-  if (!allowQueryString && urlObject.search) {
+  if (!['http:', 'https:'].includes(preloadLocation.protocol)) {
     return
   }
 
-  if (urlObject.pathname + urlObject.search == location.pathname + location.search && urlObject.hash) {
+  if (preloadLocation.protocol == 'http:' && location.protocol == 'https:') {
+    return
+  }
+
+  if (!allowQueryString && preloadLocation.search && !('instant' in linkElement.dataset)) {
+    return
+  }
+
+  if (preloadLocation.hash && preloadLocation.pathname + preloadLocation.search == location.pathname + location.search) {
     return
   }
 
@@ -120,9 +124,5 @@ function preload(url) {
 }
 
 function stopPreloading() {
-  /* The spec says an empty string should abort the prefetching
-  * but Firefox 64 interprets it as a relative URL to prefetch. */
   prefetcher.removeAttribute('href')
 }
-
-})()

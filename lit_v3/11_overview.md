@@ -1,10 +1,11 @@
 ## Introduction to LitProg
 
-LitProg is a [literate programming][href_wiki_litprog] tool which 
+LitProg is a [Literate Programming (LP)][href_wiki_litprog] tool which 
 
- 1. consumes [markdown][href_wiki_markdown] files,
+ 1. consumes [Markdown][href_wiki_markdown] files,
  2. produces code files using fenced blocks,
  3. produces HTML and PDF documentation.
+
 
 ```bob
                    +------------------+        
@@ -18,8 +19,8 @@ LitProg is a [literate programming][href_wiki_litprog] tool which
  |  LitProg  |                                 
  |           |     +---------------+           
  '---+---+---'    ++               |\          
-     |   |        || src/code.py   +-+         
-     |   '------->|| src/logic.js    |         
+     |   |        || src/app.py    +-+         
+     |   '------->|| src/ui.js       |         
      |            || src/data.json   |         
      |            ||                 |         
      |            |+----------------++         
@@ -27,7 +28,7 @@ LitProg is a [literate programming][href_wiki_litprog] tool which
      |                                         
      |             +-------------------+       
      |            ++                   |\      
-     |            || doc/11_intro.pdf  +-+     
+     |            || doc/program.pdf   +-+     
      '----------->|| doc/11_intro.html   |     
                   || doc/12_test.html    |     
                   ||                     |     
@@ -35,36 +36,84 @@ LitProg is a [literate programming][href_wiki_litprog] tool which
                   +---------------------+      
 ```
 
+The [benefits of LP][href_knuthweb] have not been practically demonstrated and LP has not found much adoption. The closest thing to broad adoption of LP has been with some writers using notebooks such as [Jupyter][href_jupyter]. Such notebooks are better suited to data analysis and reporting however, rather than creating libraries and applications. I believe lack of adoption of LP is partially the result of inadequate tooling and I hope you will find LitProg to provide a practical approach to writing good software in an LP style.
+
+I've written more about the motivation for this project in the [next chapter][iref_touchy_feely], but in this chapter I will mostly focus on what LitProg is and how to use it.
+
+
+### Getting Started
+
+*Literate Programming* is a programming paradigm. *LitProg* is a programming tool. Even if you are not on board with LP, you may nonetheless find LitProg to be useful, for example to write technical articles or tutorials. This book is a documentation artefact of the literate program for the `litprog` cli command, which has of course been compiled using itself. To get started you can download one of the software artifacts of LitProg and run `litprog build` with an example file.
+
+```bash
+$ pip install litprog
+...
+$ mkdir litprog_test;
+$ cd litprog_test;
+$ curl https://.../raw/.../example.md -O 11_intro.md
+$ litprog build 11_intro.md
+...
+$ ls -R
+examples/fib.py
+examples/primes.py
+```
+
+The example file is written in Markdown, which is familiar to many programmers and widly supported by software related to programming. LitProg extends Markdown in a way that does not require special support by such software. In other words, your current editor should be fine.
+
+When programming you will usually run `litprog build lit/` or `litprog watch lit/`. This will generate source code files and execute any subcommands that are part of your program. Such commands typically relate to testing and validating your program, or they might illustrate its behaviour.
+
+Generating the full documentation can take some time, so it introduces a friction that you will want to avoid during regular programming. It can be a part of a build process or [CI][href_wiki_ci] pipeline and you will only occasionally you may want to generate documentation during development, but usually you shouldn't have to. You can pass the `--html <directory>` and `--pdf <directory>` parameters to generate the static HTML and PDF files.
+
+
+```bash
+$ litprog build 11_intro.md --html doc/ --pdf doc/
+$ ls -R
+examples/fib.py
+doc/litprog.pdf
+doc/index.html
+doc/styles.css
+doc/11_intro.html
+```
 
 ### LitProg by Example
 
-Much has been claimed about the benefits of [Literate Programming][href_knuthweb]. Instead of repeating what has been said better elsewhere, I will focus here on demonstrating by example the specifics of LitProg.
+LitProg works by parsing your markdown for code blocks and parsing these code blocks for directives. These make it possible to compose programs in a flexible way, without being distracted by typesetting and page layout. LitProg allows programmers to focus on their code, their ideas and a coherent narrative to explain their programs.
 
-I will use the familiar [Fibbonacci function][href_wiki_fib] and Python for this example. I hope you will learn nothing about the example itself and can instead focus on how LitProg works.
+I will use the familiar [Fibbonacci function][href_wiki_fib] and Python for this example. I hope you will learn nothing about the particular example and can instead focus on the mechanics of LitProg itself. I will later give a more extensive example, to give a better impression of Literate Programming, without being distracted by the mechanics of LitProg.
 
-LitProg uses [KaTeX][href_katex] for typesetting of equations. Surround LaTeX formulas with single `$` characters to produce an inline formula `$F_0 = 0$` -> $F_0 = 0$, or with two `$$` characters to produce a centered block:
+To produce an inline equation, write LaTeX as inline code, surrounded by $ characters: ``$`a^2+b^2=c^2`$`` -> $`a^2+b^2=c^2`$ (btw. there is a nice editor on [katex.org][href_katex] and [documentation][href_katex_docs] to help create such formulas). To produce a centered block, write LaTeX in a `math` block:
 
-    $$ F_0 = 0 $$
-    $$ F_1 = 1 $$
-    $$ F_n = F_{n-1} + F_{n-2} $$
+    ```math
+    \begin{array}{l}
+    F_0 = 0 \\
+    F_1 = 1 \\
+    F_n = F_{n-1} + F_{n-2}
+    \end{array}    
+    ```
 
-    ->
+Produces:
 
-$$ F_0 = 0 $$
-$$ F_1 = 1 $$
-$$ F_n = F_{n-1} + F_{n-2} $$
+```math
+\begin{array}{l}
+F_0 = 0 \\
+F_1 = 1 \\
+F_n = F_{n-1} + F_{n-2}
+\end{array}    
+```
 
 A Python implementation of the Fibbonacci function might look like this:
 
 ```python
 def fib(n: int) -> int:
-    if n < 2:
-        return n 
+    if n == 0:
+        return 0 
+    elif n == 1:
+        return 1 
     else:
         return fib(n - 1) + fib(n - 2)
 ```
 
-In case you weren't aware, this naive recursive implementation is well known to have a complexity of $O(2^n)$ (in other words: it's pretty bad).
+In case you weren't aware, this naive recursive implementation is well known to have a complexity of $`O(2^n)`$ (in other words: it's pretty bad).
 
 
 ### The `lp_add` Directive
@@ -144,6 +193,7 @@ If the [exit status][href_wiki_exit_status] of the `python3` process is anything
 
     - `lp_expect`: The expected exit status of the process. The default value is `0`. 
     - `lp_timeout`: How many seconds a process may run before being terminated. The default value is `1.0`.
+    - `lp_hide`: If the block should be hidden from generated documentation. Using this goes against the ethos of Literate Programming, but if your readers don't care about the assurance that they have access to the full program (for example if you're using LitProg to write a blog article) then this may be appropriate. The default value is `false`
 
 
 ### Capturing Output
@@ -175,13 +225,6 @@ The `lp_out` directive marks its block as a container for the output of the proc
      - `lp_out_prefix`: A string which is used to prefix every line of the stdout. default `""`
      - `lp_err_prefix`: A string which is used to prefix every line of the stderr. default `"! "`
 
-You can combine `lp_run` and `lp_out` in one by specifying the command on the `lp_out` directive: `lp_out: <command>`. This is more restrictive however, as the process will not receive anything via stdin.
-
-```python
-# lp_out: expr 2 + 2
-4
-# exit:   0
-```
 
 The captured output gives the reader some assurance that the document they are reading is not just some manually composed fabrication which was written as an afterthought and is detatched from the actual program. Even with the best of intentions, humans often make mistakes, so program logic that has not been executed by a machine will inspire little confidence. Hence the famous quote by Knuth: "Beware of bugs in the above code; I have only proved it correct, not tried it".
 
@@ -240,8 +283,10 @@ for i in range(10):
     Paths in LitProg always use the `/` (forward slash) character, even if you are running on a Windows machine. Avoid using absolute paths, so that your program can be built on machines with different directory layouts.
 
 
+The `lp_out` directive can also have a command parameter: `lp_out: <command>`. Unlike `lp_run`, the process will not receive anything via stdin. This is not too limiting however, as all commands are only run after all `lp_file` directives have been completed. In other words, we can use `lp_out` to run the example script created by the previous block.
+
 ```bash
-# lp_out: python examples/fib.py
+# lp_out: python3 examples/fib.py
 0 1 1 2 3 5 8 13 21 34
 # exit:   0
 ```
@@ -258,11 +303,11 @@ def pretty_print_fibs(ns: Sequence[int]) -> None:
     pad_n     = len(str(max(ns)))
     pad_fib_n = len(str(max(fibs)))
 
-    for n, fib_n in zip(ns, fibs):
+    for i, (n, fib_n) in enumerate(zip(ns, fibs)):
         in_str = f"fib({n:>{pad_n}})"
         res_str = f"{fib_n:>{pad_fib_n}}"
         print(f"{in_str} => {res_str}", end ="  ")
-        if (n + 1) % 3 == 0: 
+        if (i + 1) % 3 == 0: 
             print()
 
 ```
@@ -367,12 +412,12 @@ import time
 import contextlib
 
 @contextlib.contextmanager
-def timeit():
+def timeit(marker=""):
     t_before = time.time()
     yield
     t_after = time.time()
     duration_ms = 1000 * (t_after - t_before)
-    print(f"{duration_ms:9.3f} ms")
+    print(f"{marker} {duration_ms:9.3f} ms")
 ```
 
 ```python
@@ -380,22 +425,22 @@ def timeit():
 # lp_add: def timeit
 # lp_add: def fib
 # lp_add: def fast_fib
-with timeit(): fib(13)
-with timeit(): fib(15)
-with timeit(): fib(17)
-with timeit(): fast_fib(13)
-with timeit(): fast_fib(15)
-with timeit(): fast_fib(17)
+with timeit("slow"): fib(13)
+with timeit("slow"): fib(15)
+with timeit("slow"): fib(17)
+with timeit("fast"): fast_fib(13)
+with timeit("fast"): fast_fib(15)
+with timeit("fast"): fast_fib(17)
 ```
 
 ```shell
 # lp_out
-    0.273 ms
-    0.650 ms
-    1.691 ms
-    0.033 ms
-    0.009 ms
-    0.008 ms
+slow     0.409 ms
+slow     0.803 ms
+slow     2.075 ms
+fast     0.034 ms
+fast     0.009 ms
+fast     0.008 ms
 # exit:   0
 ```
 
@@ -411,7 +456,9 @@ Up to here our code has been floating around in memory, but eventually we want t
 Next is some boring python scaffolding to wrap the functions written so far.
 
 ```python
-def parse_args(args: List[str]) -> Tuple[List[str], Set[str]]:
+ParamsAndFlags = Tuple[List[str], Set[str]]
+
+def parse_args(args: List[str]) -> ParamsAndFlags:
     flags = {arg for arg in args if arg.startswith("-")}
     params = [arg for arg in args if arg not in flags]
     return params, flags
@@ -496,11 +543,9 @@ Usage: python examples/fib_cli.py [--help] [--pretty] <n>...
 ```
 
 ```bash
-# lp_out: python3 examples/fib_cli.py --pretty 2 5 8 12 19 20
-fib( 2) =>    1
-fib( 5) =>    5
-fib( 8) =>   21
-fib(12) =>  144  fib(19) => 4181  fib(20) => 6765
+# lp_out: python3 examples/fib_cli.py --pretty 3 7 8 9 19 20
+fib( 3) =>    2  fib( 7) =>   13  fib( 8) =>   21
+fib( 9) =>   34  fib(19) => 4181  fib(20) => 6765
 # exit:   0
 ```
 
@@ -568,7 +613,7 @@ chmod +x examples/fib_cli_compat.py
 
 ```bash
 # lp_out: python3 --version
-Python 3.7.2
+Python 3.7.3
 # exit:   0
 ```
 
@@ -580,9 +625,7 @@ Python 3.7.2
 
 ```bash
 # lp_out: examples/fib_cli_compat.py --pretty 2 5 8 12 19 20
-fib( 2) =>    1
-fib( 5) =>    5
-fib( 8) =>   21
+fib( 2) =>    1  fib( 5) =>    5  fib( 8) =>   21
 fib(12) =>  144  fib(19) => 4181  fib(20) => 6765
 # exit:   0
 ```
@@ -602,13 +645,32 @@ TODO: Further reading.
 
 [fnote_max_hedging]: Sorry about all the hedging. Any "proof" of correctness is only as good as the assertions made by the programmer. Hopefully the broader accessibility of LitProg programs means that programmers will feel the watchful eyes of readers and put some effort into making their programs demonstrably correct.
 
+
+[href_jupyter]: https://jupyter.org/
+
+[href_svgbob]: https://github.com/ivanceras/svgbob
+
+[href_blockdiag]: http://blockdiag.com/en/blockdiag/index.html
+
 [href_katex]: https://katex.org/
 
+[href_wiki_ci]: https://en.wikipedia.org/wiki/Continuous_integration
+
+[href_katex_docs]: https://katex.org/docs/supported.html
+
 [href_wiki_fib]: https://en.wikipedia.org/wiki/Fibonacci_number
+
+[href_knuthweb]: http://www.literateprogramming.com/knuthweb.pdf
+
+[href_wiki_markdown]: https://en.wikipedia.org/wiki/Markdown
 
 [href_wiki_std_streams]: https://en.wikipedia.org/wiki/Standard_streams
 
 [href_wiki_exit_status]: https://en.wikipedia.org/wiki/Exit_status
+
+[href_wiki_techdebt]: https://en.wikipedia.org/wiki/Technical_debt
+
+[href_wiki_litprog]: https://en.wikipedia.org/wiki/Literate_programming
 
 [href_explainsh_errexit]: https://explainshell.com/explain?cmd=set+-e
 

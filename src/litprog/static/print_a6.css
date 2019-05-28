@@ -1,0 +1,19 @@
+@media print {
+    body {
+        /* A6 - for kindle */
+        font-size: 8.5pt;
+        line-height: 1.45em;
+    }
+
+    div.codehilite pre {
+        font-size: 7pt;
+    }
+
+    @page {
+        /* A6 - margins optimized for kindle */
+        padding: 0;
+        margin: 14mm 7.5mm;
+        size: 105mm 148mm;
+    }
+
+}

@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en-US">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style type="text/css">
+{{general.css}}
+{{screen.css}}
+</style>
+</head>
+<body class="font-slab">
+<script>{{check_reloaded.js}}</script>
+<div class="wrapper">
+<div class="content">
+{{content}}
+<div id="nav">
+  <div id="toggle-theme"></div>
+  <div id="toggle-font"></div>
+  <div id="toggle-print"></div>
+</div>
+</div>
+<div id="pdf">
+  <div>normal text layout, more readable but uses more paper <-> dense text
+  layout, less readable but fewer pages</div>
+  <div>A6 - Portrait (good for Kindle)</div>
+  <a href="a6.pdf"><div class="a6 onepage"></div></a>
+  <a href="a6-dense.pdf"><div class="a6 onepage dense"></div></a>
+  <div>A5 - Portrait</div>
+  <a href="a5.pdf"><div class="a5 onepage"></div></a>
+  <a href="a5-dense.pdf"><div class="a5 onepage dense"></div></a>
+  <div>US Half-Letter - Portrait</div>
+  <a href="half-letter.pdf"><div class="half-letter onepage"></div></a>
+  <a href="half-letter-dense.pdf"><div class="half-letter onepage dense"></div></a>
+  <div>For duplex print, configure your printer to flip on short edge.</div>
+  <div>A4 - Booklet</div>
+  <a href="a4-booklet.pdf"><div class="a4 twopage booklet"></div></a>
+  <a href="a4-booklet-dense.pdf"><div class="a4 twopage booklet dense"></div></a>
+  <div>US Letter - Booklet</div>
+  <a href="letter-booklet.pdf"><div class="letter twopage booklet"></div></a>
+  <a href="letter-booklet-dense.pdf"><div class="letter twopage booklet dense"></div></a>
+  <div>If you don't have a duplex printer.</div>
+  <div>A4 - Two Page</div>
+  <a href="a4-twopage.pdf"><div class="a4 twopage"></div></a>
+  <a href="a4-twopage-dense.pdf"><div class="a4 twopage dense"></div></a>
+  <div>US Letter - Two Page</div>
+  <a href="letter-twopage.pdf"><div class="letter twopage"></div></a>
+  <a href="letter-twopage-dense.pdf"><div class="letter twopage dense"></div></a>
+</div>
+</div>
+<style type="text/css">{{styles}}</style>
+<script type="text/javascript">{{scripts}}</script>
+<script src="//instant.page/1.2.2" type="module" integrity="sha384-2xV8M5griQmzyiY3CDqh1dn4z3llDVqZDqzjzcY+jCBCk/a5fXJmuZ/40JJAPeoU" async></script>
+
+</body>
+</html>

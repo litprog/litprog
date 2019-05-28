@@ -1,0 +1,8 @@
+@media print {
+    @page {
+        /* 1of2col-A4 - for 2 column paper layout */
+        padding: 0;
+        margin: 10mm 8mm;
+        size: 105mm 297mm;
+    }
+}

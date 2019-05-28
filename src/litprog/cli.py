@@ -16,7 +16,9 @@ import sys
 import math
 import time
 import enum
+import shutil
 import os.path
+import tempfile
 import collections
 import typing as typ
 import pathlib2 as pl
@@ -27,6 +29,7 @@ import functools as ft
 
 import litprog.parse
 import litprog.build
+import litprog.gen_docs
 
 if os.environ.get('ENABLE_BACKTRACE') == '1':
     import backtrace
@@ -60,13 +63,16 @@ def _parse_logging_config(verbosity: int) -> LogConfig:
     return LogConfig(log_format, logging.DEBUG)
 
 
-def _configure_logging(verbosity: int = 0) -> None:
-    _prev_verbosity: int = getattr(_configure_logging, '_prev_verbosity', -1)
+_PREV_VERBOSITY: int = -1
 
-    if verbosity <= _prev_verbosity:
+
+def _configure_logging(verbosity: int = 0) -> None:
+    global _PREV_VERBOSITY
+
+    if verbosity <= _PREV_VERBOSITY:
         return
 
-    _configure_logging._prev_verbosity = verbosity
+    _PREV_VERBOSITY = verbosity
 
     # remove previous logging handlers
     for handler in list(logging.root.handlers):
@@ -84,10 +90,18 @@ def cli(verbose: int = 0) -> None:
     _configure_logging(verbose)
 
 
+_in_path_arg = click.Path(readable=True)
+_out_dir_arg = click.Path(file_okay=False, writable=True)
+
+
 @cli.command()
-@click.argument('input_paths', nargs=-1, type=click.Path(exists=True))
+@click.argument('input_paths', nargs=-1, type=_in_path_arg)
+@click.option('--html', nargs=1, type=_out_dir_arg)
+@click.option('--pdf' , nargs=1, type=_out_dir_arg)
 @verbosity_option
-def build(input_paths: InputPaths, verbose: int = 0) -> None:
+def build(
+    input_paths: InputPaths, html: typ.Optional[str], pdf: typ.Optional[str], verbose: int = 0
+) -> None:
     _configure_logging(verbose)
     # TODO: figure out how to share this code between sub-commands
     md_paths = sorted(_iter_markdown_filepaths(input_paths))
@@ -96,8 +110,32 @@ def build(input_paths: InputPaths, verbose: int = 0) -> None:
         click.secho("No markdown files found", fg='red')
         sys.exit(1)
 
-    ctx = litprog.parse.parse_context(md_paths)
-    litprog.build.build(ctx)
+    ctx       = litprog.parse.parse_context(md_paths)
+    built_ctx = litprog.build.build(ctx)
+
+    if pdf is None and html is None:
+        return
+
+    # NOTE: Since the html is the input for the pdf generation, the
+    #   html is generated either way, the only question is if the
+    #   output goes to a user specified or to a temporary directory.
+
+    if html is None:
+        html            = tempfile.mkdtemp(prefix="litprog_")
+        is_html_tmp_dir = True
+    else:
+        is_html_tmp_dir = False
+
+    html_dir = pl.Path(html)
+
+    litprog.gen_docs.gen_html(built_ctx, html_dir)
+
+    if pdf:
+        pdf_dir = pl.Path(pdf)
+        litprog.gen_docs.gen_pdf(built_ctx, html_dir, pdf_dir)
+
+    if is_html_tmp_dir:
+        shutil.rmtree(html_dir)
 
 
 MARKDOWN_FILE_EXTENSIONS = {

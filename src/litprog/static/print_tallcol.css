@@ -1,0 +1,7 @@
+@media print {
+    body {
+        /* 1of2col - for 2 column paper layout */
+        font-size: 8.0pt;
+        line-height: 1.35em;
+    }
+}

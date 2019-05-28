@@ -6,8 +6,12 @@ pre {
 
 
 div.codehilite pre {
-    margin: 0;
     letter-spacing: -0.05em;
+    display: block;
+    border-right: 1px solid #AAA;
+    padding-right: 0.5em;
+    min-width: 35.5em;
+    margin: 0 auto;
 }
 
 span.lineno {
@@ -18,11 +22,15 @@ span.lineno {
     margin-right: 0.5em;
     border-right: 1px solid #888;
     text-align: right;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
 }
 
 .codehilite .l {  color: #060; }  /* Literal */
 .codehilite .c { font-style: italic; } /* Comment */
-.codehilite .err { border: 1px solid #FF0000 } /* Error */
+.codehilite .err { color: #F00 } /* Error */
 .codehilite .k {  color: #222; } /* Keyword */
 .codehilite .ch { color: #444; } /* Comment.Hashbang */
 .codehilite .cm { color: #444; } /* Comment.Multiline */
@@ -68,7 +76,7 @@ span.lineno {
 
 .dark .codehilite .l {  color: #FFF; }  /* Literal */
 .dark .codehilite .c { font-style: italic; } /* Comment */
-.dark .codehilite .err { border: 1px solid #FF0000 } /* Error */
+.dark .codehilite .err { color: #F00 } /* Error */
 .dark .codehilite .k {  color: #DDD; } /* Keyword */
 .dark .codehilite .ch { color: #AAA; } /* Comment.Hashbang */
 .dark .codehilite .cm { color: #AAA; } /* Comment.Multiline */

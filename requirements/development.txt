@@ -38,5 +38,7 @@ ipython     # nuff said
 # These get rid of some warnings related to 
 # collections -> collections.abc deprication
 git+https://github.com/mcmtroffaes/pathlib2.git@develop#egg=pathlib2
+
 git+https://github.com/html5lib/html5lib-python.git@master#egg=html5lib
 git+https://github.com/gorakhargosh/watchdog.git@master#egg=watchdog
+git+https://github.com/Kozea/WeasyPrint.git#egg=WeasyPrint

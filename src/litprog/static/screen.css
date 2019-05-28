@@ -14,20 +14,20 @@
 }
 
 .animate.light .wrapper::after {
-    animation: fade-out-in-1 1500ms;
+    animation: fade-out-in-1 800ms;
     animation-fill-mode: forwards;
 }
 .animate.dark .wrapper::after {
-    animation: fade-out-in-2 1500ms;
+    animation: fade-out-in-2 800ms;
     animation-fill-mode: forwards;
 }
 
 .animate.light .content {
-    animation: fade-out-in-1 1500ms;
+    animation: fade-out-in-1 800ms;
     animation-fill-mode: forwards;
 }
 .animate.dark .content {
-    animation: fade-out-in-2 1500ms;
+    animation: fade-out-in-2 800ms;
     animation-fill-mode: forwards;
 }
 
@@ -36,10 +36,10 @@
         color: #000;
         font-size: 20px;
         line-height: 1.5em;
-        background: #F1F0F0;
+        background: #DDD;
         width: 100%;
 
-        transition: background 1200ms linear 150ms, color 0ms linear 300ms;
+        transition: background 400ms linear 150ms, color 0ms linear 200ms;
         will-change: background;
     }
     .wrapper {
@@ -50,10 +50,10 @@
         min-width: 20em;
         min-height: 120em;
         max-width: 38em;
-        box-shadow: #888 0px 10px 30px 0px;
+        box-shadow: #888 0px 2px 10px 0px;
 
         background: #FAF8F8;
-        transition: background 1200ms linear 150ms;
+        transition: background 400ms linear 150ms;
         will-change: background;
     }
     /*
@@ -86,7 +86,7 @@
     body {
         min-width: 23em;
         font-size: 20px;
-        background: #F2F1F1;
+        background: #EEE;
     }
     body.dark { background: #000; }
     .wrapper, body.dark .wrapper {
@@ -120,7 +120,7 @@
 }
 
 .dark {
-    background: #111;
+    background: #222;
     color: #FFF;
 }
 .dark h1 > a, .dark a, .dark a:visited {
@@ -128,4 +128,8 @@
 }
 .dark .wrapper {
     background: #000;
+}
+
+.dark img {
+    filter: invert(1);
 }

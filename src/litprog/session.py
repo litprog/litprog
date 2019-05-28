@@ -208,19 +208,22 @@ class InteractiveSession:
         ol        = next(out_lines, None)
         el        = next(err_lines, None)
 
-        while ol or el:
-            if el is None:
-                yield CapturedLine(ol.ts, ol.line, False)
-                ol = next(out_lines, None)
-            elif ol is None:
+        while True:
+            if ol and el:
+                if ol.ts <= el.ts:
+                    yield CapturedLine(ol.ts, ol.line, False)
+                    ol = next(out_lines, None)
+                else:
+                    yield CapturedLine(el.ts, el.line, True)
+                    el = next(err_lines, None)
+            elif el:
                 yield CapturedLine(el.ts, el.line, True)
                 el = next(err_lines, None)
-            elif ol.ts <= el.ts:
+            elif ol:
                 yield CapturedLine(ol.ts, ol.line, False)
                 ol = next(out_lines, None)
             else:
-                yield CapturedLine(el.ts, el.line, True)
-                el = next(err_lines, None)
+                break
 
     def iter_stdout(self) -> typ.Iterable[str]:
         for ts, line in self._out_ct.lines:

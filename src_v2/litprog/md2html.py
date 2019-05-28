@@ -471,6 +471,8 @@ def _gen_raw_html(md_text: MarkdownText) -> HTMLText:
         # # "markdown.extensions.toc",
         "markdown.extensions.wikilinks",
         "markdown_aafigure",
+        "markdown_blockdiag",
+        "markdown_svgbob",
         #####
         # "markdown.extensions.legacy_attr",
         # "markdown.extensions.legacy_em",

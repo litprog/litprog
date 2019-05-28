@@ -184,13 +184,37 @@ class _RawMarkdownElement(typ.NamedTuple):
     first_line: int
 
 
-class MarkdownElement(typ.NamedTuple):
+class MarkdownElement:
 
     md_path   : pl.Path
     elem_index: int
     md_type   : MarkdownElementType
     content   : str
     first_line: int
+    _ancestor : typ.Optional[typ.Any]
+
+    # Recursive types not fully supported yet;
+    # this class can be changed to a NamedTuple once they are.
+    # ancestor  : typ.Optional['MarkdownElement']
+    @property
+    def ancestor(self) -> typ.Optional['MarkdownElement']:
+        return typ.cast(typ.Optional['MarkdownElement'], self._ancestor)
+
+    def __init__(
+        self,
+        md_path   : pl.Path,
+        elem_index: int,
+        md_type   : MarkdownElementType,
+        content   : str,
+        first_line: int,
+        ancestor  : typ.Optional[typ.Any],
+    ) -> None:
+        self.md_path    = md_path
+        self.elem_index = elem_index
+        self.md_type    = md_type
+        self.content    = content
+        self.first_line = first_line
+        self._ancestor  = ancestor
 
 
 class Headline(typ.NamedTuple):
@@ -204,22 +228,22 @@ class Headline(typ.NamedTuple):
 InfoString = str
 
 
-class Block(typ.NamedTuple):
-
-    md_path      : pl.Path
-    elem_index   : int
-    content      : str
-    info_string  : InfoString
-    directives   : typ.List[str]
-    inner_content: str
-
-
 class Directive(typ.NamedTuple):
 
     name : str
     value: str
 
     raw_text: str
+
+
+class Block(typ.NamedTuple):
+
+    md_path      : pl.Path
+    elem_index   : int
+    content      : str
+    info_string  : InfoString
+    directives   : typ.List[Directive]
+    inner_content: str
 
 
 VALID_DIRECTIVE_NAMES = {
@@ -235,6 +259,7 @@ VALID_DIRECTIVE_NAMES = {
     #   is always captured by the time the delay passes.
     'lp_input_delay',
     'lp_out',
+    'lp_hide',
     'lp_proc_info',
     'lp_out_prefix',
     'lp_err_prefix',
@@ -367,8 +392,17 @@ class MarkdownFile:
                 self.md_path, elem_index, elem.content, info_string, directives, inner_content
             )
 
-    def __lt__(self, other: MarkdownElement) -> bool:
+    def __lt__(self, other: 'MarkdownFile') -> bool:
         return self.md_path < other.md_path
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, MarkdownFile):
+            return False
+        if not self.md_path == other.md_path:
+            return False
+        if not self.elements == other.elements:
+            return False
+        return True
 
     def __str__(self) -> str:
         return "".join(elem.content for elem in self.elements)
@@ -427,7 +461,7 @@ def _parse_md_elements(md_path: pl.Path) -> typ.List[MarkdownElement]:
     elements = []
     for elem_index, raw_elem in enumerate(_iter_raw_md_elements(content)):
         elem = MarkdownElement(
-            md_path, elem_index, raw_elem.md_type, raw_elem.content, raw_elem.first_line
+            md_path, elem_index, raw_elem.md_type, raw_elem.content, raw_elem.first_line, None
         )
         elements.append(elem)
 
@@ -445,8 +479,14 @@ class Context:
 
     files: typ.List[MarkdownFile]
 
-    def __init__(self, md_paths: FilePaths) -> None:
-        self.files = sorted(MarkdownFile(md_path) for md_path in md_paths)
+    def __init__(self, md_path_or_files: typ.Union[FilePaths, typ.List[MarkdownFile]]) -> None:
+        self.files = []
+        for path_or_file in md_path_or_files:
+            if isinstance(path_or_file, MarkdownFile):
+                self.files.append(path_or_file)
+            else:
+                self.files.append(MarkdownFile(path_or_file))
+        self.files.sort()
 
     @property
     def headlines(self) -> typ.Iterable[Headline]:
@@ -463,10 +503,17 @@ class Context:
     def copy(self) -> 'Context':
         return Context([f.copy() for f in self.files])
 
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, Context):
+            return self.files == other.files
+        else:
+            return False
+
 
 def parse_context(md_paths: FilePaths) -> Context:
     ctx = Context(md_paths)
 
+    assert ctx.copy() == ctx
     list(ctx.headlines)
     list(ctx.blocks)
 

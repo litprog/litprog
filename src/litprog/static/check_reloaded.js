@@ -1,4 +1,7 @@
 (function () {
+  /* Checks localstorage for previously configured style options and
+   * applies them if found.
+   */
   var perf = window.performance;
   if (perf && perf.navigation.type == perf.navigation.TYPE_RELOAD) {
     var style = document.createElement("style");

@@ -43,10 +43,7 @@ TERM_COLORS = {
 }
 
 
-class CapturedLine(typ.NamedTuple):
-    ts    : float
-    line  : str
-    is_err: bool
+CapturedLine = litprog.session.CapturedLine
 
 
 class Capture(typ.NamedTuple):
@@ -60,6 +57,7 @@ def get_directive(block: Block, name: str) -> typ.Optional[Directive]:
     for directive in block.directives:
         if directive.name == name:
             return directive
+    return None
 
 
 def iter_directives(block: Block, name: str) -> typ.Iterable[Directive]:
@@ -80,6 +78,7 @@ def find_include(block_contents: typ.List[str], include_directive: Directive) ->
     for content in block_contents:
         if query in content:
             return content
+    return None
 
 
 def indented_include(content, raw_text, include_val) -> str:
@@ -100,9 +99,11 @@ def _parse_prefix(directive: Directive) -> str:
     return val
 
 
-def build(ctx: Context) -> None:
+def build(ctx: Context) -> Context:
+    build_ctx = ctx.copy()
+
     files_by_md_path: typ.Dict[pl.Path, MarkdownFile] = {
-        md_file.md_path: md_file for md_file in ctx.files
+        md_file.md_path: md_file for md_file in build_ctx.files
     }
 
     # TODO: mark build as running
@@ -110,15 +111,12 @@ def build(ctx: Context) -> None:
     # pass 1: expand constants and includes
 
     constants_by_name = {}
-    done              = False
 
-    orig_md_files: typ.Dict[pl.Path, MarkdownFile] = {
-        md_file.md_path: md_file.copy() for md_file in ctx.files
-    }
+    done = False
 
     while not done:
         done = True
-        for md_file in ctx.files:
+        for md_file in build_ctx.files:
             for elem in md_file.elements:
                 for match in CONSTANT_RE.finditer(elem.content):
                     name  = match.group('name')
@@ -139,7 +137,7 @@ def build(ctx: Context) -> None:
 
                 elem = md_file.elements[block.elem_index]
                 md_file.elements[block.elem_index] = MarkdownElement(
-                    elem.md_path, elem.elem_index, elem.md_type, content, elem.first_line
+                    elem.md_path, elem.elem_index, elem.md_type, content, elem.first_line, None
                 )
 
             constants = [(name, value) for name, value in constants_by_name.items()]
@@ -168,10 +166,15 @@ def build(ctx: Context) -> None:
                     const_val   = constants_by_name[name]
                     new_content = new_content.replace(name, const_val)
 
+                # TODO: There may a bug here that relates to the order
+                #   of expanding blocks. Since the addable_val is based
+                #   on the inner_content of a block, there may be issues
+                #   with recursive includes
+
                 for d in iter_directives(block, 'lp_add'):
-                    include_val = find_include(addable_contents, d)
-                    if include_val:
-                        new_content = indented_include(new_content, d.raw_text, include_val)
+                    addable_val = find_include(addable_contents, d)
+                    if addable_val:
+                        new_content = indented_include(new_content, d.raw_text, addable_val)
 
                 if new_content == block.content:
                     continue
@@ -180,14 +183,14 @@ def build(ctx: Context) -> None:
 
                 elem = md_file.elements[block.elem_index]
                 new_elements[block.elem_index] = MarkdownElement(
-                    elem.md_path, elem.elem_index, elem.md_type, new_content, elem.first_line
+                    elem.md_path, elem.elem_index, elem.md_type, new_content, elem.first_line, None
                 )
 
             md_file.elements = new_elements
 
     # phase 3. validate blocks
     errors = 0
-    for md_file in ctx.files:
+    for md_file in build_ctx.files:
         for block in md_file.blocks:
             for directive in block.directives:
                 if directive.name != 'lp_add':
@@ -216,7 +219,7 @@ def build(ctx: Context) -> None:
         sys.exit(1)
 
     # phase 4. write back files
-    for md_file in ctx.files:
+    for md_file in build_ctx.files:
         for block in md_file.blocks:
             file_directive = get_directive(block, 'lp_file')
             if file_directive is None:
@@ -228,26 +231,33 @@ def build(ctx: Context) -> None:
                 fh.write(block.inner_content)
 
     # phase 5. run sub-processes
-    captures_by_elem_index: typ.Dict[int, Capture] = {}
-
-    for md_file in ctx.files:
-        updated_elements: typ.List[MarkdownElement] = []
+    for md_file in build_ctx.files:
+        captures_by_elem_index: typ.Dict[int, Capture] = {}
+        updated_elements      : typ.List[MarkdownElement] = []
 
         prev_capture_index = -1
 
         for block in md_file.blocks:
-            is_debug = has_directive(block, 'lp_debug')
-            if is_debug:
-                debug_prefix = _parse_prefix(get_directive(block, 'lp_debug')) or "> "
+            debug_directive = get_directive(block, 'lp_debug')
+            if debug_directive:
+                is_debug     = True
+                debug_prefix = _parse_prefix(debug_directive) or "> "
             else:
+                is_debug     = False
                 debug_prefix = "> "
 
-            command_directive = get_directive(block, 'lp_run') or get_directive(block, 'lp_out')
-            if has_directive(block, 'lp_run'):
-                command           = get_directive(block, 'lp_run').value
+            run_directive     = get_directive(block, 'lp_run')
+            out_directive     = get_directive(block, 'lp_out')
+            command_directive = run_directive or out_directive
+
+            command          : typ.Optional[str]
+            is_stdin_writable: bool
+
+            if run_directive:
+                command           = run_directive.value
                 is_stdin_writable = True
-            elif has_directive(block, 'lp_out'):
-                command           = get_directive(block, 'lp_out').value
+            elif out_directive:
+                command           = out_directive.value
                 is_stdin_writable = False
             else:
                 is_stdin_writable = False
@@ -262,9 +272,9 @@ def build(ctx: Context) -> None:
 
                 input_delay = get_directive(block, 'lp_input_delay')
                 if input_delay is None:
-                    input_delay_val = 0
+                    input_delay_val = 0.0
                 else:
-                    input_delay_val = float(input_delay)
+                    input_delay_val = float(input_delay.value)
 
                 log.info(f"  lp_run {command}")
 
@@ -332,7 +342,8 @@ def build(ctx: Context) -> None:
                 if prev_capture_index < 0:
                     output = "<invalid no output captured>\n"
                 else:
-                    capture            = captures_by_elem_index[prev_capture_index]
+                    capture = captures_by_elem_index[prev_capture_index]
+
                     prev_capture_index = -1
                     # TODO: coloring
                     # if "\u001b" in capture.stderr:
@@ -391,22 +402,28 @@ def build(ctx: Context) -> None:
 
                 if elem.content != new_content:
                     updated_elem = MarkdownElement(
-                        elem.md_path, elem.elem_index, elem.md_type, new_content, elem.first_line
+                        elem.md_path,
+                        elem.elem_index,
+                        elem.md_type,
+                        new_content,
+                        elem.first_line,
+                        None,
                     )
                     updated_elements.append(updated_elem)
 
         # phase 6. rewrite output blocks
         if updated_elements:
-            orig_elements = list(orig_md_files[md_file.md_path].elements)
             for elem in updated_elements:
                 # TODO: strip escape codes from output
-                orig_elements[elem.elem_index] = elem
+                md_file.elements[elem.elem_index] = elem
 
             # TODO: don't overwrite output if modifed.
             #   write to tmp file.
             # TODO: don't overwrite if the file was not
             #   modified.
-            file_content = "".join(elem.content for elem in orig_elements)
+            file_content = str(md_file)
             with md_file.md_path.open(mode="w", encoding="utf-8") as fh:
                 fh.write(file_content)
             log.info(f"Updated {md_file.md_path}")
+
+    return build_ctx
