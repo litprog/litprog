@@ -368,9 +368,10 @@ fib = fast_fib
 
 ```python
 # lp_out
+# exit:   0
 ```
 
-While this shows that that `fast_fib` is just as correct as the original `fib` function, but how do we know that it is faster?
+This shows that that `fast_fib` is just as correct as the original `fib` function (the assertions ran through without any errors), but how do we know that it is faster?
 
 
 ### Macro Directives
@@ -444,12 +445,12 @@ with timeit("fast"): fast_fib(17)
 
 ```shell
 # lp_out
-slow     0.409 ms
-slow     0.803 ms
-slow     2.075 ms
-fast     0.034 ms
-fast     0.009 ms
-fast     0.008 ms
+slow     0.060 ms
+slow     0.151 ms
+slow     0.393 ms
+fast     0.006 ms
+fast     0.002 ms
+fast     0.001 ms
 # exit:   0
 ```
 
@@ -535,7 +536,7 @@ Finally after we have prepared all our code, we can write it to disk...
 
 ```bash
 # lp_out: python3 --version
-Python 3.7.2
+Python 3.7.3
 # exit:   0
 ```
 

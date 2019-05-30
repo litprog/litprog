@@ -429,6 +429,7 @@ def _parse_capture_output(capture: Capture, opts: SessionBlockOptions) -> str:
                 'time_ms': capture.runtime * 1000,
             }
         )
+        output = output.strip()
 
         # make sure the block closing backticks are
         # on their own line

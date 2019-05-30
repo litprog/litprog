@@ -4,8 +4,12 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
+try:
+    import builtins
+except ImportError:
+    import __builtin__ as builtins
 import itertools
-str = getattr(__builtins__, 'unicode', str)
+str = getattr(builtins, 'unicode', str)
 zip = getattr(itertools, 'izip', zip)
 __doc__ = 'Usage: python {0} [--help] [--pretty] <n>...'.format(__file__)
 import sys
@@ -33,12 +37,15 @@ def pretty_print_fibs(ns):
     fibs = [fib(n) for n in ns]
     pad_n = len(str(max(ns)))
     pad_fib_n = len(str(max(fibs)))
-    for n, fib_n in zip(ns, fibs):
+    for i, (n, fib_n) in enumerate(zip(ns, fibs)):
         in_str = 'fib({0:>{1}})'.format(n, pad_n)
         res_str = '{0:>{1}}'.format(fib_n, pad_fib_n)
         print('{0} => {1}'.format(in_str, res_str), end='  ')
-        if (n + 1) % 3 == 0:
+        if (i + 1) % 3 == 0:
             print()
+
+
+ParamsAndFlags = Tuple[List[str], Set[str]]
 
 
 def parse_args(args):

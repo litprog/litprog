@@ -30,15 +30,17 @@ def pretty_print_fibs(ns: Sequence[int]) -> None:
     pad_n     = len(str(max(ns)))
     pad_fib_n = len(str(max(fibs)))
 
-    for n, fib_n in zip(ns, fibs):
+    for i, (n, fib_n) in enumerate(zip(ns, fibs)):
         in_str = f"fib({n:>{pad_n}})"
         res_str = f"{fib_n:>{pad_fib_n}}"
         print(f"{in_str} => {res_str}", end ="  ")
-        if (n + 1) % 3 == 0: 
+        if (i + 1) % 3 == 0: 
             print()
 
 
-def parse_args(args: List[str]) -> Tuple[List[str], Set[str]]:
+ParamsAndFlags = Tuple[List[str], Set[str]]
+
+def parse_args(args: List[str]) -> ParamsAndFlags:
     flags = {arg for arg in args if arg.startswith("-")}
     params = [arg for arg in args if arg not in flags]
     return params, flags
