@@ -25,8 +25,6 @@ import functools as ft
 
 FilePaths = typ.Iterable[pl.Path]
 
-MarkdownElementType = str
-
 MD_HEADLINE   = 'headline'
 MD_PARAGRAPH  = 'paragraph'
 MD_LIST       = 'list'
@@ -39,6 +37,18 @@ MD_DEF_LIST = 'def_list'
 MD_FOOTNOTE_DEF = 'footnote_def'
 
 MD_BLOCK = 'block'
+
+VALID_ELEMENT_TYPES = {
+    MD_HEADLINE,
+    MD_PARAGRAPH,
+    MD_LIST,
+    MD_BLOCKQUOTE,
+    MD_DEF_LIST,
+    MD_FOOTNOTE_DEF,
+    MD_BLOCK,
+}
+
+MarkdownElementType = str
 
 
 HEADLINE_PATTERN_A = r"""
@@ -184,6 +194,13 @@ class _RawMarkdownElement(typ.NamedTuple):
     first_line: int
 
 
+# NOTE (mb 2019-05-30): The word "Successor" refers
+#   to the relationship of a MarkdownElement to a
+#   modified version of itself. It does _not_ refer to
+#   it's document position relative to another.
+Successor = typ.Optional['MarkdownElement']
+
+
 class MarkdownElement:
 
     md_path   : pl.Path
@@ -191,14 +208,14 @@ class MarkdownElement:
     md_type   : MarkdownElementType
     content   : str
     first_line: int
-    _ancestor : typ.Optional[typ.Any]
+    _successor: typ.Optional[typ.Any]
 
     # Recursive types not fully supported yet;
     # this class can be changed to a NamedTuple once they are.
-    # ancestor  : typ.Optional['MarkdownElement']
+    # Successor  : typ.Optional['MarkdownElement']
     @property
-    def ancestor(self) -> typ.Optional['MarkdownElement']:
-        return typ.cast(typ.Optional['MarkdownElement'], self._ancestor)
+    def successor(self) -> Successor:
+        return typ.cast(Successor, self._successor)
 
     def __init__(
         self,
@@ -207,14 +224,25 @@ class MarkdownElement:
         md_type   : MarkdownElementType,
         content   : str,
         first_line: int,
-        ancestor  : typ.Optional[typ.Any],
+        successor : Successor,
     ) -> None:
+        assert md_type in VALID_ELEMENT_TYPES
         self.md_path    = md_path
         self.elem_index = elem_index
         self.md_type    = md_type
         self.content    = content
         self.first_line = first_line
-        self._ancestor  = ancestor
+        self._successor = successor
+
+    def clone(self) -> 'MarkdownElement':
+        return MarkdownElement(
+            md_path=self.md_path,
+            elem_index=self.elem_index,
+            md_type=self.md_type,
+            content=self.content,
+            first_line=self.first_line,
+            successor=self._successor or self,
+        )
 
 
 class Headline(typ.NamedTuple):
@@ -240,17 +268,18 @@ class Block(typ.NamedTuple):
 
     md_path      : pl.Path
     elem_index   : int
-    content      : str
     info_string  : InfoString
     directives   : typ.List[Directive]
+    content      : str
     inner_content: str
 
 
 VALID_DIRECTIVE_NAMES = {
     'lp_language',
     'lp_add',
-    'lp_const',
+    'lp_out',
     'lp_run',
+    # parameters for lp_out and _lp_run
     'lp_debug',
     'lp_expect',
     'lp_timeout',
@@ -258,18 +287,20 @@ VALID_DIRECTIVE_NAMES = {
     #   association of input/output as long as output
     #   is always captured by the time the delay passes.
     'lp_input_delay',
-    'lp_out',
     'lp_hide',
     'lp_proc_info',
     'lp_out_prefix',
     'lp_err_prefix',
     'lp_out_color',
     'lp_err_color',
+    # file generation
     'lp_file',
     'lp_deps',
     'lp_make',
-    'lp_use_macro',
-    'lp_def_macro',
+    #
+    # 'lp_const'
+    # 'lp_use_macro',
+    # 'lp_def_macro',
 }
 
 
@@ -344,7 +375,7 @@ class MarkdownFile:
                 # trim off final fence
                 inner_content = inner_content.rsplit("\n", 1)[0]
 
-                yield Block(self.md_path, elem_index, elem.content, info_string, [], inner_content)
+                yield Block(self.md_path, elem_index, info_string, [], elem.content, inner_content)
                 continue
 
             language = info_string
@@ -389,7 +420,7 @@ class MarkdownFile:
             inner_content = inner_content.rsplit("\n", 1)[0]
 
             yield Block(
-                self.md_path, elem_index, elem.content, info_string, directives, inner_content
+                self.md_path, elem_index, info_string, directives, elem.content, inner_content
             )
 
     def __lt__(self, other: 'MarkdownFile') -> bool:

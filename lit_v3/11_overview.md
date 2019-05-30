@@ -366,10 +366,16 @@ fib = fast_fib
 # lp_add: assert fibs == 
 ```
 
+```python
+# lp_out
+```
+
 While this shows that that `fast_fib` is just as correct as the original `fib` function, but how do we know that it is faster?
 
 
 ### Macro Directives
+
+This feature was dropped. If anything is needed it will have to be much better than textual replacements. The final nail in the coffin was trying to have namespaces that work across languages.
 
 The simplest macro supported by LitProg is the `lp_const` directive. These can be defined inline or for example inside of a markdown listing.
 
@@ -379,7 +385,10 @@ The simplest macro supported by LitProg is the `lp_const` directive. These can b
 ```python
 # lp_run: python3
 # lp_add: def fib
-print("fib(2..MAX_FIB):", end="")
+MAX_FIB = 20
+FIBS_PER_LINE = 5
+
+print(f"fib(2..{MAX_FIB}):", end="")
 for n in range(MAX_FIB):
     if n % FIBS_PER_LINE == 0:
         print()
