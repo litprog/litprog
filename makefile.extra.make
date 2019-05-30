@@ -60,3 +60,24 @@ favicon.ico:
 	inkscape -z -e favicon_48.png -w 48 -h 48 favicon.svg
 	inkscape -z -e icon.png -w 128 -h 128 favicon.svg
 	convert favicon_16.png favicon_24.png favicon_48.png favicon.ico
+
+
+KATEX_CDN_BASE_URL="https://cdn.jsdelivr.net/npm/katex@0.10.2/dist"
+
+
+## Download css and fonts so pdf generation doesn't have to
+## repeatedly request from the CDN.
+.PHONY: katex_static
+katex_static:
+	curl $(KATEX_CDN_BASE_URL)/katex.css \
+		-s -o katex_static/katex.css;
+	grep -Po "(?<=url\().*?\.(woff|woff2|ttf)" katex_static/katex.css \
+		> katex_static/fontfile_urls.txt
+	mkdir -p katex_static/fonts/;
+	for path in $$(cat katex_static/fontfile_urls.txt); do \
+		curl "$(KATEX_CDN_BASE_URL)/$$path" -s -o katex_static/$$path; \
+		echo "downloaded katex_static/$$path"; \
+	done
+
+
+

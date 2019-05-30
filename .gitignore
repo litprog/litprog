@@ -71,4 +71,5 @@ test_build_logs/*.log
 build/miniconda3.sh
 lit_out/
 fonts/
+katex_static/
 
