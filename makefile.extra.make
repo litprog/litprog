@@ -51,3 +51,12 @@ src/litprog/__main__.py: lit/*.md
 .PHONY: it
 it: src/litprog/__main__.py
 # it: lit_out/out_postproc.html
+
+
+# Create favicon
+favicon.ico:
+	inkscape -z -e favicon_16.png -w 16 -h 16 favicon.svg
+	inkscape -z -e favicon_24.png -w 24 -h 24 favicon.svg
+	inkscape -z -e favicon_48.png -w 48 -h 48 favicon.svg
+	inkscape -z -e icon.png -w 128 -h 128 favicon.svg
+	convert favicon_16.png favicon_24.png favicon_48.png favicon.ico
