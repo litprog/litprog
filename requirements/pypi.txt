@@ -10,6 +10,7 @@
 six
 typing
 click
+pathlib2
 
 pyphen
 pygments
