@@ -1,8 +1,8 @@
-
 # TODO (mb 2018-11-15): Ammend installation to include
 #	system deps (related to weasyprint) and to
 #	download fonts and link them so weasyprint
 #	can find them.
+
 
 ## Generate template.pdf from template.html
 template.pdf: template.html
@@ -11,7 +11,7 @@ template.pdf: template.html
 	 mv template_tmp.pdf template.pdf
 
 
-## Generate pycalver/README.html
+##
 ../pycalver/README.html: ../pycalver/README.md *.css src/litprog/pdf_gen_scratch.py
 	$(DEV_ENV)/bin/python src/litprog/pdf_gen_scratch.py html ../pycalver/README.md
 
@@ -28,7 +28,7 @@ template.pdf: template.html
 
 
 ## Regenerate file:///home/mbarkhau/workspace/pycalver/README.html
-pycalver_readme: ../pycalver/README.html ../pycalver/README_booklet.pdf
+pycalver_docs: ../pycalver/README.html ../pycalver/README_booklet.pdf
 	echo "noop"
 
 
@@ -48,18 +48,26 @@ lit_out/out.html.tmp.html: lit/*.md
 src/litprog/__main__.py: lit/*.md
 	ENABLE_BACKTRACE=0 $(DEV_ENV)/bin/litprog build -v lit/*.md
 
+
+## Generate Litprog Documentation
 .PHONY: it
-it: src/litprog/__main__.py
-# it: lit_out/out_postproc.html
+it:
+	$(DEV_ENV)/bin/litprog build -v lit_v3/11_overview.md --html doc/
+#	cp doc/*.html /run/user/1000/keybase/kbfs/public/mbarkhau/litprog/
+# 	rsync -r fonts/woff* /run/user/1000/keybase/kbfs/public/mbarkhau/litprog/fonts/
+# 	cp src/litprog/static/*.css /run/user/1000/keybase/kbfs/public/mbarkhau/litprog/
+# 	cp src/litprog/static/*.js /run/user/1000/keybase/kbfs/public/mbarkhau/litprog/
 
 
-# Create favicon
-favicon.ico:
+## Create favicon
+favicon.ico: *.png
 	inkscape -z -e favicon_16.png -w 16 -h 16 favicon.svg
 	inkscape -z -e favicon_24.png -w 24 -h 24 favicon.svg
 	inkscape -z -e favicon_48.png -w 48 -h 48 favicon.svg
 	inkscape -z -e icon.png -w 128 -h 128 favicon.svg
-	convert favicon_16.png favicon_24.png favicon_48.png favicon.ico
+	inkscape -z -e icon.png -w 128 -h 128 logotype.svg
+	convert favicon_16.png favicon_24.png favicon_48.png favicon_old.ico
+	convert logotype_16.png logotype_24.png logotype_48.png favicon.ico
 
 
 KATEX_CDN_BASE_URL="https://cdn.jsdelivr.net/npm/katex@0.10.2/dist"
@@ -72,7 +80,7 @@ katex_static:
 	curl $(KATEX_CDN_BASE_URL)/katex.css \
 		-s -o katex_static/katex.css;
 	grep -Po "(?<=url\().*?\.(woff|woff2|ttf)" katex_static/katex.css \
-		> katex_static/fontfile_urls.txt
+		| sort | uniq > katex_static/fontfile_urls.txt
 	mkdir -p katex_static/fonts/;
 	for path in $$(cat katex_static/fontfile_urls.txt); do \
 		curl "$(KATEX_CDN_BASE_URL)/$$path" -s -o katex_static/$$path; \

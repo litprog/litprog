@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" type="text/css" href="src/litprog/static/fonts.css">
+    <link rel="stylesheet" type="text/css" href="src/litprog/static/katex.css">
+    <link rel="stylesheet" type="text/css" href="src/litprog/static/codehilite.css">
+    <style type="text/css">
+        html, body {
+            padding: 0;
+            margin: 0;
+        }
+        body {
+            font-size: 18px;
+            text-align: justify;
+            line-height: 1.75em;
+            font-family: Bitter, serif;
+        }
+        body, body .wrapper {
+            transition: background 400ms linear 150ms, color 0ms linear 200ms;
+            will-change: background;
+        }
+
+        body {
+            background: #CCC;
+            color: #000;
+        }
+        .nav {
+            display: none;
+            overflow-x: hidden;
+            overflow-y: hidden;
+            width: 22rem;
+        }
+        .nav-scroll {
+            overflow-x: hidden;
+            overflow-y: scroll;
+            height: 100vh;
+            width: 25rem;
+        }
+        .nav ul {
+            list-style-type: none;
+            padding-inline-start: 1em;
+        }
+        .nav a {
+            color: #000;
+            text-decoration: none;
+        }
+        .nav a:hover {
+            text-decoration: underline;
+        }
+        .wrapper {
+            box-shadow: #888 0 0.1em 0.5em 0;
+        }
+        .wrapper {
+            border-radius: 5px;
+        }
+        .wrapper {
+            margin: 0em auto;
+            max-width: 45rem;
+            min-width: 22rem;
+        }
+        .content {
+            padding: 2em;
+            margin: 2em 0;
+        }
+        .content p {
+            letter-spacing: -0.02em;
+            word-spacing: -0.01em;
+        }
+        .content > p, .content > .codehilite {
+            max-width: 99vw;
+            margin: 1em 0;
+        }
+        .codehilite {
+            overflow-x: auto;
+        }
+        div.codehilite {
+            padding: 0 0.5em 0.5em 0;
+        }
+        div.codehilite pre {
+            font-family: "Iosevka Term SS05", monospace;
+            padding: 0 0.5em 0 0;
+        }
+        .layout-wrapper {
+            max-width: 68rem;
+            margin: 0em auto;
+        }
+
+        a {
+            text-decoration: none;
+            border-bottom: 1px solid #05F;
+        }
+        a:hover {
+            border-bottom: 1px dashed #05F;
+        }
+
+        a {
+            color: #05F;
+            border-color: #05F;
+        }
+        .dark a {
+            color: #59F;
+            border-color: #59F;
+        }
+        a:visited {
+            color: #A0A;
+            border-color: #A0A;
+        }
+        .dark a:visited {
+            color: #B9D;
+            border-color: #B9D;
+        }
+
+        body.dark {
+            background: #222;
+            color: #FFF;
+        }
+        .wrapper {
+            background: #FAF8F8;
+        }
+        body.dark .wrapper {
+            background: #000;
+        }
+        .nav a {
+            text-decoration: none;
+            border: none;
+            color: black;
+        }
+        body.dark .nav a {
+            color: white;
+        }
+
+        @media only screen and (min-width: 32rem) {
+            .codehilite {
+                overflow-x: hidden;
+            }
+        }
+
+        @media only screen and (min-width: 70rem) {
+            .nav {
+                display: block;
+                position: fixed;
+                top: 0;
+                left: 0;
+            }
+            .wrapper {
+                margin: 1rem 0 1rem 22rem;
+                max-width: 75rem;
+            }
+            .layout-wrapper {
+                max-width: 75rem;
+                margin: 1rem 2rem;
+            }
+        }
+
+        @media only screen and (max-width: 55rem) {
+            body {
+                background: #FAF8F8;
+            }
+            body.dark {
+                background: #000;
+            }
+            .content {
+                padding: 1.5em;
+            }
+            body.dark .content {
+                padding: 0.8em;
+            }
+            .wrapper {
+                box-shadow: none;
+                border-radius: 0;
+            }
+        }
+
+        @media only screen and (max-width: 42.5rem) {
+            body {
+                font-size: 17px;
+            }
+            div.codehilite pre {font-size: 17px;}
+        }
+        @media only screen and (max-width: 40.0rem) {
+            body {font-size: 16px;}
+            div.codehilite pre {font-size: 16px;}
+        }
+        @media only screen and (max-width: 38.0rem) {
+            body {
+                font-size: 15px;
+                line-height: 1.6em;
+            }
+            div.codehilite pre {font-size: 15px;}
+        }
+
+        @media only screen and (max-width: 70rem) {
+            /** slideout/index.css */
+            body {
+              width: 100%;
+              height: 100%;
+            }
+
+            .slideout-menu {
+              position: fixed;
+              left: 0;
+              top: 0;
+              bottom: 0;
+              right: 0;
+              z-index: 0;
+              width: 256px;
+              overflow-y: scroll;
+              -webkit-overflow-scrolling: touch;
+              display: none;
+            }
+
+            .slideout-panel {
+              position: relative;
+              z-index: 1;
+              will-change: transform;
+            }
+
+            .slideout-open,
+            .slideout-open body,
+            .slideout-open .slideout-panel {
+              overflow: hidden;
+            }
+
+            .slideout-open .slideout-menu {
+              display: block;
+            }
+        }
+
+    </style>
+</head>
+<body class="dark">
+    <div class="layout-wrapper">
+        <div class="nav">
+            <div class="nav-scroll">
+                <ul>
+                    <li><a href="">1. Headline</a></li>
+                    <li>
+                        <a href="">2. Headline</a>
+                        <ul>
+                            <li><a href="">2.1 Subsection</a></li>
+                            <li><a href="">2.2 Subsection</a></li>
+                            <li><a href="">2.3 Subsection</a></li>
+                            <li><a href="">2.4 Subsection</a></li>
+                        </ul>
+                    </li>
+                    <li>
+                        <a href="">3. Headline</a>
+                        <ul>
+                            <li><a href="">3.1 Subsection</a></li>
+                            <li><a href="">3.2 Subsection</a></li>
+                            <li><a href="">3.3 Subsection</a></li>
+                            <li><a href="">3.4 Subsection</a></li>
+                        </ul>
+                    </li>
+                    <li>
+                        <a href="">4. Headline</a>
+                        <ul>
+                            <li><a href="">4.1 Subsection</a></li>
+                            <li><a href="">4.2 Subsection</a></li>
+                            <li><a href="">4.3 Subsection</a></li>
+                            <li><a href="">4.4 Subsection</a></li>
+                            <li><a href="">4.5 Subsection</a></li>
+                            <li><a href="">4.6 Subsection</a></li>
+                        </ul>
+                    </li>
+                    <li>
+                        <a href="">5. Headline</a>
+                        <ul>
+                            <li><a href="">5.1 Subsection</a></li>
+                            <li><a href="">5.2 Subsection</a></li>
+                            <li><a href="">5.3 Subsection</a></li>
+                            <li><a href="">5.4 Subsection</a></li>
+                            <li><a href="">5.5 Subsection</a></li>
+                            <li><a href="">5.6 Subsection</a></li>
+                        </ul>
+                    </li>
+                    <li>
+                        <a href="">6. Headline</a>
+                        <ul>
+                            <li><a href="">6.1 Subsection</a></li>
+                            <li><a href="">6.2 Subsection</a></li>
+                            <li><a href="">6.3 Subsection</a></li>
+                            <li><a href="">6.4 Subsection</a></li>
+                            <li><a href="">6.5 Subsection</a></li>
+                            <li><a href="">6.6 Subsection</a></li>
+                        </ul>
+                    </li>
+                    <li>
+                        <a href="">7. Headline</a>
+                        <ul>
+                            <li><a href="">7.1 Subsection</a></li>
+                            <li><a href="">7.2 Subsection</a></li>
+                            <li><a href="">7.3 Subsection</a></li>
+                            <li><a href="">7.4 Subsection</a></li>
+                            <li><a href="">7.5 Subsection</a></li>
+                            <li><a href="">7.6 Subsection</a></li>
+                        </ul>
+                    </li>
+                    <li>
+                        <a href="">8. Headline</a>
+                        <ul>
+                            <li><a href="">8.1 Subsection</a></li>
+                            <li><a href="">8.2 Subsection</a></li>
+                            <li><a href="">8.3 Subsection</a></li>
+                            <li><a href="">8.4 Subsection</a></li>
+                            <li><a href="">8.5 Subsection</a></li>
+                            <li><a href="">8.6 Subsection</a></li>
+                        </ul>
+                    </li>
+                    <li>
+                        <a href="">4. Headline</a>
+                        <ul>
+                            <li><a href="">4.1 Subsection</a></li>
+                            <li><a href="">4.2 Subsection</a></li>
+                            <li><a href="">4.3 Subsection</a></li>
+                            <li><a href="">4.4 Subsection</a></li>
+                            <li><a href="">4.5 Subsection</a></li>
+                            <li><a href="">4.6 Subsection</a></li>
+                        </ul>
+                    </li>
+                    <li>
+                        <a href="">4. Headline</a>
+                        <ul>
+                            <li><a href="">4.1 Subsection</a></li>
+                            <li><a href="">4.2 Subsection</a></li>
+                            <li><a href="">4.3 Subsection</a></li>
+                            <li><a href="">4.4 Subsection</a></li>
+                            <li><a href="">4.5 Subsection</a></li>
+                            <li><a href="">4.6 Subsection</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <div class="wrapper">
+            <div class="content">
+
+<h3>LitProg by Example</h3>
+<p>Lit­Prog works by pars­ing your mark­down for code blocks and pars­ing these code blocks for di­rec­tives. These make it pos­si­ble to com­pose pro­grams in a flex­i­ble way, with­out being dis­tract­ed by type­set­ting and page lay­out. Lit­Prog al­lows pro­gram­mers to focus on their code, their ideas and a co­her­ent nar­ra­tive to ex­plain their pro­grams.</p>
+<p>I will use the fa­mil­iar <a href="https://en.wikipedia.org/wiki/Fibonacci_number">Fib­bonac­ci func­tion</a> and Python for this ex­am­ple. I hope you will learn noth­ing about the par­tic­u­lar ex­am­ple and can in­stead focus on the me­chan­ics of Lit­Prog it­self. I will later give a more ex­ten­sive ex­am­ple, to give a bet­ter im­pres­sion of Lit­er­ate Pro­gram­ming, with­out being dis­tract­ed by the me­chan­ics of Lit­Prog.</p>
+<p>To pro­duce an in­line equa­tion, write LaTeX as in­line code, sur­round­ed by $ char­ac­ters: <code>$`a^2+b^2=c^2`$</code> -&gt; <span class="katex"><span class="katex-mathml"><math><semantics><mrow><msup><mi>a</mi><mn>2</mn></msup><mo>+</mo><msup><mi>b</mi><mn>2</mn></msup><mo>=</mo><msup><mi>c</mi><mn>2</mn></msup></mrow><annotation encoding="application/x-tex">a^2+b^2=c^2</annotation></semantics></math></span><span aria-hidden="true" class="katex-html"><span class="base"><span class="strut" style="height:0.897438em;vertical-align:-0.08333em;"></span><span class="mord"><span class="mord mathdefault">a</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141079999999999em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:0.8141079999999999em;vertical-align:0em;"></span><span class="mord"><span class="mord mathdefault">b</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141079999999999em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:0.8141079999999999em;vertical-align:0em;"></span><span class="mord"><span class="mord mathdefault">c</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141079999999999em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span></span></span></span></span></span></span></span> (btw. there is a nice ed­i­tor on <a href="https://katex.arg/?v=1">katex.org</a> and <a href="https://katex.org/docs/supported.html">doc­u­men­ta­tion</a> to help cre­ate such for­mu­las). To pro­duce a cen­tered block, write LaTeX in a <code>math</code> block:</p>
+
+<div class="codehilite"><pre><span class="lineno">1</span>```<span class="nv">math</span>
+<span class="lineno">2</span>\<span class="nv">begin</span>{<span class="nv">array</span>}{<span class="nv">l</span>}
+<span class="lineno">3</span><span class="nv">F_0</span> <span class="o">=</span> <span class="mi">0</span> \\
+<span class="lineno">4</span><span class="nv">F_1</span> <span class="o">=</span> <span class="mi">1</span> \\
+<span class="lineno">5</span><span class="nv">F_n</span> <span class="o">=</span> <span class="nv">F_</span>{<span class="nv">n</span><span class="o">-</span><span class="mi">1</span>} <span class="o">+</span> <span class="nv">F_</span>{<span class="nv">n</span><span class="o">-</span><span class="mi">2</span>}
+<span class="lineno">6</span>\<span class="k">end</span>{<span class="nv">array</span>}
+<span class="lineno">7</span>```
+</pre></div>
+
+<p><span class="katex-display"><span class="katex"><span class="katex-mathml"><math><semantics><mtable columnalign="left" columnspacing="1em" rowspacing="0.15999999999999992em"><mtr><mtd><mstyle displaystyle="false" scriptlevel="0"><mrow><msub><mi>F</mi><mn>0</mn></msub><mo>=</mo><mn>0</mn></mrow></mstyle></mtd></mtr><mtr><mtd><mstyle displaystyle="false" scriptlevel="0"><mrow><msub><mi>F</mi><mn>1</mn></msub><mo>=</mo><mn>1</mn></mrow></mstyle></mtd></mtr><mtr><mtd><mstyle displaystyle="false" scriptlevel="0"><mrow><msub><mi>F</mi><mi>n</mi></msub><mo>=</mo><msub><mi>F</mi><mrow><mi>n</mi><mo>−</mo><mn>1</mn></mrow></msub><mo>+</mo><msub><mi>F</mi><mrow><mi>n</mi><mo>−</mo><mn>2</mn></mrow></msub></mrow></mstyle></mtd></mtr></mtable><annotation encoding="application/x-tex">
+\begin{array}{l}
+F_0 = 0 \\
+F_1 = 1 \\
+F_n = F_{n-1} + F_{n-2}
+\end{array}
+</annotation></semantics></math></span><span aria-hidden="true" class="katex-html"><span class="base"><span class="strut" style="height:3.6000000000000005em;vertical-align:-1.5500000000000007em;"></span><span class="mord"><span class="mtable"><span class="arraycolsep" style="width:0.5em;"></span><span class="col-align-l"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:2.05em;"><span style="top:-4.21em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord"><span class="mord mathdefault" style="margin-right:0.13889em;">F</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:-0.13889em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">0</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mord">0</span></span></span><span style="top:-3.0099999999999993em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord"><span class="mord mathdefault" style="margin-right:0.13889em;">F</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:-0.13889em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mord">1</span></span></span><span style="top:-1.8099999999999994em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord"><span class="mord mathdefault" style="margin-right:0.13889em;">F</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.151392em;"><span style="top:-2.5500000000000003em;margin-left:-0.13889em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathdefault mtight">n</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mord"><span class="mord mathdefault" style="margin-right:0.13889em;">F</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.301108em;"><span style="top:-2.5500000000000003em;margin-left:-0.13889em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathdefault mtight">n</span><span class="mbin mtight">−</span><span class="mord mtight">1</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.208331em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mord"><span class="mord mathdefault" style="margin-right:0.13889em;">F</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.301108em;"><span style="top:-2.5500000000000003em;margin-left:-0.13889em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathdefault mtight">n</span><span class="mbin mtight">−</span><span class="mord mtight">2</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.208331em;"><span></span></span></span></span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:1.5500000000000007em;"><span></span></span></span></span></span><span class="arraycolsep" style="width:0.5em;"></span></span></span></span></span></span></span>
+</p>
+
+<h3>Writing Code to Disk</h3>
+<p>Up to here our code has been float­ing around in mem­o­ry, but even­tu­al­ly we want to pro­duce some­thing that is use­ful. A pro­gram that our users might like to run. In other words, we want to write our code to disk so that it can ei­ther be used di­rect­ly, or fur­ther pro­cessed by a com­pil­er.</p>
+<p>Next is some bor­ing python scaf­fold­ing to wrap the func­tions writ­ten so far.</p>
+
+<div class="codehilite"><pre><span class="lineno">1</span>```<span class="nv">math</span>
+<span class="lineno">2</span>\<span class="nv">begin</span>{<span class="nv">array</span>}{<span class="nv">l</span>}
+<span class="lineno">3</span><span class="nv">F_0</span> <span class="o">=</span> <span class="mi">0</span> \\
+<span class="lineno">4</span><span class="nv">F_1</span> <span class="o">=</span> <span class="mi">1</span> \\
+<span class="lineno">5</span><span class="nv">F_n</span> <span class="o">=</span> <span class="nv">F_</span>{<span class="nv">n</span><span class="o">-</span><span class="mi">1</span>} <span class="o">+</span> <span class="nv">F_</span>{<span class="nv">n</span><span class="o">-</span><span class="mi">2</span>}
+<span class="lineno">6</span>\<span class="k">end</span>{<span class="nv">array</span>}
+<span class="lineno">7</span>```
+</pre></div>
+
+<div class="codehilite"><pre><span class="lineno">1</span><span class="n">ParamsAndFlags</span> <span class="o">=</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Set</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span>
+<span class="lineno">2</span>
+<span class="lineno">3</span><span class="k">def</span> <span class="nf">parse_args</span><span class="p">(</span><span class="n">args</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">ParamsAndFlags</span><span class="p">:</span>
+<span class="lineno">4</span>    <span class="n">flags</span> <span class="o">=</span> <span class="p">{</span><span class="n">arg</span> <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">args</span> <span class="k">if</span> <span class="n">arg</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"-"</span><span class="p">)}</span>
+<span class="lineno">5</span>    <span class="n">params</span> <span class="o">=</span> <span class="p">[</span><span class="n">arg</span> <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">args</span> <span class="k">if</span> <span class="n">arg</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">flags</span><span class="p">]</span>
+<span class="lineno">6</span>    <span class="k">return</span> <span class="n">params</span><span class="p">,</span> <span class="n">flags</span>
+</pre></div>
+<div class="codehilite"><pre><span class="lineno">1</span><span class="ch">#!/usr/bin/env python</span>
+<span class="lineno">2</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="n">f</span><span class="s2">"""Usage: python {__file__} [--help] [--pretty]
+<span class="lineno">↪</span>&lt;n&gt;..."""</span>
+<span class="lineno">3</span>
+<span class="lineno">4</span><span class="kn">import</span> <span class="nn">sys</span>
+<span class="lineno">5</span><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Set</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="lineno">6</span>
+<span class="lineno">7</span><span class="c1"># lp_add: def fast_fib</span>
+<span class="lineno">8</span><span class="n">fib</span> <span class="o">=</span> <span class="n">fast_fib</span>
+<span class="lineno">9</span><span class="c1"># lp_add: def pretty_print_fibs</span>
+<span class="lineno">10</span><span class="c1"># lp_add: def parse_args</span>
+<span class="lineno">11</span>
+<span class="lineno">12</span><span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="n">args</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="lineno">13</span>    <span class="n">params</span><span class="p">,</span> <span class="n">flags</span> <span class="o">=</span> <span class="n">parse_args</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+<span class="lineno">14</span>    <span class="c1"># lp_add: if not args or "--help"</span>
+<span class="lineno">15</span>    <span class="c1"># lp_add: if any(invalid_params):</span>
+<span class="lineno">16</span>
+<span class="lineno">17</span>    <span class="n">ns</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">params</span><span class="p">]</span>
+<span class="lineno">18</span>    <span class="k">if</span> <span class="s2">"-p"</span> <span class="ow">in</span> <span class="n">flags</span> <span class="ow">or</span> <span class="s2">"--pretty"</span> <span class="ow">in</span> <span class="n">flags</span><span class="p">:</span>
+<span class="lineno">19</span>        <span class="n">pretty_print_fibs</span><span class="p">(</span><span class="n">ns</span><span class="p">)</span>
+<span class="lineno">20</span>    <span class="k">else</span><span class="p">:</span>
+<span class="lineno">21</span>        <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">ns</span><span class="p">:</span>
+<span class="lineno">22</span>            <span class="k">print</span><span class="p">(</span><span class="n">fib</span><span class="p">(</span><span class="n">n</span><span class="p">))</span>
+<span class="lineno">23</span>    <span class="k">return</span> <span class="mi">0</span>
+<span class="lineno">24</span>
+<span class="lineno">25</span>
+<span class="lineno">26</span><span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">'__main__'</span><span class="p">:</span>
+<span class="lineno">27</span>    <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="n">main</span><span class="p">())</span>
+</pre></div>
+<p>Don't worry if you're not fa­mil­iar with python or top level scripts. The note­wor­thy thing about pre­ceed­ing block are the two <code>lp_add</code> di­rec­tives in­side the <code>main</code> func­tion. </p>
+<p>The first is to print a help mes­sage.</p>
+
+
+            </div>
+        </div>
+    </div>
+    <script type="text/javascript">
+        document.body.addEventListener('click', function(){
+            return;
+            if (document.body.classList.contains("dark")) {
+                document.body.classList.remove("dark");
+            } else {
+                document.body.classList.add("dark");
+            }
+        })
+    </script>
+    <script src="src/litprog/static/slideout.js"></script>
+    <script>
+      var slideout = new Slideout({
+        'panel': document.querySelector('.wrapper'),
+        'menu': document.querySelector('.nav'),
+        'padding': 256,
+        'tolerance': 200,
+      });
+    </script>
+</body>
+</html>

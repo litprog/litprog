@@ -35,7 +35,7 @@
     body {
         color: #000;
         font-size: 20px;
-        line-height: 1.5em;
+        line-height: 1.7em;
         background: #DDD;
         width: 100%;
 
@@ -46,11 +46,12 @@
         position: relative;
         padding: 3em;
         margin: 6em auto 2em auto;
-        line-height: 1.6em;
+        line-height: 1.7em;
         min-width: 20em;
         min-height: 120em;
-        max-width: 38em;
-        box-shadow: #888 0px 2px 10px 0px;
+        max-width: 45em;
+        border-radius: 0.5em;
+        box-shadow: #888 0 0.1em 0.5em 0;
 
         background: #FAF8F8;
         transition: background 400ms linear 150ms;
@@ -78,22 +79,32 @@
 
     .table-wrap, .codehilite {
         overflow-x: auto;
-        padding-bottom: 0.3em;
+        padding-bottom: 0.6em;
     }
 }
 
-@media only screen and (max-width: 50em) {
-    body {
-        min-width: 23em;
-        font-size: 20px;
-        background: #EEE;
+@media only screen and (max-width: 75em) {
+    html {
+        overflow-x: hidden;
     }
+    body {background: #FFF;}
     body.dark { background: #000; }
+
+    .wrapper {
+        margin: 0;
+        padding: 0 1.5em;
+    }
+    body.dark .wrapper {
+        margin: 0;
+        padding: 0 0.2em;
+    }
+
     .wrapper, body.dark .wrapper {
-        margin: 0 auto;
+        border-radius: 0;
+        box-shadow: none;
     }
     ul, ol {
-        padding: 0 1.5em;
+        padding: 0 0.5em 0 1.5em;
     }
 }
 
@@ -101,12 +112,30 @@
 
 @media only screen and (max-width: 47.5em) {.wrapper {padding: 3em 1em;}}
 
-@media only screen and (max-width: 45.0em) { body {font-size: 19px;} }
-@media only screen and (max-width: 42.5em) { body {font-size: 18px;} }
-@media only screen and (max-width: 40.0em) { body {font-size: 17px;} }
-@media only screen and (max-width: 38.0em) { body {font-size: 16px;} }
-@media only screen and (max-width: 35.5em) { body {font-size: 15px;} }
-@media only screen and (max-width: 33.5em) { body {font-size: 16px;} }
+div.codehilite pre {
+    font-size: 18px;
+    line-height: 1.4em;
+}
+
+@media only screen and (max-width: 45.0em) {
+    body {font-size: 18px;}
+}
+@media only screen and (max-width: 42.5em) {
+    body {font-size: 17px;}
+    div.codehilite pre {font-size: 17px;}
+}
+@media only screen and (max-width: 40.0em) {
+    body {font-size: 16px;}
+    div.codehilite pre {font-size: 16px;}
+}
+@media only screen and (max-width: 38.0em) {
+    body {font-size: 15px;}
+    div.codehilite pre {font-size: 15px;}
+}
+@media only screen and (max-width: 35.5em) {
+    body {font-size: 14px;}
+    div.codehilite pre {font-size: 14px;}
+}
 
 
 @media screen {

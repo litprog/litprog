@@ -1,3 +1,4 @@
+body { position: absolute; }
 
 html, body {
     padding: 0;
@@ -8,7 +9,8 @@ html, body {
     webkit-font-smoothing: antialiased;
 }
 
-body.font-slab {font-family: "Bitter", Gelasio, Georgia, serif; }
+
+body.font-slab {font-family: "lp-bitter", Gelasio, Georgia, serif; }
 body.font-serif {font-family: Merriweather, Gelasio, Georgia, "Times New Roman", serif; }
 body.font-sans {font-family: "PT Sans", Helvetica, Arial, sans-serif; }
 
@@ -51,6 +53,12 @@ p, ul, ol {
     hyphens: auto;
 
     hyphenate-limit-chars: 7 3 3;
+    letter-spacing: -0.02em;
+    word-spacing: -0.01em;
+    /*white-space: pre-wrap;*/
+}
+ol, ul {
+    padding: 0 0.5em 0 2em;
 }
 h1 {
     page-break-before: always;
@@ -58,18 +66,29 @@ h1 {
 }
 sup {
     line-height: 1.1em;
+    padding-left: 0.1em;
 }
+h1, h2 {
+    text-shadow: #0002 0px 1px 2px;
+}
+body.dark h1, body.dark h2 {
+    text-shadow: #FFF2 0px 1px 2px;
+}
+
 h1, h2, h3, h4, h5 {
+    font-family: "lp-bitter", Gelasio, Georgia, serif; ;
     margin-top: 2em;
     margin-bottom: 1em;
-    letter-spacing: 0.1em;
-    font-weight: bold;
+    letter-spacing: 0.05em;
+    font-weight: normal;
     line-height: 1.3em;
     counter-reset: paragraph 1;
     counter-reset: section 1;
-    font-variant: small-caps;
     text-align: left;
     transition: color 0ms linear 300ms;
+    -ms-hyphens: none;
+    -webkit-hyphens: none;
+    hyphens: none;
 }
 
 h2:hover:before, h3:hover:before, h4:hover:before, h5:hover:before {
@@ -100,6 +119,7 @@ p, blockquote, div.codehilite, table {
 code {
     border: 1px dotted #AAA;
     font-size: 0.95em;
+    letter-spacing: 0;
 }
 
 img.bob {

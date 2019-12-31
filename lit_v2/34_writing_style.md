@@ -1,6 +1,22 @@
+### Technical Writing
+
+https://news.ycombinator.com/item?id=20070558
+https://performancejs.com/post/31b361c/13-Tips-for-Writing-a-Technical-Book
+https://zwischenzugs.com/2016/05/15/writing-a-technical-book/
+https://dev.to/trickvi/i-wrote-a-book-lfg
+ - user oriented book writing
+     + sequential readers vs random access readers (need more context, repetition is ok)
+ - target audience
+     + program users
+         * eg. data scientists
+         * developers
+     + maintainers
+ - review, reedit, reorder
+
 ### Writing Style
 
 While there are many (much more authoritative) sources on writing good prose, the specific kind of prose of a literate program, and the specific tooling used to compile it, does lend some justification for a short chapter with recommendations on writing style.
+
 
 #### Itemised Lists are Fantastic
 
@@ -25,12 +41,18 @@ they are already convinced, or to read on and judge if you are
 making sense.
 
 
+#### Constraints/Assertions/API-Boundaries
+
+Compartmentalization and separation of concerns are the key to understanding a large project composed of many modules. The more and the deeper multiple modules reference each other and especially if they reference each other in a circular fassion, the more difficult it becomes to understand the whole.
+
+
 #### Thing of Owner
 
 When expressing a relationship between `x` and `y`, prefer `x` of
 `y` as opposed to `y`'s `x`. `x` of `y` doesn't involve quotes
 (which is especially good when , it sounds more punchy and is
 therefore clearer.
+
 
 #### Hedging is Giving in to Bullies
 
@@ -40,6 +62,10 @@ Assume good faith on the part of the reader. A reader who does not have good fai
 ### Single Source of Truth
 
 ### DRY and Programming
+
+### Hacker Laws
+
+https://github.com/dwmkerr/hacker-laws
 
 ### Avoid Synonyms, be explicit
 

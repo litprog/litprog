@@ -1,5 +1,10 @@
 import re
+import io
 import typing as typ
+import itertools as it
+
+import bs4
+import pyphen
 
 
 HTML_PART_PATTERN = re.compile(r"(&[#\w]+?;|<.*?>|\s+\w+)")
@@ -120,7 +125,7 @@ def iter_wrapped_lines(pre_content_text: str, add_line_numbers: bool = True) -> 
                 if part_idx == 0:
                     yield f'<span class="lineno">{lineno}</span>'
                 else:
-                    yield f'<span class="lineno">&rarrhk;</span>'
+                    yield f'<span class="lineno">\u21AA</span>'
 
             yield line_part + "\n"
 
@@ -157,13 +162,6 @@ def _iter_postproc_html(html_text: HTMLText) -> typ.Iterable[str]:
     html_text = html_text.replace("<table>" , """<div class="table-wrap"><table>""")
     html_text = html_text.replace("</table>", """</table></div>""")
 
-    # TODO: firstpara
-    # - wrap headline and firstpara
-    # TODO: hyphens
-    # TODO: split code blocks
-    # - add ids to headlines
-    # - collect links and insert superscript (footnote links)
-
     pre_begin_re = re.compile(r'<div class="codehilite"><pre>')
     pre_end_re   = re.compile(r"</pre>")
 
@@ -188,9 +186,217 @@ def _iter_postproc_html(html_text: HTMLText) -> typ.Iterable[str]:
     yield html_text[last_end_idx:]
 
 
+def _wrap_firstpara(html_text: HTMLText) -> typ.Iterable[HTMLText]:
+    # Wrap headlines with their next sibling to avoid
+    #   orphaned headlines at the bottom of a page.
+
+    # NOTE: It appears that WeasyPrint avoids orphaned
+    #   headlines, so this isn't needed there. The only
+    #   case this might make sense is when printing using
+    #   the browser.
+    headline_re    = re.compile(r"\<(h\d)[^>]*\>.*?\<\/\1\>")
+    tag_re         = re.compile(r"\<(\w+)[^>]*\>.*\<\/\1\>")
+    remaining_text = html_text
+    while remaining_text:
+        headline_match = headline_re.search(remaining_text)
+        if headline_match is None:
+            yield remaining_text
+            return
+
+        headline_start, headline_end = headline_match.span()
+        headline_text   = remaining_text[headline_start:headline_end]
+        preceeding_text = remaining_text[:headline_start]
+        remaining_text  = remaining_text[headline_end:]
+
+        yield preceeding_text
+
+        # TODO: Maybe wrap all consecutive headlines ?
+        tag_match = tag_re.search(remaining_text)
+        if tag_match is None:
+            yield headline_text
+            yield remaining_text
+            return
+
+        tag_start, tag_end = tag_match.span()
+        tag_text        = remaining_text[tag_start:tag_end]
+        preceeding_text = remaining_text[:tag_start]
+        remaining_text  = remaining_text[tag_end:]
+
+        yield '<div class="firstpara">'
+        yield headline_text
+        yield preceeding_text
+        yield tag_text
+        yield "</div>"
+
+
+# TEXT_TAG_BEGIN_RE = re.compile(r"\<(span|b|a|em|i|sub|sup|strong|small|big)( [^\>]*)?\>")
+
+
+# def _iter_html_parts(
+#     html_text: HTMLText, begin_tag_re: typ.Pattern
+# ) -> typ.Iterable[typ.Tuple[HTMLText, str, HTMLText]]:
+#     remaining_html = html_text
+#     while remaining_html:
+#         begin_match = begin_tag_re.search(remaining_html)
+#         if begin_match is None:
+#             yield remaining_html, "", ""
+#             return
+
+#         begin_lidx, begin_ridx = begin_match.span()
+#         prelude = remaining_html[:begin_ridx]
+
+#         tag_name   = begin_match.group(1)
+#         end_tag_re = re.compile(r"\<\/" + tag_name + r"\>")
+#         end_match  = end_tag_re.search(remaining_html, begin_ridx)
+#         assert end_match is not None
+#         end_lidx, end_ridx = end_match.span()
+
+#         inner = remaining_html[begin_ridx:end_lidx]
+
+#         end_tag = remaining_html[end_lidx:end_ridx]
+
+#         yield (prelude, inner, end_tag)
+
+#         remaining_html = remaining_html[end_ridx:]
+
+
+# def _shyphenate_text(dic: pyphen.Pyphen, text: str) -> str:
+#     if len(text) < 5:
+#         return text
+#     else:
+#         return " ".join(dic.inserted(word, hyphen=SOFT_HYPHEN) for word in text.split(" "))
+
+
+# def _shyphenate_html(html_text: HTMLText) -> typ.Iterable[HTMLText]:
+#     # TODO: parse language
+#     dic = pyphen.Pyphen(lang="en_US")
+
+#     def _iter_shyphenated(content_text: HTMLText) -> typ.Iterable[HTMLText]:
+#         html_parts = _iter_html_parts(content_text, TEXT_TAG_BEGIN_RE)
+#         for prelude, text, end_tag in html_parts:
+#             yield prelude
+#             yield _shyphenate_text(dic, text)
+#             yield end_tag
+
+#     text_tag_begin_re = re.compile(r"\<(p|li)( [^\>]*)?\>")
+
+#     # print()
+#     html_parts = _iter_html_parts(html_text, text_tag_begin_re)
+#     for prelude, content, end_tag in html_parts:
+#         is_katex = "katex" in content
+#         if is_katex:
+#             print(prelude)
+#             print("???????????????????ßßßß")
+#             print(content)
+#             print(">>>>>>>>>>>>>>>>>>>>>>")
+#             print("".join(_iter_shyphenated(content)))
+#             print("???????????????????ßßßß")
+#             print(end_tag)
+#         yield prelude
+#         yield "".join(_iter_shyphenated(content))
+#         yield end_tag
+#         assert not is_katex
+
+
+SOFT_HYPHEN = "\u00AD"
+SOFT_HYPHEN = "&shy;"
+
+
+WORD_RE = re.compile(r"\w+", flags=re.UNICODE)
+
+
+def _iter_shyphenated(dic: pyphen.Pyphen, text: str) -> typ.Iterable[str]:
+    text = text.replace("\u00AD", "").replace("&shy;", "")
+
+    prev_end = 0
+    for match in WORD_RE.finditer(text):
+        start, end = match.span()
+        if prev_end < start:
+            yield text[prev_end:start]
+
+        word = text[start:end]
+        if len(word) < 6:
+            yield word
+        else:
+            yield dic.inserted(word, hyphen=SOFT_HYPHEN)
+
+        prev_end = end
+
+    yield text[prev_end:]
+
+
+PARSER_MODULE = "html.parser"
+
+INLINE_TAG_NAMES = {"span", "b", "i", "a", "em", "small", "strong", "sub", "sup"}
+
+
+def _shyphenate(dic: pyphen.Pyphen, text: str) -> str:
+    if len(text) < 5:
+        return text
+    else:
+        return "".join(_iter_shyphenated(dic, text))
+
+
+def _shyphenate_html(soup: bs4.BeautifulSoup) -> None:
+    # TODO: parse language
+    dic = pyphen.Pyphen(lang="en_US")
+
+    elements = it.chain(soup.find_all(f"p"), soup.find_all(f"li"))
+    for elem in elements:
+        for part in elem.contents:
+            is_nav_string = isinstance(part, bs4.element.NavigableString)
+            is_text_elem  = is_nav_string or (part.name in INLINE_TAG_NAMES and part.string)
+            if not is_text_elem:
+                continue
+
+            if not is_nav_string:
+                classes  = part.attrs.get('class', ())
+                is_katex = "katex" in classes or "katex-display" in classes
+                if part.name == 'span' and is_katex:
+                    continue
+
+            shyphenated = _shyphenate(dic, str(part.string))
+            # NOTE: Ugh! So much wrapping just to avoid escaping.
+            #   If we don't do this though, we'll get "&shy;" -> "&amp;shy;"
+            shy_text = bs4.BeautifulSoup(io.StringIO(shyphenated), PARSER_MODULE)
+            part.string.replace_with(shy_text)
+
+
+def _add_sentence_spacing(soup: bs4.BeautifulSoup) -> None:
+    lang = "en"
+    if lang != "en":
+        return
+
+    # NOTE: Not implemented because, meh. Seems to be going the way of the dodo.
+    #   https://en.wikipedia.org/wiki/Sentence_spacing_studies
+    #
+    #   If we were to implement this, the least bad option seems to be adding two
+    #   spaces and using "white-space: pre-wrap;". Using &emsp; or &ensp; lead to
+    #   distracting rags if the line is broken directly after the period. Using two
+    #   spaces increases the distance between the period and the next word, but
+    #   it's maybe a bit more than what is done by latex
+    #
+    # para_text, _ = re.subn(r"([\.?!]) ([A-Z])", r"\1  \2", para_text)
+
+
 def postproc4all(html_text: HTMLText) -> HTMLText:
     return "".join(_iter_postproc_html(html_text))
 
 
+def postproc4screen(html_text: HTMLText) -> HTMLText:
+    # html_text = "".join(_wrap_firstpara(html_text))
+    fobj = io.StringIO(html_text)
+    soup = bs4.BeautifulSoup(fobj, PARSER_MODULE)
+    _shyphenate_html(soup)
+    _add_sentence_spacing(soup)
+    html_text = str(soup)
+    # html_text.replace("\u00AD", "&shy;")
+    return html_text
+
+
 def postproc4print(html_text: HTMLText) -> HTMLText:
+    # TODO: split code blocks
+    # - add ids to headlines
+    # - collect links and insert superscript (footnote links)
+
     return html_text

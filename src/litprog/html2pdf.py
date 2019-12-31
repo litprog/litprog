@@ -6,13 +6,15 @@
 import logging
 import pathlib2 as pl
 
-import weasyprint as wp
+import weasyprint
 
 
 log = logging.getLogger(__name__)
 
+logging.getLogger('weasyprint').setLevel(logging.ERROR)
+
 
 def html2pdf(html_text: str, out_path: pl.Path) -> None:
-    wp_ctx = wp.HTML(string=html_text)
-    with out_path.open(mode="wb") as fh:
-        wp_ctx.write_pdf(fh)
+    wp_ctx = weasyprint.HTML(string=html_text)
+    with out_path.open(mode="wb") as fobj:
+        wp_ctx.write_pdf(fobj)

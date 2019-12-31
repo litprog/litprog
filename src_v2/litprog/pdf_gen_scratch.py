@@ -480,10 +480,10 @@ def main(args=sys.argv[1:]):
         with out_path_html.open(mode="w", encoding="utf-8") as fh:
             fh.write(browser_html_string)
 
-        with (out_dir / "static/codehilite.css").open(mode="w") as fh:
+        with (out_dir / "static" / "codehilite.css").open(mode="w") as fh:
             fh.write(CODEHILITE_STYLES)
 
-        with (out_dir / "static/print.css").open(mode="w") as fh:
+        with (out_dir / "static" / "print.css").open(mode="w") as fh:
             fh.write(PRINT_STYLES)
 
     # import cmarkgfm

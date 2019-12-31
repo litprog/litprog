@@ -1,6 +1,10 @@
 
 ## Programming Practices
 
+There is a secret that needs to be understood in order to write good software documentation: there isn’t one thing called documentation, there are four.
+They are: tutorials, how-to guides, explanation and technical reference.
+
+https://www.divio.com/blog/documentation/
 
 ### Parts, Chapters, Summaries and Sections
 

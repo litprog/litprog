@@ -3,47 +3,57 @@
 LitProg is a [Literate Programming (LP)][href_wiki_litprog] tool which 
 
  1. consumes [Markdown][href_wiki_markdown] files,
- 2. produces code files using fenced blocks,
+ 2. produces code files from fenced blocks,
  3. produces HTML and PDF documentation.
 
 
 ```bob
-                   +------------------+        
-                  ++                  |\       
-                  || lit/11_intro.md  +-+      
-       .----------+* lit/12_test.md     |      
-       |          || lit/13_impl.md     |      
-       V          ||                    |      
- .-----------.    |+-------------------++      
- |           |    +--------------------+       
- |  LitProg  |                                 
- |           |     +---------------+           
- '---+---+---'    ++               |\          
-     |   |        || src/app.py    +-+         
-     |   '------->|| src/ui.js       |         
-     |            || src/data.json   |         
-     |            ||                 |         
-     |            |+----------------++         
-     |            +-----------------+          
-     |                                         
-     |             +-------------------+       
-     |            ++                   |\      
-     |            || doc/program.pdf   +-+     
-     '----------->|| doc/11_intro.html   |     
-                  || doc/12_test.html    |     
-                  ||                     |     
-                  |+--------------------++     
-                  +---------------------+      
+      Markdown
+ +-----------------+
+++ lit/11_intro.md |\       .------------.
+|| lit/12_test.md  +-+      |            |
+|| lit/13_impl.md    o----->+   LitProg  |
+|+------------------++      |            |
++-------------------+       '---+----+---'
+                                |    |
+         .----------------------'    |
+         |                           |
+         V                           V
+ +------------------+    +-------------------+
+++ src/app.py       |\  ++ doc/program.pdf   |\
+|| src/ui.js        +-+ || doc/11_intro.html +-+
+|| src/data.json      | || doc/12_test.html    |
+|+-------------------++ |+--------------------++
++--------------------+  +---------------------+
+        Code                   HTML/PDF
 ```
 
-The [benefits of LP][href_knuthweb] have not been practically demonstrated and LP has not found much adoption. The closest thing to broad adoption of LP has been with some writers using notebooks such as [Jupyter][href_jupyter]. Such notebooks are better suited to data analysis and reporting however, rather than creating libraries and applications. I believe lack of adoption of LP is partially the result of inadequate tooling and I hope you will find LitProg to provide a practical approach to writing good software in an LP style.
+ABCD EFG HIJKL MNOPQ RSTUV WXYZ abcd efg hijkl mnopq rstuv wxyz ABCD EFG HIJKL MNOPQ RSTUV WXYZ abcd efg hijkl mnopq rstuv wxyz
+
+LitProg aims to strike a great balance between
+ 
+  - Ease of writing and editing
+  - Greate layout even if little to no concern is given to it
+  - Highly integrated generation of code, diagrams and charts
+
+In short, LitProg aims to be your first choice for all technical writing, to let you focus on your ideas and not on document layout and to get beautiful documents fit for publication.
+
+ABCD EFG HIJKL MNOPQ RSTUV WXYZ abcd efg hijkl mnopq rstuv wxyz ABCD EFG HIJKL MNOPQ RSTUV WXYZ abcd efg hijkl mnopq rstuv wxyz
+
+I hope the day is not too far, where [each][] [and][] [literate][] [program][] must not either be itself or start with with an exposition on literate programming. I hope that this small program can serve that purpose for other programs, so that they can just get on with explaining themselves.
+
+The lack of broad adoption casts some doubt on the [claims of the benefits of Literate Programming][href_knuthweb]. The closest thing to adoption of LP has been with some writers using [Jupyter][href_jupyter] style notebooks in the area of data science. Such notebooks can communicate to readers how data was processed and what calculations were used. The fact that these notebooks are executable is a form of automated review, which gives some credence to the correctness of the results. Literate Programming as a paradigm is somewhat different in that the communication between programmers is supposed. proported to result in higher quality software, at a higher initial pricehave a lower long term cost of development. Understanding such programs leads to greater trust in the results, but this is not the same as understanding the program The a to get a better idea of how a data analyst arrived at their results, but this is not the same as a programming are better suited to data analysis and reporting however, rather than creating libraries and applications. I believe lack of adoption of LP is partially the result of inadequate tooling and I hope LitProg will enable you to write good software in an LP style.
 
 I've written more about the motivation for this project in the [next chapter][iref_touchy_feely], but in this chapter I will mostly focus on what LitProg is and how to use it.
 
 
 ### Getting Started
 
-*Literate Programming* is a programming paradigm. *LitProg* is a programming tool. Even if you are not on board with LP, you may nonetheless find LitProg to be useful, for example to write technical articles or tutorials. This book is a documentation artefact of the literate program for the `litprog` cli command, which has of course been compiled using itself. To get started you can download one of the software artifacts of LitProg and run `litprog build` with an example file.
+> Writing is nature's way of letting you know how sloppy your thinking is.
+> 
+> – Dick Guindon
+
+*Literate Programming* is a programming paradigm. *LitProg* is a compiler/build tool. Even if you are not on board with LP, you may nonetheless find LitProg to be useful, for example if you want to write a technical article or tutorial. This book is a documentation artefact of the literate program for the `litprog` cli command, which has of course been compiled using itself. To get started you can download one of the software artifacts of LitProg and run `litprog build` with an example file.
 
 ```bash
 $ pip install litprog
@@ -105,10 +115,8 @@ A Python implementation of the Fibbonacci function might look like this:
 
 ```python
 def fib(n: int) -> int:
-    if n == 0:
-        return 0 
-    elif n == 1:
-        return 1 
+    if n < 2:
+        return n 
     else:
         return fib(n - 1) + fib(n - 2)
 ```
@@ -118,7 +126,7 @@ In case you weren't aware, this naive recursive implementation is well known to 
 
 ### The `lp_add` Directive
 
-The previous[fnote_avoid_above] code block is not treated specially by LitProg. It is not written to any file, not converted by any compiler, nor executed by any interpreter. It will end up in the documentation, just as you would expect from any Markdown renderer, but that's about it.
+The previous[^fnote_avoid_above] code block is not treated specially by LitProg. It is not written to any file, not converted by any compiler, nor executed by any interpreter. It will end up in the documentation, just as you would expect from any Markdown renderer, but that's about it.
 
 To actually use this code block, it must be referenced in a later code block by the use of an `lp_add` directive. LitProg directives are written using the comment syntax of the programming language declared for the block.
 
@@ -127,7 +135,7 @@ To actually use this code block, it must be referenced in a later code block by 
     assert fib(8) == 21
     ```
 
-In this case, the syntax of the block is `python`, so all lines which start with a `#` character are parsed in search of litprog directives. In this case there is only one such line: `# lp_add: def fib`. The text after[fnote_whitespace_in_directives] the `:` (`def fib`) is a query string that must be a substring of some other block in the literate program. The [first block][fnote_block_queries] which contains that substring is substituted in place of the directive. In other words, once the preceding block is expanded, it will be equivalent to the following:
+In this case, the syntax of the block is `python`, so all lines which start with a `#` character are parsed in search of litprog directives. In this case there is only one such line: `# lp_add: def fib`. The text after[^fnote_whitespace_in_directives] the `:` (`def fib`) is a query string that must be a substring of some other block in the literate program. The first block[^fnote_block_queries] which contains that substring is substituted in place of the directive. In other words, once the preceding block is expanded, it will be equivalent to the following:
 
     ```python
     def fib(n: int) -> int:
@@ -215,7 +223,7 @@ The output of a process is always captured but that output is only made visible 
 # exit:   0
 ```
 
-The `lp_out` directive marks its block as a container for the output of the process that was previously run. When the LitProg built is completed, the contents of the `lp_out` block is updated in-place with the captured output. If there is no `lp_out` block after an `lp_run` block, then the captured output is discarded.
+The `lp_out` directive marks its block as a container for the output of the process that was previously run. When the LitProg build is completed, the contents of the `lp_out` block is updated in-place with the captured output. If there is no `lp_out` block after an `lp_run` block, then the captured output is discarded.
 
 !!! note "Options of `lp_out`"
 
@@ -228,14 +236,14 @@ The `lp_out` directive marks its block as a container for the output of the proc
 
 The captured output gives the reader some assurance that the document they are reading is not just some manually composed fabrication which was written as an afterthought and is detatched from the actual program. Even with the best of intentions, humans often make mistakes, so program logic that has not been executed by a machine will inspire little confidence. Hence the famous quote by Knuth: "Beware of bugs in the above code; I have only proved it correct, not tried it".
 
-The exit status and the captured output are demonstrations that at least on one machine and at some point in the past, the program was in some sense "correct", or at least that the generated documentation is consistent with the program that was used to generate it[fnote_max_hedging]. This approach to including program output in generated documentation gives readers a chance to see if the author is trying to hide how the sausage is made. While it may be appropriate to relegate certain logic to an appendix, for example to avoid distraction from a desired narrative, the entire program can in principle be made accessible to inquisitive readers. They may still have to trust that the author was acting in good faith, but the issue of incompetence and outdated documentation is greatly mitigated.
+The exit status and the captured output are demonstrations that at least on one machine and at some point in the past, the program was in some sense "correct", or at least that the generated documentation is consistent with the program that was used to generate it[^fnote_max_hedging]. This approach to including program output in generated documentation gives readers a chance to see if the author is trying to hide how the sausage is made. While it may be appropriate to relegate certain logic to an appendix, for example to avoid distraction from a desired narrative, the entire program can in principle be made accessible to inquisitive readers. They may still have to trust that the author was acting in good faith, but the issue of incompetence and outdated documentation is greatly mitigated.
 
 By this point I hope you can see, that LitProg allows you to write 1. source code, 2. documentation and 3. automated testing, all combined in a way that makes the most sense to understand your program.
 
 
 ### In-Place Updates of Fenced Blocks
 
-Validating that a program is correct, is not only important to communice to readers, it is also part and parcel of the programming workflow. Most programmers are the first that want to know if their program is working. Generating HTML/PDF documentation takes a bit of time and since switching back and forth between a browser window would introduce a lot of friction into the programming workflow. To avoid this friction, LitProg will update the original markdown files in-place, using the output that is captured during a build. When using `litprog watch` programmers can simply hit save and see how the output of their program appears directly in their text editor.
+Validating that a program is correct, is not only important to communicate to readers, it is also part and parcel of the programming workflow. Most programmers are the first that want to know if their program is working. Generating HTML/PDF documentation takes a bit of time and switching back and forth between a browser window and a code editor would introduce a lot of friction into the programming workflow. To avoid this friction, LitProg instead does in-place updates to the original markdown files. The output that is captured during a build is inserted into the markdown text. This works well for editors that detect and automatically reload files that have changed. When using `litprog watch` programmers can simply hit save and see how the output of their program appears directly in their text editor.
 
 This approach also has the advantage that output of the most recent execution and viewing the Markdown files on github/gitlab/bitbucket can give a good idea of what the generated documentation will look like. Reviewing the diff of a commit can also demonstrate the behavioural change that a change in the source code caused.
 
@@ -247,7 +255,7 @@ This approach also has the advantage that output of the most recent execution an
 
     1. If your editor does not automatically detect the file modification done by the build, you may continue editing and not see the updated output until you somehow manually cause your editor to reload the file.
 
-    2. While LitProg doesn't overwrite changes made *on the file system*, you may have made changes *in the buffer of your editor* which have not been saved yet. If your editor detects modifications made by the build, it may prompt you with something like "File has changed on disk, do you want to reload the file? [Reload] [Cancel]". Usually you will want to hit "Cancel" in this case, unless you want to discard your recent changes.
+    2. LitProg will only overwrite changes made *on the file system*; any changes you have made *in the buffer of your editor* which have not been saved yet, will overwrite the build output if you save them. If your editor detects modifications made by the build, it may prompt you with something like "File has changed on disk, do you want to reload the file? [Reload] [Cancel]". Usually you will want to hit "Cancel" in this case, unless you want to discard your recent changes.
 
 !!! note "Deterministic Output"
 
@@ -445,12 +453,12 @@ with timeit("fast"): fast_fib(17)
 
 ```shell
 # lp_out
-slow     0.060 ms
-slow     0.151 ms
-slow     0.393 ms
-fast     0.006 ms
+slow     0.128 ms
+slow     0.329 ms
+slow     0.472 ms
+fast     0.007 ms
 fast     0.002 ms
-fast     0.001 ms
+fast     0.002 ms
 # exit:   0
 ```
 
@@ -611,14 +619,17 @@ chmod +x examples/fib_cli_compat.py
 
 ```bash
 # lp_out: python2 --version
-! Python 2.7.16
+! Python 2.7.17rc1
 # exit:   0
 ```
 
 ```bash
 # lp_out: python2 examples/fib_cli_compat.py 22
-17711
-# exit:   0
+! Traceback (most recent call last):
+!   File "examples/fib_cli_compat.py", line 16, in <module>
+!     from typing import List, Set, Tuple
+! ImportError: No module named typing
+# exit:   1
 ```
 
 ```bash
@@ -645,15 +656,15 @@ These examples are intended as a quick overview, but there is much more to be sa
 TODO: Further reading.
 
 
-[fnote_avoid_above]: When referencing parts of a document in your text, avoid phrases that are particular a specific format. Phrases like "the above image" or the below "code block" may be confusing if the reader is viewing a printed version of your program. Instead prefer wording which uses "previous"/"preceeding"/"earlier", "next"/"following"/"later".
+[^fnote_avoid_above]: When referencing parts of a document in your text, avoid phrases that are particular a specific format. Phrases like "the above image" or the below "code block" may be confusing if the reader is viewing a printed version of your program. Instead prefer wording which uses "previous"/"preceeding"/"earlier", "next"/"following"/"later".
 
-[fnote_avoid_numbers]: Chapter and section numbers can change when the structure of a project changes. Chapters can be reordered, new sections can be inserted, so any phrases such as "see chapter 3 section 2 for further details" will become invalid, or worse, point to something other than originally intended. TODO: stable links using names.
+[^fnote_avoid_numbers]: Chapter and section numbers can change when the structure of a project changes. Chapters can be reordered, new sections can be inserted, so any phrases such as "see chapter 3 section 2 for further details" will become invalid, or worse, point to something other than originally intended. TODO: stable links using names.
 
-[fnote_whitespace_in_directives]: Leading and trailing whitespace is stripped from directives. If you don't want this to happen, the value of a directive can be surrounded with `'` quotes or `"` double quotes.
+[^fnote_whitespace_in_directives]: Leading and trailing whitespace is stripped from directives. If you don't want this to happen, the value of a directive can be surrounded with `'` quotes or `"` double quotes.
 
-[fnote_block_queries]: For now, blocks can only reference other blocks in the same file and the first block to match is what will be used.
+[^fnote_block_queries]: For now, blocks can only reference other blocks in the same file and the first block to match is what will be used.
 
-[fnote_max_hedging]: Sorry about all the hedging. Any "proof" of correctness is only as good as the assertions made by the programmer. Hopefully the broader accessibility of LitProg programs means that programmers will feel the watchful eyes of readers and put some effort into making their programs demonstrably correct.
+[^fnote_max_hedging]: Sorry about all the hedging. Any "proof" of correctness is only as good as the assertions made by the programmer. Hopefully the broader accessibility of LitProg programs means that programmers will feel the watchful eyes of readers and put some effort into making their programs demonstrably correct.
 
 
 [href_jupyter]: https://jupyter.org/

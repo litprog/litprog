@@ -473,6 +473,7 @@ def _gen_raw_html(md_text: MarkdownText) -> HTMLText:
         "markdown_aafigure",
         "markdown_blockdiag",
         "markdown_svgbob",
+        "markdown_katex",
         #####
         # "markdown.extensions.legacy_attr",
         # "markdown.extensions.legacy_em",
@@ -495,13 +496,12 @@ def main(args=sys.argv[1:]):
             in_paths.append(in_path)
 
     md_text = read_md_text(in_paths)
+    raw_html_text = _gen_raw_html(md_text)
 
     out_dir = pl.Path("lit_out")
     out_dir.mkdir(exist_ok=True)
     out_path_html = out_dir / "out.html"
     out_path_pdf  = out_dir / "out.pdf"
-
-    raw_html_text = _gen_raw_html(md_text)
 
     if "html" in args:
         browser_html_text = "".join(_postprocess_html(raw_html_text))

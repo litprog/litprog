@@ -5,4 +5,9 @@
         margin: 10mm;
         size: 148mm 210mm;
     }
+    img {
+        max-height: 148mm;
+        max-width: 210mm;
+    }
+
 }

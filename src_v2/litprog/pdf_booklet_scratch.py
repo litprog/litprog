@@ -7,7 +7,7 @@ import pathlib2 as pl
 
 import PyPDF2 as pdf
 
-MAX_BOOKLET_SHEETS = 15
+MAX_BOOKLET_SHEETS = 13
 PAGES_PER_SHEET    = 4
 
 UNITS_PER_INCH = 72
@@ -15,11 +15,15 @@ UNITS_PER_MM   = UNITS_PER_INCH / 25.4
 
 
 BOOKLET_FORMAT_MAPPING = {
+    # out_format, page_order, scale, margin
     'A6-Portrait'   : ('A5-Landscape'    , 'booklet', 0 * UNITS_PER_MM),
     'A5-Portrait'   : ('A4-Landscape'    , 'booklet', 0 * UNITS_PER_MM),
+    'A4-Portrait'   : ('A4-Landscape'    , 'booklet', 0 * UNITS_PER_MM),
+    'A3-Portrait'   : ('A4-Landscape'    , 'booklet', 0 * UNITS_PER_MM),
     'Half-Letter'   : ('Letter-Landscape', 'booklet', 0 * UNITS_PER_MM),
     '1of2col-A4'    : ('A4-Portrait'     , 'paper'  , -4 * UNITS_PER_MM),
     '1of2col-Letter': ('Letter-Portrait' , 'paper'  , -4 * UNITS_PER_MM),
+    # 'Letter-Portrait': ('A4-Landscape'    , 'booklet', 0 * UNITS_PER_MM),
 }
 
 
@@ -29,6 +33,7 @@ PAPER_FORMATS_MM = {
     'A5-Portrait'     : (148  * UNITS_PER_MM  , 210 * UNITS_PER_MM),
     'A4-Portrait'     : (210  * UNITS_PER_MM  , 297 * UNITS_PER_MM),
     'A4-Landscape'    : (297  * UNITS_PER_MM  , 210 * UNITS_PER_MM),
+    'A3-Portrait'     : (297  * UNITS_PER_MM  , 420 * UNITS_PER_MM),
     '1of2col-A4'      : (105  * UNITS_PER_MM  , 297 * UNITS_PER_MM),
     '1of2col-Letter'  : (4.25 * UNITS_PER_INCH, 11  * UNITS_PER_INCH),
     'Half-Letter'     : (5.5  * UNITS_PER_INCH, 8.5 * UNITS_PER_INCH),
@@ -72,23 +77,26 @@ def calc_booklet_page_counts(
 # Half-Sheet: One face of a sheet with two pages
 # Page: One half of one side of a sheet
 
+# https://mbarkhau.keybase.pub/asciigrid/#vvO;EOAOA;AAAAADiBlApFBcgDLMCCCCCJLMgKVapFBhCAMAgSAhEAAkKVYiMBhCgMiRibrDBADAbizDAZiDgGVZjLVXgdMKizlAmAjCgdAKLiSkBqEhbAglhKjCqEh6VhGgFXiDkGgBVgWi6nJibAdnHBAAKhHAWkBYjLAVUkBWggAKAMICClAuAhfAKMCCCCCJKMhKqEibADkRlAnH
+
 _booklet_page_numbering_illustration = r"""
 
-        Booklet 1              Booklet 2
+         Booklet 1        Booklet 2
 
-       /|----->/|             /|----->/|
-      / |     / |            / |     / |
- 8-> /  | 6->/  |      16-> /  |14->/  |
-    / 7 |   / 5 |          / 15|   / 13|
-    |\  |   |\  |          |\  |   |\  |
-    | \ |   | \ |          | \ |   | \ |
-    |  \    |  \           |  \    |  \
-    |   |   |   |          |   |   |   |
-    | 1 |   | 3 |          | 9 |   |11 |
-     \  |    \  |           \  |    \  |
-      \ |<-2  \ |<-4         \ |<-10 \ |<-12
-       \|----->\|             \|----->\|
-
+         +       +        +       +
+    8   /|----->/|   16  /|----->/|
+    -->/ | 6   / |   -->/ | 14  / |
+      / 7| -->/ 5|     /15| -->/13|
+     +   |   +   |    +   |   +   |
+     |\  |   |\  |    |\  |   |\  |
+     | \/    | \/     | \/    | \/
+     |  \    |  \     |  \    |  \
+     |   |   |   |    |   |   |   |
+     |  1|   |  3|    |  9|   | 11|
+      \  |  2 \  |  4  \  | 10 \  | 12
+       \ |<--  \ |<--   \ |<--  \ |<--
+        \|----->\|       \|----->\|
+         +       +        +       +
 """
 
 
@@ -96,7 +104,6 @@ def booklet_page_layout(
     total_pages: int, max_sheets: int = MAX_BOOKLET_SHEETS
 ) -> typ.Tuple[typ.List[int], typ.List[int]]:
     booklet_page_counts = calc_booklet_page_counts(total_pages, max_sheets)
-    num_booklets        = len(booklet_page_counts)
 
     booklet_index_by_page     : typ.List[int] = []
     booklet_page_index_by_page: typ.List[int] = []
@@ -132,6 +139,13 @@ def get_format_id(page_width: int, page_height: int) -> typ.Optional[str]:
 
 
 def main() -> int:
+    # TODO: option for page scale
+    # rescale = 1.33
+    rescale = 1.00
+    rescale_pct = 100 * (1 - rescale)
+
+    max_sheets = MAX_BOOKLET_SHEETS
+
     in_path      = pl.Path(sys.argv[1])
     ext          = "".join(in_path.suffixes)
     out_filename = (in_path.name[: -len(ext)] + "_booklet") + ext
@@ -142,7 +156,6 @@ def main() -> int:
     with in_path.open(mode="rb") as in_fh:
         reader    = pdf.PdfFileReader(in_fh)
         media_box = reader.getPage(0).mediaBox
-        art_box   = reader.getPage(0).artBox
 
         in_page_width  = float(media_box.getWidth())
         in_page_height = float(media_box.getHeight())
@@ -154,18 +167,46 @@ def main() -> int:
             err_msg = f"Unknown page format: {in_page_width_mm}mm x {in_page_height_mm}mm"
             raise Exception(err_msg)
 
-        out_format_id, page_order, center_margin = BOOKLET_FORMAT_MAPPING[in_format_id]
-
-        print(in_format_id, "->", out_format_id)
+        (
+            out_format_id,
+            page_order,
+            center_margin,
+        ) = BOOKLET_FORMAT_MAPPING[in_format_id]
+        print(f"Converting 2x{in_format_id} -> {out_format_id}")
 
         out_width, out_height = PAPER_FORMATS_MM[out_format_id]
 
+        scale_w = round((out_width  / 2) / in_page_width, 2)
+        scale_h = round(out_height / in_page_height, 2)
+        # scale = min(scale_h, scale_w)
+        scale = scale_h
+        if scale < 1:
+            print(f"scaling down by {1/scale:5.2f}x")
+        elif scale > 1:
+            print(f"scaling up by {scale}x")
+
+        if rescale < 1:
+            print(f"adding padding of {abs(rescale_pct):3.2f}%")
+        elif rescale > 1:
+            print(f"trimming by {abs(rescale_pct):5.2f}%")
+
+        scale = scale * rescale
+
+        trim_factor = (rescale - 1) / 2
+        trim_x = 0.5 * out_width * trim_factor
+        trim_y = 0.6 * out_height * trim_factor
+        # TODO: option for center spacing
+        center_spacing = out_width * 0.005
+
+        in_pages = list(reader.pages)
+
         if page_order == 'booklet':
-            booklet_page_indexes, booklet_index_by_page = booklet_page_layout(len(reader.pages))
+            layout = booklet_page_layout(len(in_pages), max_sheets=max_sheets)
+            booklet_page_indexes, booklet_index_by_page = layout
             half_page_to_in_page = list(enumerate(booklet_page_indexes))
         else:
             half_page_to_in_page = [
-                (half_page_index, half_page_index) for half_page_index in range(len(reader.pages))
+                (half_page_index, half_page_index) for half_page_index in range(len(in_pages))
             ]
 
         sheet_indexes = set(
@@ -175,8 +216,6 @@ def main() -> int:
             output.addBlankPage(width=out_width, height=out_height) for _ in sheet_indexes
         ]
 
-        in_pages = list(reader.pages)
-
         for half_page_index, in_page_index in half_page_to_in_page:
             if len(in_pages) - 1 < in_page_index:
                 continue
@@ -185,14 +224,17 @@ def main() -> int:
 
             out_sheet = out_sheets[half_page_index // 2]
             if half_page_index % 2 == 0:
-                x_offset = 0 - center_margin
+                x_offset = 0 - center_spacing
             else:
-                x_offset = (out_width / 2) + center_margin
+                x_offset = (out_width / 2) + center_spacing
 
-            tx    = x_offset
-            ty    = 0
+            tx    = x_offset - trim_x
+            ty    = 0 - trim_y
             tzero = time.time()
-            out_sheet.mergeTranslatedPage(in_page, tx=tx, ty=ty, expand=False)
+            if scale == 1:
+                out_sheet.mergeTranslatedPage(in_page, tx=tx, ty=ty, expand=False)
+            else:
+                out_sheet.mergeScaledTranslatedPage(in_page, scale=scale, tx=tx, ty=ty, expand=False)
             print(f"<<< {half_page_index:>2}", half_page_index % 2, time.time() - tzero)
 
         tzero = time.time()

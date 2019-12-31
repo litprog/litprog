@@ -1,16 +1,42 @@
+code {
+    font-family: "lp-iosevka", Courier, monospace;
+}
 
 pre {
-    font-family: "Courier Prime Code", "Courier New", Courier, monospace;
-    line-height: 1.1em;
+    font-family: "lp-iosevka", Courier, monospace;
+    line-height: 1.25em;
 }
 
 
+@media print {
+    div.codehilite pre {
+        min-width: 35em;
+        letter-spacing: -0.02em;
+    }
+}
+
+@media screen {
+    div.codehilite pre {
+        min-width: 99.5%;
+        letter-spacing: 0.01em;
+    }
+}
+
+@media only screen and (max-width: 45.0em) {
+    div.codehilite pre {
+        letter-spacing: -0.02em;
+    }
+}
+
+
+div.codehilite {
+    padding-right: 1em;
+}
+
 div.codehilite pre {
-    letter-spacing: -0.05em;
-    display: block;
-    border-right: 1px solid #AAA;
-    padding-right: 0.5em;
-    min-width: 35.5em;
+    display: inline-block;
+    border: 1px dashed #888;
+    border-width: 0 1px 0 0;
     margin: 0 auto;
 }
 

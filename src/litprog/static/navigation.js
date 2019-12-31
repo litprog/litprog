@@ -1,6 +1,8 @@
 (function() {
   var cl = document.body.classList
   function toggle_color_theme(e) {
+    var content = document.querySelector(".content");
+    content.style.visibility = "hidden";
     if (cl.contains("dark")) {
       cl.remove("dark");
       cl.add("light");
@@ -9,6 +11,9 @@
       cl.add("dark");
     }
     cl.add("animate");
+    setTimeout(function(){
+      content.style.visibility = "visible";
+    }, 800);
     var prev_theme = localStorage.getItem("litprog_theme")
     if (prev_theme == "dark") {
         localStorage.setItem("litprog_theme", "light");

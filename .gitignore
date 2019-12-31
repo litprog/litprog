@@ -30,6 +30,7 @@ public/
 .eggs/
 .pytest_cache/
 .ipynb_checkpoints/
+.litprog.index
 package-lock.json
 
 # PyInstaller

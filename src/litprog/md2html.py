@@ -6,7 +6,6 @@
 import logging
 
 import markdown as md
-import pathlib2 as pl
 
 
 log = logging.getLogger(__name__)
@@ -51,7 +50,10 @@ def md2html(md_text: MarkdownText) -> HTMLText:
                 'bg_color': "transparent",
                 'fg_color': "black",
             },
-            'markdown_katex': {'no_inline_svg': True},
+            'markdown_katex': {
+                'no_inline_svg': True,
+                'insert_fonts_css': False,
+            },
         },
     )
     raw_html_text = md_ctx.convert(md_text)

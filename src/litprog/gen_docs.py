@@ -27,13 +27,15 @@ class Replacement(typ.NamedTuple):
 
 
 REPLACEMENTS = [
+    Replacement('all'   , "codehilite.css"),
     Replacement('all'   , "general.css"),
+    Replacement('all'   , "katex.css"),
+    Replacement('screen', "fonts.css"),
     Replacement('screen', "screen.css"),
     Replacement('screen', "check_reloaded.js"),
     Replacement('screen', "pdf_modal.css"),
     Replacement('screen', "navigation.css"),
     Replacement('screen', "navigation.js"),
-    Replacement('all'   , "codehilite.css"),
     # print styles
     Replacement('print'                   , "print.css"),
     Replacement('print_a6'                , "print_a6.css"),
@@ -47,8 +49,8 @@ REPLACEMENTS = [
 
 
 PRINT_TARGETS = [
-    'print_a6',
-    # 'print_booklet_a5',
+    # 'print_a6',
+    'print_booklet_a5',
     # 'print_booklet_halfletter',
     # 'print_tallcol_a4',
     # 'print_tallcol_letter',
@@ -107,6 +109,7 @@ def gen_html(ctx: parse.Context, html_dir: pl.Path) -> None:
         md_text     : MarkdownText = str(md_file)
         content_html: HTMLText     = md2html.md2html(md_text)
         content_html = html_postproc.postproc4all(content_html)
+        content_html = html_postproc.postproc4screen(content_html)
         wrapped_html = wrap_content_html(content_html, 'screen')
         with html_fpath.open(mode="w") as fobj:
             fobj.write(wrapped_html)
