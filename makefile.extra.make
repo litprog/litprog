@@ -55,8 +55,8 @@ it:
 	$(DEV_ENV)/bin/litprog build -v lit_v3/11_overview.md --html doc/
 #	cp doc/*.html /run/user/1000/keybase/kbfs/public/mbarkhau/litprog/
 # 	rsync -r fonts/woff* /run/user/1000/keybase/kbfs/public/mbarkhau/litprog/fonts/
-# 	cp src/litprog/static/*.css /run/user/1000/keybase/kbfs/public/mbarkhau/litprog/
-# 	cp src/litprog/static/*.js /run/user/1000/keybase/kbfs/public/mbarkhau/litprog/
+	cp src/litprog/static/*.css /run/user/1000/keybase/kbfs/public/mbarkhau/litprog/
+	cp src/litprog/static/*.js /run/user/1000/keybase/kbfs/public/mbarkhau/litprog/
 
 
 ## Create favicon
@@ -78,14 +78,20 @@ KATEX_CDN_BASE_URL="https://cdn.jsdelivr.net/npm/katex@0.10.2/dist"
 .PHONY: katex_static
 katex_static:
 	curl $(KATEX_CDN_BASE_URL)/katex.css \
-		-s -o katex_static/katex.css;
-	grep -Po "(?<=url\().*?\.(woff|woff2|ttf)" katex_static/katex.css \
-		| sort | uniq > katex_static/fontfile_urls.txt
+		-s -o fonts/katex.css;
+	grep -Po "(?<=url\().*?\.(woff|woff2|ttf)" fonts/katex.css \
+		| sort | uniq > fonts/katex_fontfile_urls.txt
 	mkdir -p katex_static/fonts/;
-	for path in $$(cat katex_static/fontfile_urls.txt); do \
-		curl "$(KATEX_CDN_BASE_URL)/$$path" -s -o katex_static/$$path; \
+	for path in $$(cat fonts/katex_fontfile_urls.txt); do \
+		curl "$(KATEX_CDN_BASE_URL)/$$path" -s -o fonts/$$path; \
 		echo "downloaded katex_static/$$path"; \
 	done
 
-
+## Copy sketch files to kbfs to test on mobile
+.PHONY: deploy_sketch
+deploy_sketch:
+	cp sketch.html /run/user/1000/keybase/kbfs/public/mbarkhau/litprog/;
+	cp src/litprog/static/*.js /run/user/1000/keybase/kbfs/public/mbarkhau/litprog/src/litprog/static/;
+	cp src/litprog/static/*.css /run/user/1000/keybase/kbfs/public/mbarkhau/litprog/src/litprog/static/;
+	cp src/litprog/static/*.svg /run/user/1000/keybase/kbfs/public/mbarkhau/litprog/src/litprog/static/;
 

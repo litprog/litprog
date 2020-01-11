@@ -1,8 +1,0 @@
-@media print {
-    /* TODO: more inner margins based on page number */
-    body {
-        /* A5 - for A4 and US-Letter booklets */
-        font-size: 10.0pt;
-        line-height: 1.4em;
-    }
-}

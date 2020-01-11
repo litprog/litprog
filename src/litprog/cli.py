@@ -55,7 +55,7 @@ def _parse_logging_config(verbosity: int) -> LogConfig:
     if verbosity == 0:
         return LogConfig("%(levelname)-7s - %(message)s", logging.WARNING)
 
-    log_format = "%(asctime)s.%(msecs)03d %(levelname)-7s " + "%(name)-15s - %(message)s"
+    log_format = "%(asctime)s.%(msecs)03d %(levelname)-7s " + "%(name)-16s - %(message)s"
     if verbosity == 1:
         return LogConfig(log_format, logging.INFO)
 
@@ -131,8 +131,15 @@ def build(
     litprog.gen_docs.gen_html(built_ctx, html_dir)
 
     if pdf:
-        pdf_dir = pl.Path(pdf)
-        litprog.gen_docs.gen_pdf(built_ctx, html_dir, pdf_dir)
+        pdf_dir          = pl.Path(pdf)
+        selected_formats = [
+            'print_ereader',
+            'print_a5',
+            'print_booklet_a5',
+            'print_halfletter',
+            'print_booklet_halfletter',
+        ]
+        litprog.gen_docs.gen_pdf(built_ctx, html_dir, pdf_dir, formats=selected_formats)
 
     if is_html_tmp_dir:
         shutil.rmtree(html_dir)

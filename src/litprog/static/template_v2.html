@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="{{meta.lang}}">
+<head>
+    <meta charset="utf-8"/>
+    {% if meta.title %}<title>{{meta.title}}</title>{% endif %}
+    {% if meta.author %}<meta name="author" content="{{meta.author}}">{% endif %}
+    {% if meta.description %}<meta name="description" content="{{meta.description}}">{% endif %}
+    {% if meta.copyright %}<meta name="copyright" content="{{meta.copyright}}">{% endif %}
+    {% if meta.keywords %}<meta name="keywords" content="{{meta.keywords}}">{% endif %}
+    <meta name="generator" content="LitProg">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {% if fmt.is_web_target %}
+    <style type="text/css">
+    /* inline styles to avoid flashing (esp. in dark mode) */
+    .nav {display: none;}
+    body.dark {background: black;}
+    </style>
+    {% endif %}
+    <link rel="stylesheet" type="text/css" href="static/fonts.css">
+    <link rel="stylesheet" type="text/css" href="static/katex.css">
+    <link rel="stylesheet" type="text/css" href="static/codehilite.css">
+    <link rel="stylesheet" type="text/css" href="static/general_v2.css">
+    {% if fmt.is_web_target %}
+    <link rel="stylesheet" type="text/css" href="static/screen_v2.css">
+    {% endif %}
+    {% if fmt.is_print_target %}
+        <link rel="stylesheet" type="text/css" href="static/print.css">
+        {% if fmt.page_size == "a6" %} <link rel="stylesheet" type="text/css" href="static/print_a6.css"> {% endif %}
+        {% if fmt.page_size == "a5" %} <link rel="stylesheet" type="text/css" href="static/print_a5.css"> {% endif %}
+        {% if fmt.page_size == "halfletter" %}
+        <link rel="stylesheet" type="text/css" href="static/print_halfletter.css">
+        {% endif %}
+        {% if fmt.page_size == "ereader" %}
+        <link rel="stylesheet" type="text/css" href="static/print_ereader.css">
+        {% endif %}
+    {% endif %}
+</head>
+<body>
+    {% if fmt.is_web_target %}
+    <script type="text/javascript">
+        if (localStorage.getItem("litprog_theme") == "dark") {
+            document.body.classList.add("dark")
+        }
+    </script>
+    <div class="header">
+        <span class="menu-icon" title="Toggle Outline">
+            <span></span>
+            <span></span>
+            <span></span>
+        </span>
+        <span class="toggle-contrast" title="Toggle Light/Dark Mode">
+            <span></span>
+        </span>
+        <span class="print-icon" title="Download PDF files">
+            <span></span>
+            <span></span>
+            <span></span>
+        </span>
+    </div>
+    <div class="pdf-links">
+        <div>US-Letter Formats</div>
+        <div>
+            <a class="half-letter onepage" href="print_halfletter.pdf"><span>Half<br/>Letter</span></a>
+            <a class="letter twopage" href="print_booklet_halfletter.pdf"><span>Letter&nbsp;Booklet<br/>(duplex&nbsp;print)</span></a>
+        </div>
+        <div>ISO Formats</div>
+        <div>
+            <a class="a5 onepage" href="print_a5.pdf"><span>A5</span></a>
+            <a class="a4 twopage" href="print_booklet_a5.pdf"><span>A4&nbsp;Booklet<br/>(duplex&nbsp;print)</span></a>
+        </div>
+        <div>
+            For eReaders/Kindle:&nbsp;&nbsp;
+            <a class="ereader onepage" href="print_ereader.pdf"><span>6" Ø</span></a>
+        </div>
+    </div>
+    {% endif %}
+    <div class="layout-wrapper">
+        {% if fmt.is_web_target %}
+        <div class="nav">
+            <div class="nav-scroller">
+                {{nav.outline_html}}
+            </div>
+        </div>
+        {% endif %}
+        <div class="wrapper">
+            <div class="content">
+                {{content}}
+            </div>
+        </div>
+    </div>
+    {% if fmt.is_web_target %}
+    <script src="static/slideout.js"></script>
+    <script src="static/app.js"></script>
+    {% endif %}
+</body>
+</html>

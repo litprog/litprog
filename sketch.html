@@ -1,245 +1,58 @@
 <!DOCTYPE html>
-<html>
+<html lang="{{lang}}">
 <head>
     <meta charset="utf-8"/>
+    <title>{{title}}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style type="text/css">
+    .nav {display: none;}
+    body.dark {background: black;}
+    </style>
+    <link rel="stylesheet" type="text/css" href="fonts.css">
     <link rel="stylesheet" type="text/css" href="src/litprog/static/fonts.css">
     <link rel="stylesheet" type="text/css" href="src/litprog/static/katex.css">
     <link rel="stylesheet" type="text/css" href="src/litprog/static/codehilite.css">
-    <style type="text/css">
-        html, body {
-            padding: 0;
-            margin: 0;
-        }
-        body {
-            font-size: 18px;
-            text-align: justify;
-            line-height: 1.75em;
-            font-family: Bitter, serif;
-        }
-        body, body .wrapper {
-            transition: background 400ms linear 150ms, color 0ms linear 200ms;
-            will-change: background;
-        }
-
-        body {
-            background: #CCC;
-            color: #000;
-        }
-        .nav {
-            display: none;
-            overflow-x: hidden;
-            overflow-y: hidden;
-            width: 22rem;
-        }
-        .nav-scroll {
-            overflow-x: hidden;
-            overflow-y: scroll;
-            height: 100vh;
-            width: 25rem;
-        }
-        .nav ul {
-            list-style-type: none;
-            padding-inline-start: 1em;
-        }
-        .nav a {
-            color: #000;
-            text-decoration: none;
-        }
-        .nav a:hover {
-            text-decoration: underline;
-        }
-        .wrapper {
-            box-shadow: #888 0 0.1em 0.5em 0;
-        }
-        .wrapper {
-            border-radius: 5px;
-        }
-        .wrapper {
-            margin: 0em auto;
-            max-width: 45rem;
-            min-width: 22rem;
-        }
-        .content {
-            padding: 2em;
-            margin: 2em 0;
-        }
-        .content p {
-            letter-spacing: -0.02em;
-            word-spacing: -0.01em;
-        }
-        .content > p, .content > .codehilite {
-            max-width: 99vw;
-            margin: 1em 0;
-        }
-        .codehilite {
-            overflow-x: auto;
-        }
-        div.codehilite {
-            padding: 0 0.5em 0.5em 0;
-        }
-        div.codehilite pre {
-            font-family: "Iosevka Term SS05", monospace;
-            padding: 0 0.5em 0 0;
-        }
-        .layout-wrapper {
-            max-width: 68rem;
-            margin: 0em auto;
-        }
-
-        a {
-            text-decoration: none;
-            border-bottom: 1px solid #05F;
-        }
-        a:hover {
-            border-bottom: 1px dashed #05F;
-        }
-
-        a {
-            color: #05F;
-            border-color: #05F;
-        }
-        .dark a {
-            color: #59F;
-            border-color: #59F;
-        }
-        a:visited {
-            color: #A0A;
-            border-color: #A0A;
-        }
-        .dark a:visited {
-            color: #B9D;
-            border-color: #B9D;
-        }
-
-        body.dark {
-            background: #222;
-            color: #FFF;
-        }
-        .wrapper {
-            background: #FAF8F8;
-        }
-        body.dark .wrapper {
-            background: #000;
-        }
-        .nav a {
-            text-decoration: none;
-            border: none;
-            color: black;
-        }
-        body.dark .nav a {
-            color: white;
-        }
-
-        @media only screen and (min-width: 32rem) {
-            .codehilite {
-                overflow-x: hidden;
-            }
-        }
-
-        @media only screen and (min-width: 70rem) {
-            .nav {
-                display: block;
-                position: fixed;
-                top: 0;
-                left: 0;
-            }
-            .wrapper {
-                margin: 1rem 0 1rem 22rem;
-                max-width: 75rem;
-            }
-            .layout-wrapper {
-                max-width: 75rem;
-                margin: 1rem 2rem;
-            }
-        }
-
-        @media only screen and (max-width: 55rem) {
-            body {
-                background: #FAF8F8;
-            }
-            body.dark {
-                background: #000;
-            }
-            .content {
-                padding: 1.5em;
-            }
-            body.dark .content {
-                padding: 0.8em;
-            }
-            .wrapper {
-                box-shadow: none;
-                border-radius: 0;
-            }
-        }
-
-        @media only screen and (max-width: 42.5rem) {
-            body {
-                font-size: 17px;
-            }
-            div.codehilite pre {font-size: 17px;}
-        }
-        @media only screen and (max-width: 40.0rem) {
-            body {font-size: 16px;}
-            div.codehilite pre {font-size: 16px;}
-        }
-        @media only screen and (max-width: 38.0rem) {
-            body {
-                font-size: 15px;
-                line-height: 1.6em;
-            }
-            div.codehilite pre {font-size: 15px;}
-        }
-
-        @media only screen and (max-width: 70rem) {
-            /** slideout/index.css */
-            body {
-              width: 100%;
-              height: 100%;
-            }
-
-            .slideout-menu {
-              position: fixed;
-              left: 0;
-              top: 0;
-              bottom: 0;
-              right: 0;
-              z-index: 0;
-              width: 256px;
-              overflow-y: scroll;
-              -webkit-overflow-scrolling: touch;
-              display: none;
-            }
-
-            .slideout-panel {
-              position: relative;
-              z-index: 1;
-              will-change: transform;
-            }
-
-            .slideout-open,
-            .slideout-open body,
-            .slideout-open .slideout-panel {
-              overflow: hidden;
-            }
-
-            .slideout-open .slideout-menu {
-              display: block;
-            }
-        }
-
-    </style>
+    <link rel="stylesheet" type="text/css" href="src/litprog/static/general_v2.css">
+    <link rel="stylesheet" type="text/css" href="src/litprog/static/screen_v2.css">
 </head>
-<body class="dark">
+<body>
+    <script type="text/javascript">
+        if (localStorage.getItem("litprog_theme") == "dark") {
+            document.body.classList.add("dark")
+        }
+    </script>
+    <div class="header">
+        <span class="menu-icon" title="Toggle Outline">
+            <span></span>
+            <span></span>
+            <span></span>
+        </span>
+        <span class="toggle-contrast" title="Toggle Light/Dark Mode">
+            <span></span>
+        </span>
+        <span class="print-icon" title="Download PDF files">
+            <span></span>
+            <span></span>
+            <span></span>
+        </span>
+    </div>
+    <div class="pdf-links">
+        <div>ISO Formats</div>
+        <a class="a5 onepage" href="a5.pdf"><span>A5</span></a>
+        <a class="a4 twopage" href="a4-booklet.pdf"><span>A4&nbsp;Booklet<br/>(duplex&nbsp;required)</span></a>
+        <div>US-Letter Formats</div>
+        <a class="half-letter onepage" href="us-half-letter.pdf"><span>Half<br/>Letter</span></a>
+        <a class="letter twopage" href="us-letter-booklet.pdf"><span>Letter&nbsp;Booklet<br/>(duplex&nbsp;required)</span></a>
+    </div>
     <div class="layout-wrapper">
         <div class="nav">
-            <div class="nav-scroll">
+            <div class="nav-scroller">
                 <ul>
                     <li><a href="">1. Headline</a></li>
                     <li>
                         <a href="">2. Headline</a>
                         <ul>
-                            <li><a href="">2.1 Subsection</a></li>
+                            <li><a href="">2.1 Subsection with a longer title than can fit on just one line by itself 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6</a></li>
                             <li><a href="">2.2 Subsection</a></li>
                             <li><a href="">2.3 Subsection</a></li>
                             <li><a href="">2.4 Subsection</a></li>
@@ -363,6 +176,9 @@ F_n = F_{n-1} + F_{n-2}
 <h3>Writing Code to Disk</h3>
 <p>Up to here our code has been float­ing around in mem­o­ry, but even­tu­al­ly we want to pro­duce some­thing that is use­ful. A pro­gram that our users might like to run. In other words, we want to write our code to disk so that it can ei­ther be used di­rect­ly, or fur­ther pro­cessed by a com­pil­er.</p>
 <p>Next is some bor­ing python scaf­fold­ing to wrap the func­tions writ­ten so far.</p>
+<p>
+   <img class="bob" src="data:image/svg+xml;base64,PHN2ZyBjbGFzcz0iYm9iIiBmb250LWZhbWlseT0iYXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGhlaWdodD0iMjcyIiB3aWR0aD0iNTUyIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxkZWZzPjxtYXJrZXIgaWQ9InRyaWFuZ2xlIiBtYXJrZXJIZWlnaHQ9IjgiIG1hcmtlcldpZHRoPSI4IiBvcmllbnQ9ImF1dG8iIHJlZlg9IjQiIHJlZlk9IjIiIHZpZXdCb3g9IjAgMCA4IDQiPjxwb2x5Z29uIGNsYXNzPSJmZ19maWxsIiBwb2ludHM9IjAsMCAwLDQgOCwyIDAsMCIvPjwvbWFya2VyPjxtYXJrZXIgaWQ9ImNsZWFyX3RyaWFuZ2xlIiBtYXJrZXJIZWlnaHQ9IjEwIiBtYXJrZXJXaWR0aD0iMTAiIG9yaWVudD0iYXV0byIgcmVmWD0iMSIgcmVmWT0iNyIgdmlld0JveD0iMCAwIDIwIDE0Ij48cG9seWdvbiBjbGFzcz0iYmdfZmlsbCBmZ19zdHJva2UiIHBvaW50cz0iMiwyIDIsMTIgMTgsNyAyLDIiLz48L21hcmtlcj48bWFya2VyIGlkPSJjaXJjbGUiIG1hcmtlckhlaWdodD0iNSIgbWFya2VyV2lkdGg9IjUiIG9yaWVudD0iYXV0byIgcmVmWD0iMTAiIHJlZlk9IjEwIiB2aWV3Qm94PSIwIDAgMjAgMjAiPjxjaXJjbGUgY2xhc3M9ImZnX2ZpbGwiIGN4PSIxMCIgY3k9IjEwIiByPSI4Ii8+PC9tYXJrZXI+PG1hcmtlciBpZD0ic3F1YXJlIiBtYXJrZXJIZWlnaHQ9IjUiIG1hcmtlcldpZHRoPSI1IiBvcmllbnQ9ImF1dG8iIHJlZlg9IjEwIiByZWZZPSIxMCIgdmlld0JveD0iMCAwIDIwIDIwIj48cmVjdCBjbGFzcz0iZmdfZmlsbCIgaGVpZ2h0PSIyMCIgd2lkdGg9IjIwIiB4PSIwIiB5PSIwIi8+PC9tYXJrZXI+PG1hcmtlciBpZD0ib3Blbl9jaXJjbGUiIG1hcmtlckhlaWdodD0iMTAiIG1hcmtlcldpZHRoPSIxMCIgb3JpZW50PSJhdXRvIiByZWZYPSIxMCIgcmVmWT0iMTAiIHZpZXdCb3g9IjAgMCAyMCAyMCI+PGNpcmNsZSBjbGFzcz0iYmdfZmlsbCBmZ19zdHJva2UiIGN4PSIxMCIgY3k9IjEwIiByPSI0Ii8+PC9tYXJrZXI+PG1hcmtlciBpZD0iYmlnX29wZW5fY2lyY2xlIiBtYXJrZXJIZWlnaHQ9IjIwIiBtYXJrZXJXaWR0aD0iMjAiIG9yaWVudD0iYXV0byIgcmVmWD0iMjAiIHJlZlk9IjIwIiB2aWV3Qm94PSIwIDAgNDAgNDAiPjxjaXJjbGUgY2xhc3M9ImJnX2ZpbGwgZmdfc3Ryb2tlIiBjeD0iMjAiIGN5PSIyMCIgcj0iNiIvPjwvbWFya2VyPjwvZGVmcz48c3R5bGUgdHlwZT0idGV4dC9jc3MiPnJlY3QuYmFja2Ryb3AgeyAgICBmaWxsOiB0cmFuc3BhcmVudDt9LmZnX2ZpbGwgeyAgICBmaWxsOiBibGFjazt9LmJnX2ZpbGwgeyAgICBmaWxsOiB0cmFuc3BhcmVudDt9LmZnX3N0cm9rZSB7ICAgIHN0cm9rZTogYmxhY2s7ICAgIHN0cm9rZS13aWR0aDogMjt9Lm5vX2ZpbGwgeyAgICBmaWxsOiBub25lO30uZGFzaGVkIHsgICAgc3Ryb2tlLWRhc2hhcnJheTogNTt9dGV4dHsgICAgZmlsbDogYmxhY2s7fWxpbmUsIHBhdGggeyAgICBzdHJva2UtbGluZWNhcDogcm91bmQ7ICAgIHN0cm9rZS1saW5lam9pbjogbWl0ZXI7ICAgIHN0cm9rZS1vcGFjaXR5OiAxOyAgICBmaWxsLW9wYWNpdHk6IDE7fXRzcGFuLmhlYWR7ICAgIGZpbGw6IG5vbmU7ICAgIHN0cm9rZTogbm9uZTt9ICAgIDwvc3R5bGU+PHJlY3QgY2xhc3M9ImJhY2tkcm9wIiBoZWlnaHQ9IjI3MiIgd2lkdGg9IjU1MiIgeD0iMCIgeT0iMCIvPjxnPjxsaW5lIGNsYXNzPSJmZ19zdHJva2UiIHgxPSI0IiB4Mj0iNCIgeTE9IjQ0IiB5Mj0iNjgiLz48cGF0aCBjbGFzcz0iZmdfc3Ryb2tlIG5vX2ZpbGwiIGQ9Ik0gNCA2OCBBIDQgNCAwIDAgMCA4IDcyIi8+PHBhdGggY2xhc3M9ImZnX3N0cm9rZSBub19maWxsIiBkPSJNIDggNDAgQSA0IDQgMCAwIDAgNCA0NCIvPjwvZz48Zz48bGluZSBjbGFzcz0iZmdfc3Ryb2tlIiB4MT0iNCIgeDI9IjQiIHkxPSI5MiIgeTI9IjExNiIvPjxwYXRoIGNsYXNzPSJmZ19zdHJva2Ugbm9fZmlsbCIgZD0iTSA0IDExNiBBIDQgNCAwIDAgMCA4IDEyMCIvPjxwYXRoIGNsYXNzPSJmZ19zdHJva2Ugbm9fZmlsbCIgZD0iTSA4IDg4IEEgNCA0IDAgMCAwIDQgOTIiLz48L2c+PGc+PGxpbmUgY2xhc3M9ImZnX3N0cm9rZSIgeDE9IjQiIHgyPSI0IiB5MT0iMTQwIiB5Mj0iMTY0Ii8+PHBhdGggY2xhc3M9ImZnX3N0cm9rZSBub19maWxsIiBkPSJNIDQgMTY0IEEgNCA0IDAgMCAwIDggMTY4Ii8+PHBhdGggY2xhc3M9ImZnX3N0cm9rZSBub19maWxsIiBkPSJNIDggMTM2IEEgNCA0IDAgMCAwIDQgMTQwIi8+PC9nPjxnPjxsaW5lIGNsYXNzPSJmZ19zdHJva2UiIHgxPSI0IiB4Mj0iNCIgeTE9IjE4OCIgeTI9IjIxMiIvPjxwYXRoIGNsYXNzPSJmZ19zdHJva2Ugbm9fZmlsbCIgZD0iTSA0IDIxMiBBIDQgNCAwIDAgMCA4IDIxNiIvPjxwYXRoIGNsYXNzPSJmZ19zdHJva2Ugbm9fZmlsbCIgZD0iTSA4IDE4NCBBIDQgNCAwIDAgMCA0IDE4OCIvPjwvZz48Zz48bGluZSBjbGFzcz0iZmdfc3Ryb2tlIiB4MT0iNCIgeDI9IjQiIHkxPSIyMzYiIHkyPSIyNjAiLz48cGF0aCBjbGFzcz0iZmdfc3Ryb2tlIG5vX2ZpbGwiIGQ9Ik0gNCAyNjAgQSA0IDQgMCAwIDAgOCAyNjQiLz48cGF0aCBjbGFzcz0iZmdfc3Ryb2tlIG5vX2ZpbGwiIGQ9Ik0gOCAyMzIgQSA0IDQgMCAwIDAgNCAyMzYiLz48L2c+PGc+PGxpbmUgY2xhc3M9ImZnX3N0cm9rZSIgeDE9IjgiIHgyPSIxMjgiIHkxPSI0MCIgeTI9IjQwIi8+PHBhdGggY2xhc3M9ImZnX3N0cm9rZSBub19maWxsIiBkPSJNIDEzMiA0NCBBIDQgNCAwIDAgMCAxMjggNDAiLz48L2c+PGc+PGxpbmUgY2xhc3M9ImZnX3N0cm9rZSIgeDE9IjgiIHgyPSIxMjgiIHkxPSI3MiIgeTI9IjcyIi8+PHBhdGggY2xhc3M9ImZnX3N0cm9rZSBub19maWxsIiBkPSJNIDEyOCA3MiBBIDQgNCAwIDAgMCAxMzIgNjgiLz48L2c+PGc+PGxpbmUgY2xhc3M9ImZnX3N0cm9rZSIgeDE9IjgiIHgyPSIxMjgiIHkxPSI4OCIgeTI9Ijg4Ii8+PHBhdGggY2xhc3M9ImZnX3N0cm9rZSBub19maWxsIiBkPSJNIDEzMiA5MiBBIDQgNCAwIDAgMCAxMjggODgiLz48L2c+PGc+PGxpbmUgY2xhc3M9ImZnX3N0cm9rZSIgeDE9IjgiIHgyPSIxMjgiIHkxPSIxMjAiIHkyPSIxMjAiLz48cGF0aCBjbGFzcz0iZmdfc3Ryb2tlIG5vX2ZpbGwiIGQ9Ik0gMTI4IDEyMCBBIDQgNCAwIDAgMCAxMzIgMTE2Ii8+PC9nPjxnPjxsaW5lIGNsYXNzPSJmZ19zdHJva2UiIHgxPSI4IiB4Mj0iMTI4IiB5MT0iMTM2IiB5Mj0iMTM2Ii8+PHBhdGggY2xhc3M9ImZnX3N0cm9rZSBub19maWxsIiBkPSJNIDEzMiAxNDAgQSA0IDQgMCAwIDAgMTI4IDEzNiIvPjwvZz48Zz48bGluZSBjbGFzcz0iZmdfc3Ryb2tlIiB4MT0iOCIgeDI9IjEyOCIgeTE9IjE2OCIgeTI9IjE2OCIvPjxwYXRoIGNsYXNzPSJmZ19zdHJva2Ugbm9fZmlsbCIgZD0iTSAxMjggMTY4IEEgNCA0IDAgMCAwIDEzMiAxNjQiLz48L2c+PGc+PGxpbmUgY2xhc3M9ImZnX3N0cm9rZSIgeDE9IjgiIHgyPSIxMjgiIHkxPSIxODQiIHkyPSIxODQiLz48cGF0aCBjbGFzcz0iZmdfc3Ryb2tlIG5vX2ZpbGwiIGQ9Ik0gMTMyIDE4OCBBIDQgNCAwIDAgMCAxMjggMTg0Ii8+PC9nPjxnPjxsaW5lIGNsYXNzPSJmZ19zdHJva2UiIHgxPSI4IiB4Mj0iMTI4IiB5MT0iMjE2IiB5Mj0iMjE2Ii8+PHBhdGggY2xhc3M9ImZnX3N0cm9rZSBub19maWxsIiBkPSJNIDEyOCAyMTYgQSA0IDQgMCAwIDAgMTMyIDIxMiIvPjwvZz48Zz48bGluZSBjbGFzcz0iZmdfc3Ryb2tlIiB4MT0iOCIgeDI9IjEyOCIgeTE9IjIzMiIgeTI9IjIzMiIvPjxwYXRoIGNsYXNzPSJmZ19zdHJva2Ugbm9fZmlsbCIgZD0iTSAxMzIgMjM2IEEgNCA0IDAgMCAwIDEyOCAyMzIiLz48L2c+PGc+PGxpbmUgY2xhc3M9ImZnX3N0cm9rZSIgeDE9IjgiIHgyPSIxMjgiIHkxPSIyNjQiIHkyPSIyNjQiLz48cGF0aCBjbGFzcz0iZmdfc3Ryb2tlIG5vX2ZpbGwiIGQ9Ik0gMTI4IDI2NCBBIDQgNCAwIDAgMCAxMzIgMjYwIi8+PC9nPjxnPjxsaW5lIGNsYXNzPSJmZ19zdHJva2UiIHgxPSIxMzIiIHgyPSIxMzIiIHkxPSI0NCIgeTI9IjQ4Ii8+PC9nPjxnPjxsaW5lIGNsYXNzPSJmZ19zdHJva2UiIHgxPSIxMzIiIHgyPSIxMzIiIHkxPSI2OCIgeTI9IjY0Ii8+PC9nPjxnPjxsaW5lIGNsYXNzPSJmZ19zdHJva2UiIHgxPSIxMzIiIHgyPSIxMzIiIHkxPSI5MiIgeTI9Ijk2Ii8+PC9nPjxnPjxsaW5lIGNsYXNzPSJmZ19zdHJva2UiIHgxPSIxMzIiIHgyPSIxMzIiIHkxPSIxMTYiIHkyPSIxMTIiLz48L2c+PGc+PGxpbmUgY2xhc3M9ImZnX3N0cm9rZSIgeDE9IjEzMiIgeDI9IjEzMiIgeTE9IjE0MCIgeTI9IjE0NCIvPjwvZz48Zz48bGluZSBjbGFzcz0iZmdfc3Ryb2tlIiB4MT0iMTMyIiB4Mj0iMTMyIiB5MT0iMTY0IiB5Mj0iMTYwIi8+PC9nPjxnPjxsaW5lIGNsYXNzPSJmZ19zdHJva2UiIHgxPSIxMzIiIHgyPSIxMzIiIHkxPSIxODgiIHkyPSIyMDAiLz48bGluZSBjbGFzcz0iZmdfc3Ryb2tlIiB4MT0iMTMyIiB4Mj0iMTMyIiB5MT0iMjAwIiB5Mj0iMjEyIi8+PGxpbmUgY2xhc3M9ImZnX3N0cm9rZSIgeDE9IjEzMiIgeDI9IjEzNiIgeTE9IjIwMCIgeTI9IjIwMCIvPjxsaW5lIGNsYXNzPSJmZ19zdHJva2UgZGFzaGVkIiB4MT0iMTM2IiB4Mj0iMTUyIiB5MT0iMjAwIiB5Mj0iMjAwIi8+PHBhdGggY2xhc3M9ImZnX3N0cm9rZSBub19maWxsIiBkPSJNIDE1NiAyMDQgQSA0IDQgMCAwIDAgMTUyIDIwMCIvPjwvZz48Zz48bGluZSBjbGFzcz0iZmdfc3Ryb2tlIiB4MT0iMTMyIiB4Mj0iMTMyIiB5MT0iMjM2IiB5Mj0iMjQ4Ii8+PGxpbmUgY2xhc3M9ImZnX3N0cm9rZSIgeDE9IjEzMiIgeDI9IjEzMiIgeTE9IjI0OCIgeTI9IjI2MCIvPjxsaW5lIGNsYXNzPSJmZ19zdHJva2UiIHgxPSIxMzIiIHgyPSIxMzYiIHkxPSIyNDgiIHkyPSIyNDgiLz48bGluZSBjbGFzcz0iZmdfc3Ryb2tlIGRhc2hlZCIgeDE9IjEzNiIgeDI9IjE3NiIgeTE9IjI0OCIgeTI9IjI0OCIvPjwvZz48Zz48bGluZSBjbGFzcz0iZmdfc3Ryb2tlIiB4MT0iMTU2IiB4Mj0iMTU2IiB5MT0iMjA0IiB5Mj0iMjA4Ii8+PGxpbmUgY2xhc3M9ImZnX3N0cm9rZSBkYXNoZWQiIHgxPSIxNTYiIHgyPSIxNTYiIHkxPSIyMDgiIHkyPSIyNDAiLz48L2c+PGc+PGxpbmUgY2xhc3M9ImZnX3N0cm9rZSIgeDE9IjE2NiIgeDI9IjE4OCIgeTE9IjYwIiB5Mj0iMTA0Ii8+PGxpbmUgY2xhc3M9ImZnX3N0cm9rZSIgeDE9IjE4OCIgeDI9IjE2NiIgeTE9IjEwNCIgeTI9IjE0OCIvPjxsaW5lIGNsYXNzPSJmZ19zdHJva2UiIG1hcmtlci1lbmQ9InVybCgjdHJpYW5nbGUpIiB4MT0iMTg4IiB4Mj0iMjIwIiB5MT0iMTA0IiB5Mj0iMTA0Ii8+PHBhdGggY2xhc3M9ImZnX3N0cm9rZSBub19maWxsIiBkPSJNIDE2MCAxNTIgQSA4IDggMCAwIDAgMTY2IDE0OCIvPjxwYXRoIGNsYXNzPSJmZ19zdHJva2Ugbm9fZmlsbCIgZD0iTSAxNjYgNjAgQSA4IDggMCAwIDAgMTYwIDU2Ii8+PGxpbmUgY2xhc3M9ImZnX3N0cm9rZSIgbWFya2VyLXN0YXJ0PSJ1cmwoI2JpZ19vcGVuX2NpcmNsZSkiIHgxPSIxMzIiIHgyPSIxNjAiIHkxPSI1NiIgeTI9IjU2Ii8+PGxpbmUgY2xhc3M9ImZnX3N0cm9rZSIgbWFya2VyLXN0YXJ0PSJ1cmwoI2JpZ19vcGVuX2NpcmNsZSkiIHgxPSIxMzIiIHgyPSIxODgiIHkxPSIxMDQiIHkyPSIxMDQiLz48bGluZSBjbGFzcz0iZmdfc3Ryb2tlIiBtYXJrZXItc3RhcnQ9InVybCgjYmlnX29wZW5fY2lyY2xlKSIgeDE9IjEzMiIgeDI9IjE2MCIgeTE9IjE1MiIgeTI9IjE1MiIvPjwvZz48Zz48bGluZSBjbGFzcz0iZmdfc3Ryb2tlIiB4MT0iMjA0IiB4Mj0iMjA0IiB5MT0iNDQiIHkyPSI0OCIvPjxsaW5lIGNsYXNzPSJmZ19zdHJva2UgZGFzaGVkIiB4MT0iMjA0IiB4Mj0iMjA0IiB5MT0iNDgiIHkyPSI5NiIvPjwvZz48Zz48bGluZSBjbGFzcz0iZmdfc3Ryb2tlIiB4MT0iMjI4IiB4Mj0iMjI4IiB5MT0iOTIiIHkyPSIxMjAiLz48bGluZSBjbGFzcz0iZmdfc3Ryb2tlIiB4MT0iMjI4IiB4Mj0iMjI4IiB5MT0iMTIwIiB5Mj0iMTQ4Ii8+PGxpbmUgY2xhc3M9ImZnX3N0cm9rZSIgeDE9IjIyOCIgeDI9IjM2NCIgeTE9IjEyMCIgeTI9IjEyMCIvPjxsaW5lIGNsYXNzPSJmZ19zdHJva2UiIHgxPSIzNjQiIHgyPSIzNjQiIHkxPSIxMjAiIHkyPSIxMTIiLz48bGluZSBjbGFzcz0iZmdfc3Ryb2tlIiB4MT0iMzY0IiB4Mj0iMzY0IiB5MT0iMTIwIiB5Mj0iMTI4Ii8+PHBhdGggY2xhc3M9ImZnX3N0cm9rZSBub19maWxsIiBkPSJNIDIyOCAxNDggQSA0IDQgMCAwIDAgMjMyIDE1MiIvPjxwYXRoIGNsYXNzPSJmZ19zdHJva2Ugbm9fZmlsbCIgZD0iTSAyMzIgODggQSA0IDQgMCAwIDAgMjI4IDkyIi8+PC9nPjxnPjxsaW5lIGNsYXNzPSJmZ19zdHJva2UiIHgxPSIyMzIiIHgyPSIzNjAiIHkxPSI4OCIgeTI9Ijg4Ii8+PHBhdGggY2xhc3M9ImZnX3N0cm9rZSBub19maWxsIiBkPSJNIDM2NCA5MiBBIDQgNCAwIDAgMCAzNjAgODgiLz48L2c+PGc+PGxpbmUgY2xhc3M9ImZnX3N0cm9rZSIgeDE9IjIzMiIgeDI9IjM2MCIgeTE9IjE1MiIgeTI9IjE1MiIvPjxwYXRoIGNsYXNzPSJmZ19zdHJva2Ugbm9fZmlsbCIgZD0iTSAzNjAgMTUyIEEgNCA0IDAgMCAwIDM2NCAxNDgiLz48L2c+PGc+PGxpbmUgY2xhc3M9ImZnX3N0cm9rZSIgeDE9IjM2NCIgeDI9IjM2NCIgeTE9IjkyIiB5Mj0iOTYiLz48L2c+PGc+PGxpbmUgY2xhc3M9ImZnX3N0cm9rZSIgeDE9IjM2NCIgeDI9IjM2NCIgeTE9IjE0OCIgeTI9IjE0NCIvPjwvZz48Zz48bGluZSBjbGFzcz0iZmdfc3Ryb2tlIiB4MT0iMzk2IiB4Mj0iMzgyIiB5MT0iMTA0IiB5Mj0iMTMyIi8+PGxpbmUgY2xhc3M9ImZnX3N0cm9rZSIgbWFya2VyLWVuZD0idXJsKCN0cmlhbmdsZSkiIHgxPSIzOTYiIHgyPSI0MjgiIHkxPSIxMDQiIHkyPSIxMDQiLz48cGF0aCBjbGFzcz0iZmdfc3Ryb2tlIG5vX2ZpbGwiIGQ9Ik0gMzc2IDEzNiBBIDggOCAwIDAgMCAzODIgMTMyIi8+PGxpbmUgY2xhc3M9ImZnX3N0cm9rZSIgbWFya2VyLXN0YXJ0PSJ1cmwoI2JpZ19vcGVuX2NpcmNsZSkiIHgxPSIzNjQiIHgyPSIzOTYiIHkxPSIxMDQiIHkyPSIxMDQiLz48bGluZSBjbGFzcz0iZmdfc3Ryb2tlIiBtYXJrZXItc3RhcnQ9InVybCgjYmlnX29wZW5fY2lyY2xlKSIgeDE9IjM2NCIgeDI9IjM3NiIgeTE9IjEzNiIgeTI9IjEzNiIvPjwvZz48Zz48bGluZSBjbGFzcz0iZmdfc3Ryb2tlIiB4MT0iNDM2IiB4Mj0iNDM2IiB5MT0iOTIiIHkyPSIxMTYiLz48cGF0aCBjbGFzcz0iZmdfc3Ryb2tlIG5vX2ZpbGwiIGQ9Ik0gNDM2IDExNiBBIDQgNCAwIDAgMCA0NDAgMTIwIi8+PHBhdGggY2xhc3M9ImZnX3N0cm9rZSBub19maWxsIiBkPSJNIDQ0MCA4OCBBIDQgNCAwIDAgMCA0MzYgOTIiLz48L2c+PGc+PGxpbmUgY2xhc3M9ImZnX3N0cm9rZSIgeDE9IjQ0MCIgeDI9IjUzNiIgeTE9Ijg4IiB5Mj0iODgiLz48cGF0aCBjbGFzcz0iZmdfc3Ryb2tlIG5vX2ZpbGwiIGQ9Ik0gNTQwIDkyIEEgNCA0IDAgMCAwIDUzNiA4OCIvPjwvZz48Zz48bGluZSBjbGFzcz0iZmdfc3Ryb2tlIiB4MT0iNDQwIiB4Mj0iNTM2IiB5MT0iMTIwIiB5Mj0iMTIwIi8+PHBhdGggY2xhc3M9ImZnX3N0cm9rZSBub19maWxsIiBkPSJNIDUzNiAxMjAgQSA0IDQgMCAwIDAgNTQwIDExNiIvPjwvZz48Zz48bGluZSBjbGFzcz0iZmdfc3Ryb2tlIiB4MT0iNTQwIiB4Mj0iNTQwIiB5MT0iOTIiIHkyPSIxMTYiLz48L2c+PGc+PGxpbmUgY2xhc3M9ImZnX3N0cm9rZSBkYXNoZWQiIHgxPSIxNTYiIHgyPSIxNTYiIHkxPSIxNzYiIHkyPSIxOTIiLz48L2c+PGc+PGxpbmUgY2xhc3M9ImZnX3N0cm9rZSBkYXNoZWQiIHgxPSIyOTIiIHgyPSIyOTIiIHkxPSIxNjAiIHkyPSIxOTIiLz48L2c+PGc+PGxpbmUgY2xhc3M9ImZnX3N0cm9rZSBkYXNoZWQiIHgxPSI0MTIiIHgyPSI0MTIiIHkxPSI2NCIgeTI9Ijk2Ii8+PC9nPjxnPjx0ZXh0IGNsYXNzPSJmZ19maWxsIiB4PSIzMyIgeT0iNjAiPlNoYXJlIDEvNTwvdGV4dD48L2c+PGc+PHRleHQgY2xhc3M9ImZnX2ZpbGwiIHg9IjMzIiB5PSIxMDgiPlNoYXJlIDIvNTwvdGV4dD48L2c+PGc+PHRleHQgY2xhc3M9ImZnX2ZpbGwiIHg9IjMzIiB5PSIxNTYiPlNoYXJlIDMvNTwvdGV4dD48L2c+PGc+PHRleHQgY2xhc3M9ImZnX2ZpbGwiIHg9IjMzIiB5PSIyMDQiPlNoYXJlIDQvNTwvdGV4dD48L2c+PGc+PHRleHQgY2xhc3M9ImZnX2ZpbGwiIHg9IjMzIiB5PSIyNTIiPlNoYXJlIDUvNTwvdGV4dD48L2c+PGc+PHRleHQgY2xhc3M9ImZnX2ZpbGwiIHg9IjEzNyIgeT0iMjgiPlJlY292ZXJ5IGZyb20gMyBvZiA1IEJhY2t1cCBTaGFyZXM8L3RleHQ+PC9nPjxnPjx0ZXh0IGNsYXNzPSJmZ19maWxsIiB4PSIxNzciIHk9IjIzNiI+RGlzdHJpYnV0ZWQgYXQgU2VjdXJlIExvY2F0aW9uczwvdGV4dD48L2c+PGc+PHRleHQgY2xhc3M9ImZnX2ZpbGwiIHg9IjE3NyIgeT0iMjUyIj5hbmQvb3Igd2l0aCBUcnVzdGVkIFBlb3BsZTwvdGV4dD48L2c+PGc+PHRleHQgY2xhc3M9ImZnX2ZpbGwiIHg9IjI0OSIgeT0iMjA0Ij5Lbm93biBvbmx5IHRvIE93bmVyPC90ZXh0PjwvZz48Zz48dGV4dCBjbGFzcz0iZmdfZmlsbCIgeD0iMjY1IiB5PSIxNDAiPkJyYWlua2V5PC90ZXh0PjwvZz48Zz48dGV4dCBjbGFzcz0iZmdfZmlsbCIgeD0iMjgxIiB5PSIxMDgiPlNhbHQ8L3RleHQ+PC9nPjxnPjx0ZXh0IGNsYXNzPSJmZ19maWxsIiB4PSIzMzciIHk9IjYwIj5Mb2FkIFdhbGxldCAoUmVndWxhciBVc2UpPC90ZXh0PjwvZz48Zz48dGV4dCBjbGFzcz0iZmdfZmlsbCIgeD0iNDY1IiB5PSIxMDgiPldhbGxldDwvdGV4dD48L2c+PC9zdmc+">
+</p>
 
 <div class="codehilite"><pre><span class="lineno">1</span>```<span class="nv">math</span>
 <span class="lineno">2</span>\<span class="nv">begin</span>{<span class="nv">array</span>}{<span class="nv">l</span>}
@@ -381,7 +197,7 @@ F_n = F_{n-1} + F_{n-2}
 <span class="lineno">6</span>    <span class="k">return</span> <span class="n">params</span><span class="p">,</span> <span class="n">flags</span>
 </pre></div>
 <div class="codehilite"><pre><span class="lineno">1</span><span class="ch">#!/usr/bin/env python</span>
-<span class="lineno">2</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="n">f</span><span class="s2">"""Usage: python {__file__} [--help] [--pretty]
+<span class="lineno">2</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="n">f</span><span class="s2">"""Usage: python {__file__} [--help] [--verbose] [--quiet] [--pretty]
 <span class="lineno">↪</span>&lt;n&gt;..."""</span>
 <span class="lineno">3</span>
 <span class="lineno">4</span><span class="kn">import</span> <span class="nn">sys</span>
@@ -416,24 +232,7 @@ F_n = F_{n-1} + F_{n-2}
             </div>
         </div>
     </div>
-    <script type="text/javascript">
-        document.body.addEventListener('click', function(){
-            return;
-            if (document.body.classList.contains("dark")) {
-                document.body.classList.remove("dark");
-            } else {
-                document.body.classList.add("dark");
-            }
-        })
-    </script>
     <script src="src/litprog/static/slideout.js"></script>
-    <script>
-      var slideout = new Slideout({
-        'panel': document.querySelector('.wrapper'),
-        'menu': document.querySelector('.nav'),
-        'padding': 256,
-        'tolerance': 200,
-      });
-    </script>
+    <script src="src/litprog/static/app.js"></script>
 </body>
 </html>

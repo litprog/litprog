@@ -7,35 +7,13 @@ pre {
     line-height: 1.25em;
 }
 
-
-@media print {
-    div.codehilite pre {
-        min-width: 35em;
-        letter-spacing: -0.02em;
-    }
-}
-
-@media screen {
-    div.codehilite pre {
-        min-width: 99.5%;
-        letter-spacing: 0.01em;
-    }
-}
-
-@media only screen and (max-width: 45.0em) {
-    div.codehilite pre {
-        letter-spacing: -0.02em;
-    }
-}
-
-
 div.codehilite {
-    padding-right: 1em;
+    padding-right: 0.5em;
 }
 
 div.codehilite pre {
     display: inline-block;
-    border: 1px dashed #888;
+    border: 1px solid #888;
     border-width: 0 1px 0 0;
     margin: 0 auto;
 }
@@ -147,9 +125,12 @@ span.lineno {
 
 @media print {
 
-.codehilite .nn {  color: #000; } /* Name.Namespace */
-.codehilite .o {  color: #000; } /* Operator */
-.codehilite .ow {  color: #800; } /* Operator.Word */
+/* TODO: Maybe not disable colouring totally for print? */
+.dark .codehilite .err { color: #400 } /* Error */
+
+.codehilite .nn { color: #000; } /* Name.Namespace */
+.codehilite .o  { color: #000; } /* Operator */
+.codehilite .ow { color: #000; } /* Operator.Word */
 .codehilite .sa { color: #000; } /* Literal.String.Affix */
 .codehilite .sb { color: #000; } /* Literal.String.Backtick */
 .codehilite .sc { color: #000; } /* Literal.String.Char */
@@ -164,13 +145,13 @@ span.lineno {
 .codehilite .sr { color: #000; } /* Literal.String.Regex */
 .codehilite .ss { color: #000; } /* Literal.String.Symbol */
 
-.codehilite .l {  color: #000; }  /* Literal */
+.codehilite .l  { color: #000; }  /* Literal */
 .codehilite .mi { color: #000; } /* */
 .codehilite .bp { color: #000; } /* Literal.String.Symbol */
 
-.codehilite .ni {  color: #000;  } /* Name.Entity */
-.codehilite .ne {  color: #000;  } /* Name.Exception */
-.codehilite .nt {  color: #000;  } /* Name.Tag */
+.codehilite .ni { color: #000;  } /* Name.Entity */
+.codehilite .ne { color: #000;  } /* Name.Exception */
+.codehilite .nt { color: #000;  } /* Name.Tag */
 
 }
 

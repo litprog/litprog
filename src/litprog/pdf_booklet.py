@@ -1,11 +1,14 @@
-#!/home/mbarkhau/miniconda3/envs/litprog_py37/bin/python
 import sys
 import math
 import time
+import logging
 import typing as typ
 import pathlib2 as pl
 
 import PyPDF2 as pdf
+
+log = logging.getLogger(__name__)
+
 
 MAX_BOOKLET_SHEETS = 13
 PAGES_PER_SHEET    = 4
@@ -16,14 +19,14 @@ PT_PER_MM   = PT_PER_INCH / 25.4
 
 BOOKLET_FORMAT_MAPPING = {
     # out_format, page_order, scale, margin
-    'A6-Portrait'   : ('A5-Landscape'    , 'booklet', 0 * PT_PER_MM),
-    'A5-Portrait'   : ('A4-Landscape'    , 'booklet', 0 * PT_PER_MM),
-    'A4-Portrait'   : ('A4-Landscape'    , 'booklet', 0 * PT_PER_MM),
-    'A3-Portrait'   : ('A4-Landscape'    , 'booklet', 0 * PT_PER_MM),
-    'Half-Letter'   : ('Letter-Landscape', 'booklet', 0 * PT_PER_MM),
-    '1of2col-A4'    : ('A4-Portrait'     , 'paper'  , -4 * PT_PER_MM),
-    '1of2col-Letter': ('Letter-Portrait' , 'paper'  , -4 * PT_PER_MM),
-    'Letter-Portrait': ('A4-Landscape'   , 'booklet', -5 * PT_PER_MM),
+    'A6-Portrait'    : ('A5-Landscape'    , 'booklet', 0 * PT_PER_MM),
+    'A5-Portrait'    : ('A4-Landscape'    , 'booklet', 0 * PT_PER_MM),
+    'A4-Portrait'    : ('A4-Landscape'    , 'booklet', 0 * PT_PER_MM),
+    'A3-Portrait'    : ('A4-Landscape'    , 'booklet', 0 * PT_PER_MM),
+    'Half-Letter'    : ('Letter-Landscape', 'booklet', 0 * PT_PER_MM),
+    '1of2col-A4'     : ('A4-Portrait'     , 'paper'  , -4 * PT_PER_MM),
+    '1of2col-Letter' : ('Letter-Portrait' , 'paper'  , -4 * PT_PER_MM),
+    'Letter-Portrait': ('A4-Landscape'    , 'booklet', -5 * PT_PER_MM),
 }
 
 
@@ -138,18 +141,20 @@ def get_format_id(page_width_pt: int, page_height_pt: int) -> typ.Optional[str]:
     return None
 
 
-def main() -> int:
+def create(in_path: pl.Path, out_path: typ.Optional[pl.Path]) -> pl.Path:
     # TODO: option for page scale
     # rescale = 1.33
-    rescale = 1.00
+    rescale     = 1.00
     rescale_pct = 100 * (1 - rescale)
 
     max_sheets = MAX_BOOKLET_SHEETS
 
-    in_path      = pl.Path(sys.argv[1])
-    ext          = "".join(in_path.suffixes)
-    out_filename = (in_path.name[: -len(ext)] + "_booklet") + ext
-    out_path     = in_path.parent / out_filename
+    if out_path is None:
+        ext          = "".join(in_path.suffixes)
+        out_filename = (in_path.name[: -len(ext)] + "_booklet") + ext
+        _out_path    = in_path.parent / out_filename
+    else:
+        _out_path = out_path
 
     output = pdf.PdfFileWriter()
 
@@ -167,35 +172,31 @@ def main() -> int:
             err_msg = f"Unknown page format: {in_page_width_mm}mm x {in_page_height_mm}mm"
             raise Exception(err_msg)
 
-        (
-            out_format_id,
-            page_order,
-            center_margin,
-        ) = BOOKLET_FORMAT_MAPPING[in_format_id]
-        print(f"Converting 2x{in_format_id} -> {out_format_id}")
+        (out_format_id, page_order, center_margin) = BOOKLET_FORMAT_MAPPING[in_format_id]
+        # print(f"Converting 2x{in_format_id} -> {out_format_id}")
 
         out_width, out_height = PAPER_FORMATS_PT[out_format_id]
 
-        scale_w = round((out_width  / 2) / in_page_width, 2)
+        scale_w = round((out_width / 2) / in_page_width, 2)
         scale_h = round(out_height / in_page_height, 2)
-        print("scale", min(scale_w, scale_h), scale_w, scale_h)
-        # scale = min(scale_h, scale_w)
+        # print("scale", min(scale_w, scale_h), scale_w, scale_h)
+        scale = min(scale_h, scale_w)
         scale = scale_h
-        if scale < 1:
-            print(f"scaling down by {1/scale:5.2f}x")
-        elif scale > 1:
-            print(f"scaling up by {scale}x")
+        # if scale < 1:
+        #     print(f"scaling down by {1/scale:5.2f}x")
+        # elif scale > 1:
+        #     print(f"scaling up by {scale}x")
 
-        if rescale < 1:
-            print(f"adding padding of {abs(rescale_pct):3.2f}%")
-        elif rescale > 1:
-            print(f"trimming by {abs(rescale_pct):5.2f}%")
+        # if rescale < 1:
+        #     print(f"adding padding of {abs(rescale_pct):3.2f}%")
+        # elif rescale > 1:
+        #     print(f"trimming by {abs(rescale_pct):5.2f}%")
 
         scale = scale * rescale
 
         trim_factor = (rescale - 1) / 2
-        trim_x = 0.5 * out_width * trim_factor
-        trim_y = 0.6 * out_height * trim_factor
+        trim_x      = 0.5 * out_width  * trim_factor
+        trim_y      = 0.6 * out_height * trim_factor
         # TODO: option for center spacing
         center_spacing = out_width * 0.005
         center_spacing = center_margin
@@ -231,22 +232,32 @@ def main() -> int:
                 x_offset = (out_width / 2) + center_spacing
 
             tx    = x_offset - trim_x
-            ty    = 0 - trim_y
+            ty    = 0        - trim_y
             tzero = time.time()
             if scale == 1:
                 out_sheet.mergeTranslatedPage(in_page, tx=tx, ty=ty, expand=False)
             else:
-                out_sheet.mergeScaledTranslatedPage(in_page, scale=scale, tx=tx, ty=ty, expand=False)
-            print(f"<<< {half_page_index:>2}", half_page_index % 2, time.time() - tzero)
+                out_sheet.mergeScaledTranslatedPage(
+                    in_page, scale=scale, tx=tx, ty=ty, expand=False
+                )
+            log.debug(
+                f"booklet page {half_page_index:>2}", half_page_index % 2, time.time() - tzero
+            )
 
         tzero = time.time()
         for out_sheet in out_sheets:
             out_sheet.compressContentStreams()
-        print("compression", time.time() - tzero)
+        compression_time = time.time() - tzero
+        log.debug(f"compression time: {compression_time}")
 
-        with out_path.open(mode="wb") as out_fh:
+        with _out_path.open(mode="wb") as out_fh:
             output.write(out_fh)
 
+    return _out_path
+
+
+def main() -> int:
+    create(in_path=pl.Path(sys.argv[1]))
     return 0
 
 

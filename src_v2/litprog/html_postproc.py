@@ -128,8 +128,9 @@ def _postprocess_soup(soup: bs4.BeautifulSoup) -> str:
     elements = it.chain(soup.find_all(f"p"), soup.find_all(f"li"))
     for elem in elements:
         for part in elem.contents:
-            is_text_elem = isinstance(part, bs4.element.NavigableString) or (
-                part.name in INLINE_TAG_NAMES and part.string
+            is_text_elem = (
+                isinstance(part, bs4.element.NavigableString)
+                or (part.name in INLINE_TAG_NAMES and part.string)
             )
             if is_text_elem:
                 shyphenated = _shyphenate(dic, part.string)

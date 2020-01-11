@@ -5,4 +5,14 @@
         margin: 10mm 8mm;
         size: 105mm 297mm;
     }
+    body {
+        /* 1of2col - for 2 column paper layout */
+        font-size: 8.5pt;
+        line-height: 1.40em;
+    }
+
+    div.codehilite pre {
+        font-size: 7.4pt;
+        letter-spacing: -0.06em;
+    }
 }

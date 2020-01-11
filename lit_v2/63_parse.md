@@ -101,9 +101,9 @@ def _iter_markdown(
         input_lines = enumerate(fh)
         for i, line_val in input_lines:
             if is_fence(line_val):
-                # TODO: The separation here isn't very nice. 
+                # TODO: The separation here isn't very nice.
                 #   Mentally keeping track of the state of the
-                #   line iterator (has it gone past the fence?) is 
+                #   line iterator (has it gone past the fence?) is
                 #   more complicated than it probably has to be.
                 if prose_lines:
                     yield lptyp.RawElement(input_path, prose_lines)
@@ -479,8 +479,8 @@ def _add_block_to_context(
         )
 
         is_block_continuation = (
-            is_redeclared_key 
-            and key == 'lptype' 
+            is_redeclared_key
+            and key == 'lptype'
             and val == 'raw_block'
         )
         if is_block_continuation:
@@ -512,9 +512,14 @@ def test_fs_scanning():
 
 ### Future Work
 
+#### Mark Code Block as Data to Limit Screen/Print Output
+
+ - Annotation for data sections. Probably only excerpts of these should be displayed/printed by default and on screens there may be styling to expand/collapse these large data blocks. Wasting screen real estate and paper for data is probably not desireable.
+
+
 #### Better Handling of dependencies
 
-Currently a `session` block must specify each recursive dependency in the `requires` field, not just those it directly depends upon. It would be nice if for example the `test_parse` session would only have to declare its dependency direct dependencies, eg. `src/litprog/parse.py` and `src/litprog/cli.py`. 
+Currently a `session` block must specify each recursive dependency in the `requires` field, not just those it directly depends upon. It would be nice if for example the `test_parse` session would only have to declare its dependency direct dependencies, eg. `src/litprog/parse.py` and `src/litprog/cli.py`.
 
 Alternatively, we could add syntax specific parsing for each block, to determine what each one provides and requires. For the python syntax for example, we could parse `import <module_name>` lines to determine what the requirements for a code block are and we could parse from the field `filepath: module_name.py` to determine that it provides that python module.
 

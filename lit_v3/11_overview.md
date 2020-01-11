@@ -1,10 +1,6 @@
 ## Introduction to LitProg
 
-LitProg is a [Literate Programming (LP)][href_wiki_litprog] tool which 
-
- 1. consumes [Markdown][href_wiki_markdown] files,
- 2. produces code files from fenced blocks,
- 3. produces HTML and PDF documentation.
+LitProg is a [Markdown][href_wiki_markdown] processor for [Literate Programming (LP)][href_wiki_litprog] software.
 
 
 ```bob
@@ -12,7 +8,7 @@ LitProg is a [Literate Programming (LP)][href_wiki_litprog] tool which
  +-----------------+
 ++ lit/11_intro.md |\       .------------.
 || lit/12_test.md  +-+      |            |
-|| lit/13_impl.md    o----->+   LitProg  |
+|| lit/13_impl.md    |----->+   LitProg  |
 |+------------------++      |            |
 +-------------------+       '---+----+---'
                                 |    |
@@ -453,9 +449,9 @@ with timeit("fast"): fast_fib(17)
 
 ```shell
 # lp_out
-slow     0.128 ms
-slow     0.329 ms
-slow     0.472 ms
+slow     0.053 ms
+slow     0.134 ms
+slow     0.417 ms
 fast     0.007 ms
 fast     0.002 ms
 fast     0.002 ms
@@ -667,6 +663,18 @@ TODO: Further reading.
 [^fnote_max_hedging]: Sorry about all the hedging. Any "proof" of correctness is only as good as the assertions made by the programmer. Hopefully the broader accessibility of LitProg programs means that programmers will feel the watchful eyes of readers and put some effort into making their programs demonstrably correct.
 
 
+[href_wiki_markdown]: https://en.wikipedia.org/wiki/Markdown
+
+[href_wiki_litprog]: https://en.wikipedia.org/wiki/Literate_programming
+
+[href_pbr_preface]: http://www.pbr-book.org/3ed-2018/Preface.html
+
+[href_johndcook_blog1]: https://www.johndcook.com/blog/2016/07/06/literate-programming-presenting-code-in-human-order/
+
+[href_ctan_web2w]: https://ctan.net/web/web2w/web2w.pdf#page=13
+
+[href_amazon_understanding_mp3]: https://www.amazon.com/Understanding-MP3-Semantics-Mathematics-Algorithms/dp/1541259335/
+
 [href_jupyter]: https://jupyter.org/
 
 [href_svgbob]: https://github.com/ivanceras/svgbob
@@ -683,15 +691,11 @@ TODO: Further reading.
 
 [href_knuthweb]: http://www.literateprogramming.com/knuthweb.pdf
 
-[href_wiki_markdown]: https://en.wikipedia.org/wiki/Markdown
-
 [href_wiki_std_streams]: https://en.wikipedia.org/wiki/Standard_streams
 
 [href_wiki_exit_status]: https://en.wikipedia.org/wiki/Exit_status
 
 [href_wiki_techdebt]: https://en.wikipedia.org/wiki/Technical_debt
-
-[href_wiki_litprog]: https://en.wikipedia.org/wiki/Literate_programming
 
 [href_explainsh_errexit]: https://explainshell.com/explain?cmd=set+-e
 

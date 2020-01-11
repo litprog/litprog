@@ -1,3 +1,4 @@
+body { position: absolute; }
 
 @keyframes fade-out-in-1 {
   0% {opacity: 1;}

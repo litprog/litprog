@@ -1,0 +1,527 @@
+
+body, body .wrapper, .header {
+    transition: background 400ms linear 150ms, color 0ms linear 200ms;
+    will-change: background;
+}
+
+.nav a {
+    border: none;
+    text-decoration: none;
+    color: #000;
+}
+.nav a:hover {
+    text-decoration: underline;
+}
+.nav ul {
+    text-align: left;
+    list-style-type: none;
+    padding-inline-start: 1em;
+}
+
+/* Layout Styles*/
+
+.content {
+    padding: 2em 1.2em;
+    transition: padding 400ms linear;
+    will-change: padding;
+}
+.wrapper {
+    background: #FAF8F8;;
+}
+
+.content > p, .content > .codehilite {
+    margin: 1em 0;
+}
+
+img.bob {
+    display: block;
+    max-width: 100%;
+    margin: 1em auto;
+}
+
+body {
+    background: #FAF8F8;
+}
+
+/* Lift page effect */
+
+@media only screen and (min-width: 800px) {
+    body {
+        background: #CCC;
+    }
+    .wrapper {
+        box-shadow: #888 0 0.1em 0.5em 0;
+        border-radius: 5px;
+        margin: 120px auto;
+        width: calc(100% - 80px);
+        max-width: 900px;
+    }
+}
+
+
+/** slideout/index.css */
+body {
+  width: 100%;
+  height: 100%;
+}
+
+.nav {
+    overflow: hidden;
+}
+
+.nav-scroller {
+    overflow-x: hidden;
+    overflow-y: scroll;
+    height: 100vh;
+    width: 256px;
+    padding-right: 25px;
+    scroll-behavior: smooth;
+}
+
+.nav-scroller > .toc {
+    margin-top: 150px;
+}
+
+.toc li {
+    font-weight: normal;
+    line-height: 1.3em;
+}
+.toc li a {
+    display: inline-block;
+    width: 200px;
+    padding: 5px 15px;
+    will-change: background;
+    transition: background 1s ease
+}
+
+.toc li a:hover,
+.toc li a.active {
+    border-radius: 2px;
+    background: #EEE;
+}
+
+.toc ul {
+    padding-inline-start: 0;
+}
+.toc > ul > li {
+    font-weight: bold;
+    margin-top: 1em;
+    margin-left: 1em;
+}
+
+.slideout-menu {
+  position: fixed;
+  display: none;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  z-index: 0;
+  width: 256px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.slideout-panel {
+  position: relative;
+  z-index: 1;
+  will-change: transform;
+}
+
+.slideout-open,
+.slideout-open body,
+.slideout-open .slideout-panel {
+  overflow: hidden;
+}
+
+.slideout-open .slideout-menu {
+  display: block;
+}
+
+
+/* Show menu on left */
+
+@media only screen and (min-width: 1200px) {
+    .wrapper {
+        margin: 40px 0 40px calc(25% - 280px + 256px);
+    }
+    .slideout-menu {
+        display: block;
+    }
+}
+
+/* Dark Styles*/
+
+body.dark, body.dark .wrapper {
+    background: #000;
+    color: #FFF;
+}
+.dark a {
+    color: #59F;
+    border-color: #59F;
+}
+.dark a:visited {
+    color: #B9D;
+    border-color: #B9D;
+}
+
+.dark .nav a {
+    color: #FFF;
+}
+.dark .toc li a:hover,
+.dark .toc li a.active {
+    background: #555;
+}
+
+.dark img.bob {
+    filter: invert(1);
+}
+
+body.dark .content {
+    padding: 2em 1em 2em 0.5em;
+}
+
+@media only screen and (min-width: 800px) {
+    body.dark {
+        background: #292929;
+    }
+    /* Lift page effect needs extra padding inside*/
+    body.dark .content, .content {
+        padding: 3rem;
+    }
+}
+
+/* Increase font size to maintain approx. constant line length. */
+
+@media only screen and (min-width: 500px) {
+    body {font-size: 15px;}
+    div.codehilite pre {font-size: 14px; letter-spacing: -0.02em;}
+}
+
+@media only screen and (min-width: 550px) {
+    body {font-size: 16px;}
+    div.codehilite pre {font-size: 15px;}
+}
+
+@media only screen and (min-width: 600px) {
+    body {font-size: 17px;}
+    div.codehilite pre {font-size: 16px;}
+}
+
+@media only screen and (min-width: 650px) {
+    body {font-size: 18px; line-height: 1.65em;}
+    div.codehilite pre {font-size: 17px;}
+}
+
+@media only screen and (min-width: 700px) {
+    body {line-height: 1.70em;}
+}
+
+@media only screen and (min-width: 750px) {
+    body {line-height: 1.75em;}
+}
+
+@media only screen and (min-width: 850px) {
+    div.codehilite pre {letter-spacing: 0;}
+}
+
+/* smaller screens need a horizontal scroller, but we always hide it */
+
+@media screen {
+    .content div.codehilite {
+        width: 100%;
+        height: calc(100% - 20px);
+        overflow: hidden;
+    }
+    .content div.codehilite .code-scroller {
+        overflow-x: scroll;
+        margin-bottom: -25px;
+    }
+    .content div.code-scroller pre {
+        min-width: calc(100% - 15px);
+        margin-bottom: 25px;
+    }
+}
+
+
+/* Header */
+
+.header {
+    position: fixed;
+    width: 100%;
+    top: 0;
+    z-index: 2;
+    padding: 20px 20px 15px 40px;
+}
+.wrapper {
+    margin-top: 120px;
+}
+
+/* Scroll headlines below the fixed header. */
+h1[id]::before, h2[id]::before, h3[id]::before, h4[id]::before, h5[id]::before  {
+    content: '';
+    display: block;
+    height:      100px;
+    margin-top: -100px;
+    visibility: hidden;
+}
+
+.header {background: #FAF8F8; }
+.dark .header {background: #000; }
+
+@media only screen and (min-width: 800px) {
+    .header {background: #CCC;}
+    .dark .header {background: #292929;}
+}
+
+@media only screen and (min-width: 1200px) {
+    .header {
+        position: relative;
+    }
+}
+
+.header > span {
+    display: inline-block;
+    width: 50px;
+    height: 50px;
+    border-radius: 35px;
+    margin-right: 15px;
+}
+
+.menu-icon > span {background: #292929;}
+.dark .menu-icon > span {background: #CCC;}
+
+.header > span:hover {
+    cursor: pointer;
+    background: #999;
+}
+.dark .header > span:hover {
+    background: #666;
+}
+
+.menu-icon span {
+    display: block;
+    width: 26px;
+    height: 4px;
+    margin: 0 auto;
+    opacity: 1;
+    margin-bottom: 4px;
+    border-radius: 4px;
+
+    transform-origin: 50% 50%;
+    transition: transform 0.5s ease, opacity 0.5s ease;
+}
+
+.menu-icon span:nth-child(1) {
+  margin-top: 15px;
+}
+
+/* Transform all the slices of hamburger into a crossmark. */
+.menu-icon.active span:nth-child(1) {
+  transform: translate(0px, 8px) rotate(45deg);
+}
+.menu-icon.active span:nth-child(2) {
+  opacity: 0;
+}
+.menu-icon.active span:nth-child(3) {
+  transform: translate(0px, -8px) rotate(-45deg);
+}
+
+@media only screen and (min-width: 1200px) {
+    .header span.menu-icon {display: none;}
+    .header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 210px;
+    }
+}
+
+.header .toggle-contrast > span {
+    display: block;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: #8880;
+
+    transition:
+        margin 0.5s ease,
+        border-radius 0.5s ease,
+        box-shadow 0.5s ease;
+
+    margin-left: 0px;
+    margin-top: 0px;
+    box-shadow: 10px 10px 0 0 #292929;
+}
+
+.dark .header .toggle-contrast > span {
+    margin-left: -30px;
+    margin-top: 10px;
+    box-shadow: 40px 0px 0 0 #CCC;
+}
+
+.header .print-icon {
+    width: 42px;
+    height: 40px;
+    padding: 10px 0 0 8px;
+}
+.header .print-icon > span {
+    display: block;
+    background-color: #EEE;
+    transition: background-color 400ms ease, border-color 400ms ease;
+    will-change: background-color, border-color;
+}
+.header .print-icon span:nth-child(1) {
+    width: 15px;
+    height: 8px;
+    margin-left: 8px;
+    border: 2px solid #292929;
+}
+.header .print-icon span:nth-child(3) {
+    width: 15px;
+    height: 5px;
+    margin-left: 8px;
+    border: 2px solid #292929;
+    border-top: 0px;
+    margin-top: -4px;
+}
+
+.header .print-icon span:nth-child(2) {
+    width: 35px;
+    height: 15px;
+    background-color: #292929;
+    border-radius: 2px;
+    margin-top: -2px;
+}
+
+.dark .header .print-icon span:nth-child(1) {
+    background-color: #292929;
+    border-color: #CCC;
+}
+.dark .header .print-icon span:nth-child(3) {
+    background-color: #292929;
+    border-color: #CCC;
+}
+.dark .header .print-icon span:nth-child(2) {
+    background-color: #CCC;
+}
+
+/* PDF Download Dialog*/
+
+.pdf-links {
+    position: fixed;
+    top: 130px;
+    left: 50%;
+    transform:translate(-50%, 0);
+    min-width: 260px;
+    width: 48vmin;
+    margin: 0 auto;
+    z-index: 2;
+
+    padding: 0 20px 20px 20px;
+    background: white;
+    display: none;
+    opacity: 0;
+
+    box-shadow: #888 0px 2px 20px -5px;
+    transition: opacity 250ms ease;
+    will-change: opactiy;
+    border-radius: 2px;
+}
+
+.pdf-links.active {
+    opacity: 1;
+}
+
+.pdf-links > div {
+    text-align: center;
+    font-weight: bold;
+    color: #000;
+    margin: 2em 0 1em 0;
+}
+
+.pdf-links a:hover {
+    background: #DDD;
+}
+.pdf-links a:hover span {
+    background: #DDD;
+}
+
+.pdf-links .onepage, .pdf-links .twopage {
+    position: relative;
+    border: 1px solid #000;
+    display: inline-block;
+    cursor: pointer;
+    text-align: center;
+    vertical-align: middle;
+    background: #FFF;
+    color: #000;
+}
+
+.pdf-links > div {
+    margin: 1em auto;
+}
+
+.pdf-links span {
+    line-height: 1.2em;
+    padding: 0.3em 0.5em;
+    margin-top: 1em;
+
+    display: inline-block;
+    position: relative;
+    background: #FFF;
+    z-index: 3;
+}
+
+.pdf-links .a4 {width: calc(2.10 * 10vmin); height: calc(2.96 * 10vmin);}
+.pdf-links .a5 {width: calc(1.48 * 10vmin); height: calc(2.10 * 10vmin);}
+.pdf-links .a6 {width: calc(1.05 * 10vmin); height: calc(1.48 * 10vmin);}
+.pdf-links .ereader {width: calc(0.90 * 10vmin); height: calc(1.20 * 10vmin);}
+.pdf-links .a4 {min-width: calc(2.10 * 55px); min-height: calc(2.96 * 55px);}
+.pdf-links .a5 {min-width: calc(1.48 * 55px); min-height: calc(2.10 * 55px);}
+.pdf-links .a6 {min-width: calc(1.05 * 55px); min-height: calc(1.48 * 55px);}
+.pdf-links .ereader {min-width: calc(0.90 * 55px); min-height: calc(1.20 * 55px);}
+
+.pdf-links .a4.twopage {width: calc(2.96 * 10vmin); height: calc(2.10 * 10vmin);}
+.pdf-links .a5.twopage {width: calc(2.10 * 10vmin); height: calc(1.48 * 10vmin);}
+.pdf-links .a6.twopage {width: calc(1.48 * 10vmin); height: calc(1.05 * 10vmin);}
+.pdf-links .a4.twopage {min-width: calc(2.96 * 55px); min-height: calc(2.10 * 55px);}
+.pdf-links .a5.twopage {min-width: calc(2.10 * 55px); min-height: calc(1.48 * 55px);}
+.pdf-links .a6.twopage {min-width: calc(1.48 * 55px); min-height: calc(1.05 * 55px);}
+
+.pdf-links .letter {width: calc(2.16 * 10vmin); height: calc(2.79 * 10vmin);}
+.pdf-links .half-letter {width: calc(1.40 * 10vmin); height: calc(2.16 * 10vmin);}
+.pdf-links .letter {min-width: calc(2.16 * 55px); min-height: calc(2.79 * 55px);}
+.pdf-links .half-letter {min-width: calc(1.40 * 55px); min-height: calc(2.16 * 55px);}
+
+.pdf-links .letter.twopage {width: calc(2.79 * 10vmin); height: calc(2.16 * 10vmin);}
+.pdf-links .half-letter.twopage {width: calc(2.16 * 10vmin); height: calc(1.40 * 10vmin);}
+.pdf-links .letter.twopage {min-width: calc(2.79 * 55px); min-height: calc(2.16 * 55px);}
+.pdf-links .half-letter.twopage {min-width: calc(2.16 * 55px); min-height: calc(1.40 * 55px);}
+
+.pdf-links a.onepage:before,
+.pdf-links a.twopage:before,
+.pdf-links a.twopage:after {
+    z-index: 2;
+    top: 5%;
+    position: absolute;
+    font: 1.5vmin/0.7vmin black sans-serif;
+    text-align: justify;
+    content: "– — – — – – – — – — – – – — – — – – — –– — – –– – — – — – – – — – — – – — –– — – – — – – — – – — – — — – – — – — – — – — – — – — – — —– — – — – – — –– — – – — – – — – – — – — — – – — – — – — – — – — – — – — —– — – — – – — –– — – – — – – — – – — – — — – – — – — – — – — – — – — – — — – — – — – – – — – — – – – — – — – – — –– — – –– – — – — – – – — – — – – — –– — – – — – – — – – — – — — – – — – — – — – — – — – — – — —– — – — – – — –– — – – — – – — – – — – — — – – — – — – — – — – — – — – — —– — – — – – — –– — – – — – – — – – — – — — – – — – — – — – — – — – — – — —";
+    color: #555;
+    overflow: hidden;
+    display: block;
+    padding: 0 10%;
+    height: 85%;
+}
+.pdf-links a.twopage:before,
+.pdf-links a.twopage:after {
+    padding: 0 5%;
+    width: 40%;
+}
+
+.pdf-links a.twopage:before {right: 0;}
+.pdf-links a.twopage:after {left: 0;}
+
+.dark .pdf-links {
+    filter: invert(1);
+}

@@ -6,6 +6,8 @@ import itertools as it
 import bs4
 import pyphen
 
+from . import md2html
+
 
 HTML_PART_PATTERN = re.compile(r"(&[#\w]+?;|<.*?>|\s+\w+)")
 
@@ -31,7 +33,7 @@ def _part_len(part: str) -> int:
 
 
 def _iter_wrapped_line_chunks(line: str, max_len: int) -> typ.Iterable[str]:
-    if len(line) < max_len:
+    if max_len == 0 or len(line) < max_len:
         yield line
         return
 
@@ -113,14 +115,17 @@ def _iter_wrapped_line_chunks(line: str, max_len: int) -> typ.Iterable[str]:
         yield "".join(chunk)
 
 
-def iter_wrapped_lines(pre_content_text: str, add_line_numbers: bool = True) -> typ.Iterable[str]:
+def iter_wrapped_lines(
+    pre_content_text: str, max_line_len: int = 80, add_line_numbers: bool = True
+) -> typ.Iterable[str]:
     pre_content_text  = pre_content_text.replace("<span></span>", "")
     pre_content_lines = pre_content_text.splitlines()
-    num_lines         = len(pre_content_lines)
+    # NOTE: code blocks are basically hardcoded to a width of two characters
+    # line_number_width = len(str(len(pre_content_lines)))
     for line_idx, line in enumerate(pre_content_lines):
         lineno = line_idx + 1
 
-        for part_idx, line_part in enumerate(_iter_wrapped_line_chunks(line, max_len=60)):
+        for part_idx, line_part in enumerate(_iter_wrapped_line_chunks(line, max_len=max_line_len)):
             if add_line_numbers:
                 if part_idx == 0:
                     yield f'<span class="lineno">{lineno}</span>'
@@ -158,7 +163,7 @@ $ pycalver test 'v201811.0051-beta' '{pycalver}' --release final
 # sys.exit(1)
 
 
-def _iter_postproc_html(html_text: HTMLText) -> typ.Iterable[str]:
+def _iter_postproc_html(html_text: HTMLText, max_line_len: int) -> typ.Iterable[str]:
     html_text = html_text.replace("<table>" , """<div class="table-wrap"><table>""")
     html_text = html_text.replace("</table>", """</table></div>""")
 
@@ -176,7 +181,7 @@ def _iter_postproc_html(html_text: HTMLText) -> typ.Iterable[str]:
         end_lidx, end_ridx = end_match.span()
 
         content_text = html_text[begin_ridx:end_lidx]
-        yield "".join(iter_wrapped_lines(content_text))
+        yield "".join(iter_wrapped_lines(content_text, max_line_len=max_line_len))
 
         end_tag = html_text[end_lidx : end_ridx + 1]
         yield end_tag
@@ -191,9 +196,10 @@ def _wrap_firstpara(html_text: HTMLText) -> typ.Iterable[HTMLText]:
     #   orphaned headlines at the bottom of a page.
 
     # NOTE: It appears that WeasyPrint avoids orphaned
-    #   headlines, so this isn't needed there. The only
-    #   case this might make sense is when printing using
-    #   the browser.
+    #   headlines already, so this isn't needed there. The
+    #   only case this might make sense is when printing
+    #   using the browser.
+
     headline_re    = re.compile(r"\<(h\d)[^>]*\>.*?\<\/\1\>")
     tag_re         = re.compile(r"\<(\w+)[^>]*\>.*\<\/\1\>")
     remaining_text = html_text
@@ -341,7 +347,7 @@ def _shyphenate_html(soup: bs4.BeautifulSoup) -> None:
     # TODO: parse language
     dic = pyphen.Pyphen(lang="en_US")
 
-    elements = it.chain(soup.find_all(f"p"), soup.find_all(f"li"))
+    elements = it.chain(soup.find_all("p"), soup.find_all("li"))
     for elem in elements:
         for part in elem.contents:
             is_nav_string = isinstance(part, bs4.element.NavigableString)
@@ -364,7 +370,7 @@ def _shyphenate_html(soup: bs4.BeautifulSoup) -> None:
 
 def _add_sentence_spacing(soup: bs4.BeautifulSoup) -> None:
     lang = "en"
-    if lang != "en":
+    if lang != 'en':
         return
 
     # NOTE: Not implemented because, meh. Seems to be going the way of the dodo.
@@ -379,24 +385,53 @@ def _add_sentence_spacing(soup: bs4.BeautifulSoup) -> None:
     # para_text, _ = re.subn(r"([\.?!]) ([A-Z])", r"\1  \2", para_text)
 
 
-def postproc4all(html_text: HTMLText) -> HTMLText:
-    return "".join(_iter_postproc_html(html_text))
+def _add_code_scrollers(soup: bs4.BeautifulSoup) -> None:
+    for elem in soup.find_all("div", {'class': "codehilite"}):
+        scroller = soup.new_tag("div")
+        scroller.attrs['class'] = ['code-scroller']
+        list(elem.children)[0].wrap(scroller)
 
 
-def postproc4screen(html_text: HTMLText) -> HTMLText:
+def _add_heading_numbers(
+    soup: bs4.BeautifulSoup, toc_tokens: md2html.TocTokens, heading_prefix: str = ""
+) -> None:
+    for i, entry in enumerate(toc_tokens):
+        heading_number = heading_prefix + str(i + 1)
+
+        tag     = "h" + str(entry['level'])
+        heading = soup.find(tag, {'id': entry['id']})
+        if entry['level'] > 1:
+            heading.string = heading_number + " " + heading.string
+        _add_heading_numbers(soup, entry['children'], heading_number + ".")
+
+
+def postproc4screen(html_res: md2html.HTMLResult) -> HTMLText:
+    html_text = html_res.raw_html
+
     # html_text = "".join(_wrap_firstpara(html_text))
+    html_text = "".join(_iter_postproc_html(html_text, max_line_len=0))
+
     fobj = io.StringIO(html_text)
     soup = bs4.BeautifulSoup(fobj, PARSER_MODULE)
+    _add_heading_numbers(soup, html_res.toc_tokens)
     _shyphenate_html(soup)
     _add_sentence_spacing(soup)
+    _add_code_scrollers(soup)
     html_text = str(soup)
     # html_text.replace("\u00AD", "&shy;")
     return html_text
 
 
-def postproc4print(html_text: HTMLText) -> HTMLText:
+def postproc4print(html_res: md2html.HTMLResult, fmt: str) -> HTMLText:
     # TODO: split code blocks
     # - add ids to headlines
     # - collect links and insert superscript (footnote links)
+    max_line_len = 65 if "ereader" in fmt else 80
+    html_text    = "".join(_iter_postproc_html(html_res.raw_html, max_line_len=max_line_len))
+
+    fobj = io.StringIO(html_text)
+    soup = bs4.BeautifulSoup(fobj, PARSER_MODULE)
+    _add_heading_numbers(soup, html_res.toc_tokens)
+    html_text = str(soup)
 
     return html_text

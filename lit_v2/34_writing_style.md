@@ -3,6 +3,7 @@
 https://news.ycombinator.com/item?id=20070558
 https://performancejs.com/post/31b361c/13-Tips-for-Writing-a-Technical-Book
 https://zwischenzugs.com/2016/05/15/writing-a-technical-book/
+https://mkaz.blog/misc/notes-on-technical-writing/
 https://dev.to/trickvi/i-wrote-a-book-lfg
  - user oriented book writing
      + sequential readers vs random access readers (need more context, repetition is ok)

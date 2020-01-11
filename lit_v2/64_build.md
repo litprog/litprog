@@ -1,6 +1,6 @@
 ## Build: Process Fenced Blocks
 
-The purpose of the `build` module is to 
+The purpose of the `build` module is to
 
     1. Generate the program files that can be executed
     2. Run any interactive sessions to illustrate or validate the program
@@ -28,7 +28,7 @@ class GeneratorResult:
     done  : bool
     error : bool
 
-    def __init__(self, 
+    def __init__(self,
         output: typ.Optional[str] = None,
         *,
         done  : typ.Optional[bool] = None,
@@ -137,7 +137,7 @@ def parse_missing_ids(
     return required_ids - captured_ids
 ```
 
-NOTE: In some cases the order of lpids doesn't matter, but in the case of inputs it does. Unless explicitly wrapped with `set(lpids)`, the lpids are in the order they were declared. 
+NOTE: In some cases the order of lpids doesn't matter, but in the case of inputs it does. Unless explicitly wrapped with `set(lpids)`, the lpids are in the order they were declared.
 
 
 ```python
@@ -163,7 +163,7 @@ def gen_out_file_output(
     ]
 
     # TODO: Add preulude/postscript for each block
-    #   this may be needed to read content back in 
+    #   this may be needed to read content back in
     #   after running code formatting.
     # prelude_tmpl    = options.get('block_prelude')
     # postscript_tmpl = options.get('block_postscript')
@@ -172,7 +172,7 @@ def gen_out_file_output(
     return GeneratorResult(output)
 ```
 
-TODO (mb): 
+TODO (mb):
  - better output capture for sessions
    maybe the [`pty`](https://docs.python.org/3/library/pty.html)
    module will be helpful
@@ -181,7 +181,7 @@ TODO (mb):
 
 ```python
 TIMEOUT_RETCODE = -signal.SIGTERM.value
-       
+
 
 def gen_session_output(
     ctx : lptyp.BuildContext,
@@ -324,6 +324,13 @@ def build(parse_ctx: lptyp.ParseContext) -> ExitCode:
 #### Temporary Directory
 
 As of now, each output file is written to directly. It may be better (or at least give the option) to write output to a temporary directory first and only move the generated files to the working directory if the build succeeded.
+
+
+### Metaprogramming
+
+ - tagging infrastructure
+ - block transformesr
+ - build phases/stages
 
 
 

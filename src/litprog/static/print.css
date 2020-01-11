@@ -1,32 +1,66 @@
 @media print {
-    div.firstpara {
-        page-break-inside: avoid;
+    body, .wrapper {
+        color: #000;
+    }
+
+    p, blockquote, ul, ol {
+        orphans: 3;
+        widows: 3;
+    }
+    div.firstpara, img, table, blockquote, ul, ol {
+        break-inside: avoid;
     }
     img {
-        page-break-inside: avoid;
+        max-width: 100%;
     }
 
     code {
         padding: 0.07em 0.20em 0.14em 0.20em;
     }
 
-    p a {
-        color: black;
-        text-decoration: none;
-        border-bottom: 1px dashed #666;
-    }
-    p {
-        orphans: 3;
-    }
     div.codehilite pre {
         margin-left: -1em;
+        border-right: 0;
+        letter-spacing: -0.02em;
     }
+
+    .content ol, .content ul {
+        /* Hack: I can't figure out where weasyprint adds all its margin,
+          this hack just drags it back over again.
+        */
+        margin-left: -2em;
+    }
+
+    p a {
+        color: black;
+        /*text-decoration: none;*/
+        /*border-bottom: 1px dashed #666;*/
+    }
+
     p a:after, li a:after {
-        content: "[" attr(href) "]";
+        /*content: "[" attr(href) "]";*/
         display: inline-block;
         margin-left: 0.2em;
         color: #333;
         font-size: 0.75em;
         vertical-align: super;
+    }
+
+    h1 {string-set: chapter content();}
+    h2 {string-set: section content();}
+
+    @page {
+        @top-left {
+            font-family: lp-bitter, Bitter, serif;
+            font-size: 8.5pt;
+            margin: 0 0 -5mm 0;
+            white-space: pre;
+        }
+        @top-right {
+            font-family: lp-bitter, Bitter, serif;
+            font-size: 8.5pt;
+            margin: 0 0 -5mm 0;
+            white-space: pre;
+        }
     }
 }
