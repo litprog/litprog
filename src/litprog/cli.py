@@ -133,11 +133,13 @@ def build(
     if pdf:
         pdf_dir          = pl.Path(pdf)
         selected_formats = [
-            'print_ereader',
+            # 'print_ereader',
             'print_a5',
-            'print_booklet_a5',
-            'print_halfletter',
-            'print_booklet_halfletter',
+            'print_booklet_a4',
+            # 'print_halfletter',
+            # 'print_booklet_letter',
+            # 'print_twocol_a4',
+            # 'print_twocol_letter',
         ]
         litprog.gen_docs.gen_pdf(built_ctx, html_dir, pdf_dir, formats=selected_formats)
 

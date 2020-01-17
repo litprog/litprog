@@ -30,6 +30,12 @@
         {% if fmt.page_size == "halfletter" %}
         <link rel="stylesheet" type="text/css" href="static/print_halfletter.css">
         {% endif %}
+        {% if fmt.page_size == "tallcol_a4" %}
+        <link rel="stylesheet" type="text/css" href="static/print_tallcol_a4.css">
+        {% endif %}
+        {% if fmt.page_size == "tallcol_letter" %}
+        <link rel="stylesheet" type="text/css" href="static/print_tallcol_letter.css">
+        {% endif %}
         {% if fmt.page_size == "ereader" %}
         <link rel="stylesheet" type="text/css" href="static/print_ereader.css">
         {% endif %}
@@ -60,13 +66,15 @@
     <div class="pdf-links">
         <div>US-Letter Formats</div>
         <div>
-            <a class="half-letter onepage" href="print_halfletter.pdf"><span>Half<br/>Letter</span></a>
-            <a class="letter twopage" href="print_booklet_halfletter.pdf"><span>Letter&nbsp;Booklet<br/>(duplex&nbsp;print)</span></a>
+            <a class="letter portrait twocol" href="print_twocol_letter.pdf"><span>Letter<br/>Two&nbsp;Columns</span></a>
+            <a class="half-letter portrait" href="print_halfletter.pdf"><span>Half<br/>Letter</span></a>
+            <a class="letter landscape twocol" href="print_booklet_letter.pdf"><span>Letter&nbsp;Booklet<br/>(duplex&nbsp;print)</span></a>
         </div>
         <div>ISO Formats</div>
         <div>
-            <a class="a5 onepage" href="print_a5.pdf"><span>A5</span></a>
-            <a class="a4 twopage" href="print_booklet_a5.pdf"><span>A4&nbsp;Booklet<br/>(duplex&nbsp;print)</span></a>
+            <a class="a4 portrait twocol" href="print_twocol_a4.pdf"><span>A4&nbsp;Two&nbsp;Columns</span></a>
+            <a class="a5 portrait" href="print_a5.pdf"><span>A5</span></a>
+            <a class="a4 landscape twocol" href="print_booklet_a4.pdf"><span>A4&nbsp;Booklet<br/>(duplex&nbsp;print)</span></a>
         </div>
         <div>
             For eReaders/Kindle:&nbsp;&nbsp;
@@ -87,8 +95,28 @@
                 {{content}}
             </div>
         </div>
+        {% if fmt.is_web_target %}
+        <div class="footer">
+            {% if meta.copyright_url %}
+            <a href="{{meta.copyright_url}}">© {{meta.copyright}}</a>
+            {% elif meta.copyright %}
+            <span>© {{meta.copyright}}</span>
+            {% endif %}
+
+            {% if meta.git_revision %}
+            <a href="{{meta.repo_url}}">Git Revision <code>{{meta.git_revision}}</code></a>
+            {% endif %}
+            <br/>
+            <span>Build timestamp: {{meta.build_timestamp}}</span>
+            <!-- TODO <a href="https://mbarkhau.gitlab.io/litprog/docs/"> -->
+            <a href="https://gitlab.com/mbarkhau/litprog/">
+                Built with LitProg {{meta.litprog_version}}
+            </a>
+        </div>
+        {% endif %}
     </div>
     {% if fmt.is_web_target %}
+    <script src="static/popper.js"></script>
     <script src="static/slideout.js"></script>
     <script src="static/app.js"></script>
     {% endif %}

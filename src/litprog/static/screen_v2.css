@@ -5,6 +5,7 @@ body, body .wrapper, .header {
 }
 
 .nav a {
+    font-family: lp-enriqueta, lp-bitter, Bitter, serif;
     border: none;
     text-decoration: none;
     color: #000;
@@ -24,9 +25,22 @@ body, body .wrapper, .header {
     padding: 2em 1.2em;
     transition: padding 400ms linear;
     will-change: padding;
+    margin-bottom: 2em;
+}
+.footer {
+    max-width: 90%;
+    text-align: center;
+    margin-bottom: 2em;
+}
+
+.footer {color: #333; }
+.dark .footer {color: #CCC;}
+.footer a, .footer span {
+    display: inline-block;
+    margin: 0em 1em;
 }
 .wrapper {
-    background: #FAF8F8;;
+    background: #FBFAFA;;
 }
 
 .content > p, .content > .codehilite {
@@ -40,7 +54,7 @@ img.bob {
 }
 
 body {
-    background: #FAF8F8;
+    background: #FBFAFA;
 }
 
 /* Lift page effect */
@@ -52,8 +66,11 @@ body {
     .wrapper {
         box-shadow: #888 0 0.1em 0.5em 0;
         border-radius: 5px;
-        margin: 120px auto;
+        margin: 120px auto 0 auto;
         width: calc(100% - 80px);
+        max-width: 900px;
+    }
+    .footer {
         max-width: 900px;
     }
 }
@@ -88,10 +105,12 @@ body {
 }
 .toc li a {
     display: inline-block;
-    width: 200px;
-    padding: 5px 15px;
+    width: 175px;
+    padding: 5px 25px 5px 30px;
+    text-indent: -20px;
+
     will-change: background;
-    transition: background 1s ease
+    transition: background 1s ease;
 }
 
 .toc li a:hover,
@@ -141,7 +160,7 @@ body {
 /* Show menu on left */
 
 @media only screen and (min-width: 1200px) {
-    .wrapper {
+    .wrapper, .footer {
         margin: 40px 0 40px calc(25% - 280px + 256px);
     }
     .slideout-menu {
@@ -156,12 +175,10 @@ body.dark, body.dark .wrapper {
     color: #FFF;
 }
 .dark a {
-    color: #59F;
-    border-color: #59F;
+    color: #9CF;
 }
 .dark a:visited {
-    color: #B9D;
-    border-color: #B9D;
+    color: #DBF;
 }
 
 .dark .nav a {
@@ -256,6 +273,9 @@ body.dark .content {
     margin-top: 120px;
 }
 
+h1:hover, h2:hover, h3:hover, h4:hover {
+}
+
 /* Scroll headlines below the fixed header. */
 h1[id]::before, h2[id]::before, h3[id]::before, h4[id]::before, h5[id]::before  {
     content: '';
@@ -265,7 +285,16 @@ h1[id]::before, h2[id]::before, h3[id]::before, h4[id]::before, h5[id]::before  
     visibility: hidden;
 }
 
-.header {background: #FAF8F8; }
+h1 a, h2 a, h3 a, h4 a, h5 a,
+h1 a:visited, h2 a:visited, h3 a:visited, h4 a:visited, h5 a:visited {
+    color: black;
+}
+.dark h1 a, .dark h2 a, .dark h3 a, .dark h4 a, .dark h5 a,
+.dark h1 a:visited, .dark h2 a:visited, .dark h3 a:visited, .dark h4 a:visited, .dark h5 a:visited {
+    color: white;
+}
+
+.header {background: #FBFAFA; }
 .dark .header {background: #000; }
 
 @media only screen and (min-width: 800px) {
@@ -434,6 +463,7 @@ h1[id]::before, h2[id]::before, h3[id]::before, h4[id]::before, h5[id]::before  
 
 .pdf-links > div {
     text-align: center;
+    font-size: 11px;
     font-weight: bold;
     color: #000;
     margin: 2em 0 1em 0;
@@ -446,7 +476,34 @@ h1[id]::before, h2[id]::before, h3[id]::before, h4[id]::before, h5[id]::before  
     background: #DDD;
 }
 
-.pdf-links .onepage, .pdf-links .twopage {
+
+.pdf-links .a4.portrait {width: calc(2.10 * 6vmin); height: calc(2.96 * 6vmin);}
+.pdf-links .a5.portrait {width: calc(1.48 * 6vmin); height: calc(2.10 * 6vmin);}
+.pdf-links .a6.portrait {width: calc(1.05 * 6vmin); height: calc(1.48 * 6vmin);}
+.pdf-links .ereader {width: calc(0.90 * 6vmin); height: calc(1.20 * 6vmin);}
+.pdf-links .a4.portrait {min-width: calc(2.10 * 40px); min-height: calc(2.96 * 40px);}
+.pdf-links .a5.portrait {min-width: calc(1.48 * 40px); min-height: calc(2.10 * 40px);}
+.pdf-links .a6.portrait {min-width: calc(1.05 * 40px); min-height: calc(1.48 * 40px);}
+.pdf-links .ereader {min-width: calc(0.90 * 40px); min-height: calc(1.20 * 40px);}
+
+.pdf-links .a4.landscape {width: calc(2.96 * 6vmin); height: calc(2.10 * 6vmin);}
+.pdf-links .a5.landscape {width: calc(2.10 * 6vmin); height: calc(1.48 * 6vmin);}
+.pdf-links .a6.landscape {width: calc(1.48 * 6vmin); height: calc(1.05 * 6vmin);}
+.pdf-links .a4.landscape {min-width: calc(2.96 * 40px); min-height: calc(2.10 * 40px);}
+.pdf-links .a5.landscape {min-width: calc(2.10 * 40px); min-height: calc(1.48 * 40px);}
+.pdf-links .a6.landscape {min-width: calc(1.48 * 40px); min-height: calc(1.05 * 40px);}
+
+.pdf-links .letter.portrait {width: calc(2.16 * 6vmin); height: calc(2.79 * 6vmin);}
+.pdf-links .half-letter.portrait {width: calc(1.40 * 6vmin); height: calc(2.16 * 6vmin);}
+.pdf-links .letter.portrait {min-width: calc(2.16 * 40px); min-height: calc(2.79 * 40px);}
+.pdf-links .half-letter.portrait {min-width: calc(1.40 * 40px); min-height: calc(2.16 * 40px);}
+
+.pdf-links .letter.landscape {width: calc(2.79 * 6vmin); height: calc(2.16 * 6vmin);}
+.pdf-links .half-letter.landscape {width: calc(2.16 * 6vmin); height: calc(1.40 * 6vmin);}
+.pdf-links .letter.landscape {min-width: calc(2.79 * 40px); min-height: calc(2.16 * 40px);}
+.pdf-links .half-letter.landscape {min-width: calc(2.16 * 40px); min-height: calc(1.40 * 40px);}
+
+.pdf-links a {
     position: relative;
     border: 1px solid #000;
     display: inline-block;
@@ -472,35 +529,9 @@ h1[id]::before, h2[id]::before, h3[id]::before, h4[id]::before, h5[id]::before  
     z-index: 3;
 }
 
-.pdf-links .a4 {width: calc(2.10 * 10vmin); height: calc(2.96 * 10vmin);}
-.pdf-links .a5 {width: calc(1.48 * 10vmin); height: calc(2.10 * 10vmin);}
-.pdf-links .a6 {width: calc(1.05 * 10vmin); height: calc(1.48 * 10vmin);}
-.pdf-links .ereader {width: calc(0.90 * 10vmin); height: calc(1.20 * 10vmin);}
-.pdf-links .a4 {min-width: calc(2.10 * 55px); min-height: calc(2.96 * 55px);}
-.pdf-links .a5 {min-width: calc(1.48 * 55px); min-height: calc(2.10 * 55px);}
-.pdf-links .a6 {min-width: calc(1.05 * 55px); min-height: calc(1.48 * 55px);}
-.pdf-links .ereader {min-width: calc(0.90 * 55px); min-height: calc(1.20 * 55px);}
-
-.pdf-links .a4.twopage {width: calc(2.96 * 10vmin); height: calc(2.10 * 10vmin);}
-.pdf-links .a5.twopage {width: calc(2.10 * 10vmin); height: calc(1.48 * 10vmin);}
-.pdf-links .a6.twopage {width: calc(1.48 * 10vmin); height: calc(1.05 * 10vmin);}
-.pdf-links .a4.twopage {min-width: calc(2.96 * 55px); min-height: calc(2.10 * 55px);}
-.pdf-links .a5.twopage {min-width: calc(2.10 * 55px); min-height: calc(1.48 * 55px);}
-.pdf-links .a6.twopage {min-width: calc(1.48 * 55px); min-height: calc(1.05 * 55px);}
-
-.pdf-links .letter {width: calc(2.16 * 10vmin); height: calc(2.79 * 10vmin);}
-.pdf-links .half-letter {width: calc(1.40 * 10vmin); height: calc(2.16 * 10vmin);}
-.pdf-links .letter {min-width: calc(2.16 * 55px); min-height: calc(2.79 * 55px);}
-.pdf-links .half-letter {min-width: calc(1.40 * 55px); min-height: calc(2.16 * 55px);}
-
-.pdf-links .letter.twopage {width: calc(2.79 * 10vmin); height: calc(2.16 * 10vmin);}
-.pdf-links .half-letter.twopage {width: calc(2.16 * 10vmin); height: calc(1.40 * 10vmin);}
-.pdf-links .letter.twopage {min-width: calc(2.79 * 55px); min-height: calc(2.16 * 55px);}
-.pdf-links .half-letter.twopage {min-width: calc(2.16 * 55px); min-height: calc(1.40 * 55px);}
-
-.pdf-links a.onepage:before,
-.pdf-links a.twopage:before,
-.pdf-links a.twopage:after {
+.pdf-links a.portrait:before,
+.pdf-links a.twocol:before,
+.pdf-links a.twocol:after {
     z-index: 2;
     top: 5%;
     position: absolute;
@@ -512,16 +543,82 @@ h1[id]::before, h2[id]::before, h3[id]::before, h4[id]::before, h5[id]::before  
     display: block;
     padding: 0 10%;
     height: 85%;
+    margin: 1em;
 }
-.pdf-links a.twopage:before,
-.pdf-links a.twopage:after {
+.pdf-links a.twocol:before,
+.pdf-links a.twocol:after {
     padding: 0 5%;
     width: 40%;
 }
 
-.pdf-links a.twopage:before {right: 0;}
-.pdf-links a.twopage:after {left: 0;}
+.pdf-links a.twocol:before {right: 0;}
+.pdf-links a.twocol:after {left: 0;}
 
 .dark .pdf-links {
     filter: invert(1);
 }
+
+.popper {
+    font-size: 0.9em;
+    max-height: 15em;
+    max-width: 80vw;
+    border-radius: 4px;
+    z-index: 2;
+    border: 1px solid #8888;
+    box-shadow: #8888 0 0.1em 1em 0;
+    background: #FFF;;
+    color: #000;
+    opacity: 0;
+    transition: opacity 300ms ease;
+    will-change: opacity;
+}
+
+.dark .popper {
+    background: #000;
+    color: #FFF;
+    box-shadow: #8888 0 0.1em 2em 0;
+}
+.popper-wrap {
+    max-width: 35em;
+    max-height: 14em;
+    overflow-y: auto;
+    margin: 2px 0;
+}
+
+.popper p {
+    margin: 1em;
+}
+.popper a.footnote-backref {
+    display: none;
+}
+
+.popper .arrow {
+    padding: 25px 0;
+    margin-top: -25px;
+    margin-bottom: -25px;
+}
+.popper .arrow,
+.popper .arrow::before {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    z-index: -1;
+}
+.popper .arrow::before {
+    content: '';
+    background: #FFF;
+    border: 1px solid #8888;
+    border-width: 1px 1px 0 0;
+    box-shadow: #888 3px -3px 6px -5px;
+}
+
+.dark .popper .arrow::before {
+    background: #000;
+    box-shadow: #888 2px -2px 6px -2px;
+}
+
+.popper[data-popper-placement^='top'] .arrow {bottom: -11px;}
+.popper[data-popper-placement^='bottom'] .arrow {top: -11px;}
+
+.popper[data-popper-placement^='top'] .arrow::before {transform: rotate(135deg);}
+.popper[data-popper-placement^='bottom'] .arrow::before {transform: rotate(315deg);}

@@ -9,9 +9,22 @@ body {
     font-family: lp-bitter, Bitter, serif;
 }
 
+.content p, .content ul, .content ol {
+    -ms-hyphens: auto;
+    -webkit-hyphens: auto;
+    hyphens: auto;
+
+    hyphenate-limit-chars: 7 3 3;
+}
+
 .content p {
     letter-spacing: -0.02em;
     word-spacing: -0.01em;
+}
+
+span.katex {
+    font-size: 1.1em;
+    display: inline-block;
 }
 
 div.codehilite {
@@ -23,18 +36,35 @@ div.codehilite pre {
 }
 
 a {
-    color: #05F;
+    color: #03B;
+    /*text-decoration: underline dashed;*/
+    /*text-decoration-color: #888;*/
     text-decoration: none;
 }
 a:visited {
-    color: #A0A;
+    color: #606;
 }
 a:hover {
     text-decoration: underline;
 }
 
+.footnote ol:before {
+    content: "Footnotes";
+    font-size: 1.2em;
+}
+
+/* ‡ */
+a.footnote-ref:before {
+    margin-left: 0.1em;
+    content: "[";
+}
+a.footnote-ref:after {
+    margin-right: 0.1em;
+    content: "]";
+}
 
 h1, h2, h3, h4 {
+    font-family: lp-enriqueta, lp-bitter, Bitter, serif;
     line-height: 1.2em;
     text-align: left;
     font-weight: normal;

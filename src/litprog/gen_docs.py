@@ -7,6 +7,7 @@ import shutil
 import logging
 import typing as typ
 import pathlib2 as pl
+import datetime as dt
 
 import yaml
 import jinja2
@@ -30,37 +31,37 @@ class Replacement(typ.NamedTuple):
     filename: str
 
 
-REPLACEMENTS = [
-    Replacement('all'   , "codehilite.css"),
-    Replacement('all'   , "general.css"),
-    Replacement('all'   , "katex.css"),
-    Replacement('all'   , "fonts.css"),
-    Replacement('screen', "screen.css"),
-    Replacement('screen', "check_reloaded.js"),
-    Replacement('screen', "pdf_modal.css"),
-    Replacement('screen', "navigation.css"),
-    Replacement('screen', "navigation.js"),
-    # print styles
-    Replacement('print'                   , "print.css"),
-    Replacement('print_ereader'           , "print_ereader.css"),
-    Replacement('print_booklet'           , "print_booklet.css"),
-    Replacement('print_booklet_a5'        , "print_booklet_a5.css"),
-    Replacement('print_booklet_halfletter', "print_booklet_halfletter.css"),
-    Replacement('print_tallcol'           , "print_tallcol.css"),
-    Replacement('print_tallcol_a4'        , "print_tallcol_a4.css"),
-    Replacement('print_tallcol_letter'    , "print_tallcol_letter.css"),
-]
-
-
 PRINT_FORMATS = [
     'print_ereader',
     'print_a5',
-    'print_booklet_a5',
+    'print_booklet_a4',
     'print_halfletter',
-    'print_booklet_halfletter',
-    # 'print_tallcol_a4',
-    # 'print_tallcol_letter',
+    'print_booklet_letter',
+    'print_tallcol_a4',
+    'print_tallcol_letter',
+    'print_twocol_a4',
+    'print_twocol_letter',
 ]
+
+MULTIPAGE_FORMATS = {
+    'print_booklet_a4'    : "print_a5",
+    'print_booklet_letter': "print_halfletter",
+    'print_twocol_a4'     : "print_tallcol_a4",
+    'print_twocol_letter' : "print_tallcol_letter",
+}
+
+PART_PAGE_SIZES = {
+    'screen'              : "screeen",
+    'print_ereader'       : "ereader",
+    'print_a5'            : "a5",
+    'print_booklet_a4'    : "a5",
+    'print_halfletter'    : "halfletter",
+    'print_booklet_letter': "halfletter",
+    'print_tallcol_a4'    : "tallcol_a4",
+    'print_tallcol_letter': "tallcol_letter",
+    'print_twocol_a4'     : "tallcol_a4",
+    'print_twocol_letter' : "tallcol_letter",
+}
 
 
 STATIC_DIR = pl.Path(__file__).parent / "static"
@@ -73,11 +74,15 @@ STATIC_DEPS = {
     STATIC_DIR / "general_v2.css",
     STATIC_DIR / "screen_v2.css",
     STATIC_DIR / "slideout.js",
+    STATIC_DIR / "popper.js",
+    STATIC_DIR / "popper.min.js",
     STATIC_DIR / "app.js",
     STATIC_DIR / "print.css",
     STATIC_DIR / "print_a5.css",
     STATIC_DIR / "print_ereader.css",
     STATIC_DIR / "print_halfletter.css",
+    STATIC_DIR / "print_tallcol_a4.css",
+    STATIC_DIR / "print_tallcol_letter.css",
 }
 
 STATIC_DEPS.update(FONTS_DIR.glob("*.woff2"))
@@ -202,49 +207,28 @@ Metadata = typ.Dict[str, str]
 
 
 def wrap_content_html(
-    content: HTMLText, target: str, meta: Metadata, toc: typ.Optional[HTMLText]
+    content: HTMLText, target: str, meta: Metadata, nav_html: typ.Optional[HTMLText] = None
 ) -> HTMLText:
     assert target == 'screen' or target.startswith('print_')
     meta['target'] = target
 
     fmt = {
-        'page_size'        : target.split("_")[-1],
+        'page_size'        : PART_PAGE_SIZES[target],
         'is_print_target'  : target.startswith('print_'),
         'is_web_target'    : not target.startswith('print_'),
-        'is_booklet_target': "_booklet" in target,
     }
 
-    nav = {'outline_html': toc}
+    nav = {}
+
+    if nav_html:
+        nav['outline_html'] = html_postproc.add_nav_numbers(nav_html)
+
+    # nav['outline_html'] = DEBUG_NAVIGATION_OUTLINE
 
     ctx = {'meta': meta, 'fmt': fmt, 'nav': nav, 'content': content}
 
     tmpl   = jinja2.Template(read_static("template_v2.html"))
     result = tmpl.render(**ctx)
-
-    # styles  = ""
-    # scripts = ""
-
-    # for repl in REPLACEMENTS:
-    #     search    = "{{" + repl.filename + "}}"
-    #     if repl.target == 'all' or target.startswith(repl.target):
-    #         repl_text = read_static(repl.filename)
-
-    #         if search in result:
-    #             result = result.replace(search, repl_text)
-    #         elif repl.filename.endswith(".css"):
-    #             styles += repl_text
-    #         elif repl.filename.endswith(".js"):
-    #             scripts += repl_text
-    #         else:
-    #             err_msg = f"Invalid replacement: {repl.filename}"
-    #             raise Exception(err_msg)
-    #     elif search in result:
-    #         # remove placeholder
-    #         result = result.replace(search, "")
-
-    # result = result.replace("{{styles}}" , styles)
-    # result = result.replace("{{scripts}}", scripts)
-
     return result
 
 
@@ -262,7 +246,11 @@ def gen_html(ctx: parse.Context, html_dir: pl.Path) -> None:
         html_dir.mkdir(parents=True)
 
     md_file: parse.MarkdownFile
-    meta = {}
+    meta = {
+        "litprog_version": "202001.1001-alpha",
+        "git_revision"   : "0123abcdef",
+        "build_timestamp": dt.datetime.utcnow().strftime("%Y-%m-%d %H:%M") + " UTC"
+    }
 
     for md_file in ctx.files:
         html_fname = md_file.md_path.stem + ".html"
@@ -316,11 +304,15 @@ def gen_pdf(
     full_md_text = "\n\n".join(all_md_texts)
 
     html_res: md2html.HTMLResult = md2html.md2html(full_md_text)
-    onepage_formats = {fmt.replace("_booklet", "") for fmt in formats}
+    multipage_formats = {fmt for fmt in formats if fmt in MULTIPAGE_FORMATS}
+    onepage_formats = set(formats) - set(multipage_formats)
+    for fmt in multipage_formats:
+        part_page_fmt = MULTIPAGE_FORMATS[fmt]
+        onepage_formats.add(part_page_fmt)
 
     for fmt in onepage_formats:
         print_html   = html_postproc.postproc4print(html_res, fmt)
-        wrapped_html = wrap_content_html(print_html, fmt, meta, html_res.toc)
+        wrapped_html = wrap_content_html(print_html, fmt, meta)
         html_fpath   = pdf_dir / (fmt + ".html")
         pdf_fpath    = pdf_dir / (fmt + ".pdf")
         with html_fpath.open(mode="w") as fobj:
@@ -329,11 +321,9 @@ def gen_pdf(
         log.info(f"converting '{html_fpath}' -> '{pdf_fpath}'")
         html2pdf.html2pdf(wrapped_html, pdf_fpath, html_dir)
 
-    booklet_formats = set(formats) - onepage_formats
-
-    for fmt in booklet_formats:
-        onepage_fmt       = fmt.replace("_booklet", "")
-        onepage_pdf_fpath = pdf_dir / (onepage_fmt + ".pdf")
+    for fmt in multipage_formats:
+        part_page_fmt = MULTIPAGE_FORMATS[fmt]
+        part_page_pdf_fpath = pdf_dir / (part_page_fmt + ".pdf")
         booklet_pdf_fpath = pdf_dir / (fmt         + ".pdf")
-        log.info(f"creating booklet '{onepage_pdf_fpath}' -> '{booklet_pdf_fpath}'")
-        pdf_booklet.create(in_path=onepage_pdf_fpath, out_path=booklet_pdf_fpath)
+        log.info(f"creating booklet '{part_page_pdf_fpath}' -> '{booklet_pdf_fpath}'")
+        pdf_booklet.create(in_path=part_page_pdf_fpath, out_path=booklet_pdf_fpath)

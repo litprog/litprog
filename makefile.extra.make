@@ -70,7 +70,7 @@ favicon.ico: *.png
 	convert logotype_16.png logotype_24.png logotype_48.png favicon.ico
 
 
-KATEX_CDN_BASE_URL="https://cdn.jsdelivr.net/npm/katex@0.10.2/dist"
+KATEX_CDN_BASE_URL=https://cdn.jsdelivr.net/npm/katex@0.10.2/dist
 
 
 ## Download css and fonts so pdf generation doesn't have to
@@ -79,12 +79,12 @@ KATEX_CDN_BASE_URL="https://cdn.jsdelivr.net/npm/katex@0.10.2/dist"
 katex_static:
 	curl $(KATEX_CDN_BASE_URL)/katex.css \
 		-s -o fonts/katex.css;
-	grep -Po "(?<=url\().*?\.(woff|woff2|ttf)" fonts/katex.css \
+	grep -Po "(?<=url\().*?\.(woff2|woff|ttf)" fonts/katex.css \
 		| sort | uniq > fonts/katex_fontfile_urls.txt
 	mkdir -p katex_static/fonts/;
 	for path in $$(cat fonts/katex_fontfile_urls.txt); do \
-		curl "$(KATEX_CDN_BASE_URL)/$$path" -s -o fonts/$$path; \
-		echo "downloaded katex_static/$$path"; \
+		curl "$(KATEX_CDN_BASE_URL)/$${path}" -s -o katex_static/$${path}; \
+		echo "downloaded katex_static/$${path}"; \
 	done
 
 ## Copy sketch files to kbfs to test on mobile

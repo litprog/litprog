@@ -90,27 +90,40 @@ function setActiveNav() {
     //      on the first page. We need to somehow figure out the
     //      number of headings that preceed the active one
     // Oooor, we just stick with a single page ?
-    let headingsOffset = 0
+
+    // A heading is considered active if it is the first one
+    // on screen or the first higher than the middle of the screen
+    // (because there may not be a heading on the screen.
+    let minActiveY = window.pageYOffset
+    let maxActiveY = window.pageYOffset + window.innerHeight / 2
+    let headingsOffsetIndex = 0
     for (var i = 0; i < headingNodes.length; i++) {
         let headingNode = headingNodes[i]
         let headingOffset = headingNode.offsetTop + wrapperOffset
-        if (headingOffset > window.pageYOffset) {
-            let newActiveNav = navigationNodes[i + headingsOffset]
-            if (activeNavNode == newActiveNav) {return}
-            if (activeNavNode) {
-                activeNavNode.classList.remove("active")
-            }
-            activeNavNode = newActiveNav
-            newActiveNav.classList.add("active")
+        if (headingOffset < minActiveY) {continue}
 
-            let relOffsetTop = newActiveNav.offsetTop - tocNode.offsetTop
-            let scrollTop = navScrollerNode.scrollTop
-            let scrollBottom = scrollTop + 2 * navScrollerNode.offsetHeight / 3
-            if (!(scrollTop < relOffsetTop && relOffsetTop < scrollBottom)) {
-                navScrollerNode.scrollTop = Math.max(0, relOffsetTop - navScrollerNode.offsetHeight / 2)
-            }
-            break
+        let newActiveNav = navigationNodes[i + headingsOffsetIndex]
+        // Check if it's below the fold and
+        if (i > 0 && headingOffset > maxActiveY) {
+          // Use the previous heading
+          newActiveNav = navigationNodes[i - 1]
         }
+
+        if (activeNavNode == newActiveNav) {return}
+
+        if (activeNavNode) {
+            activeNavNode.classList.remove("active")
+        }
+        activeNavNode = newActiveNav
+        newActiveNav.classList.add("active")
+
+        let relOffsetTop = newActiveNav.offsetTop - tocNode.offsetTop
+        let scrollTop = navScrollerNode.scrollTop
+        let scrollBottom = scrollTop + 2 * navScrollerNode.offsetHeight / 3
+        if (!(scrollTop < relOffsetTop && relOffsetTop < scrollBottom)) {
+            navScrollerNode.scrollTop = Math.max(0, relOffsetTop - navScrollerNode.offsetHeight / 2)
+        }
+        break
     }
 }
 
@@ -150,5 +163,123 @@ onInteraction(document, function(e) {
         togglePdfLinks()
     }
 })
+
+let activeTarget = null;
+let activePopper = null;
+let activePopperNode = null;
+let popperDestroyTimeout = null;
+
+document.body.addEventListener("mousemove", (e) => {
+    let isPopper = !!e.target.closest(".popper")
+    if (isPopper) {
+        // keep active
+        if (popperDestroyTimeout != null) {
+            // back on target, cancel destruction
+            clearTimeout(popperDestroyTimeout)
+            popperDestroyTimeout = null;
+        }
+        return
+    }
+
+    let isFnote = e.target.classList.contains("footnote-ref")
+    let isAltFnote = isFnote && activeTarget != e.target
+
+    if (!isFnote || isAltFnote) {
+        // hide the current popper
+        if (activePopper && (isAltFnote || popperDestroyTimeout == null)) {
+            let popperDestroyer = ((popper, popperNode) => () => {
+                let popperCleanup = () => {
+                    popper.destroy()
+                    document.body.removeChild(popperNode)
+                }
+
+                setTimeout(popperCleanup, 300)
+                popperNode.style.opacity = "0"
+                if (popperNode == activePopperNode) {
+                    activeTarget = null
+                    activePopper = null
+                    activePopperNode = null
+                    popperDestroyTimeout = null
+                }
+            })(activePopper, activePopperNode)
+
+            if (isAltFnote) {
+                clearTimeout(popperDestroyTimeout)
+                popperDestroyer()
+            } else {
+                popperDestroyTimeout = setTimeout(popperDestroyer, 500)
+            }
+        }
+        if (!isFnote) {
+            return
+        }
+    }
+
+    if (activePopper) {
+        // popper already created
+        return
+    }
+
+    let footnoteNum = e.target.innerText
+    let footnoteNode = document.querySelector(`.footnote li:nth-child(${footnoteNum})`)
+    let popperNode = document.createElement("div")
+    popperNode.setAttribute("footnote-number", footnoteNum)
+    popperNode.classList.add("popper")
+    popperNode.innerHTML = (
+        '<div class="arrow" data-popper-arrow></div><div class="popper-wrap">'
+        + footnoteNode.innerHTML
+        + '</div>'
+    )
+    document.body.appendChild(popperNode)
+    activeTarget = e.target
+    activePopper = Popper.createPopper(e.target, popperNode, {
+        placement: 'top',
+        modifiers: [
+            {
+                name: 'offset',
+                options: {offset: [0, 20]},
+            },
+            {
+                name: 'preventOverflow',
+                options: {padding: 25},
+            },
+        ],
+    });
+    activePopperNode = popperNode
+    setTimeout(() => {activePopperNode.style.opacity = "1"}, 10)
+})
+
+// function getFootnoteData(footnote) {
+//     console.log("getData ????", footnote);
+//     return new Promise((resolve, reject) => {
+//         let fnoteNode = document.querySelector(`.footnote li:nth-child(${footnote})`)
+//         console.log("???", fnoteNode.id)
+//         if (!fnoteNode) {
+//             reject(`Invalid footnote: ${footnote}`)
+//         } else {
+//             resolve({"footnoteId": fnoteNode.id})
+//         }
+//   })
+// }
+
+// function getFootnoteHeading(data) {
+//     console.log("havaHeading ????", data);
+//     return `<code>${data.footnoteId.slice(3)}</code>`
+// }
+
+// function getFootnoteBody(data) {
+//     console.log("havaBODY ????", data);
+//     let fnoteNode = document.getElementById(data.footnoteId)
+//     return fnoteNode.children[0]
+// }
+
+// var hovercards = new window.Hovercard({
+//   noCache   : true,
+//   selector  : ".footnote-ref",
+//   getData   : getFootnoteData,
+//   getHeading: getFootnoteHeading,
+//   getBody   : getFootnoteBody,
+// });
+// console.log(hovercards)
 
 })();

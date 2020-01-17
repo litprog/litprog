@@ -24,8 +24,8 @@ BOOKLET_FORMAT_MAPPING = {
     'A4-Portrait'    : ('A4-Landscape'    , 'booklet', 0 * PT_PER_MM),
     'A3-Portrait'    : ('A4-Landscape'    , 'booklet', 0 * PT_PER_MM),
     'Half-Letter'    : ('Letter-Landscape', 'booklet', 0 * PT_PER_MM),
-    '1of2col-A4'     : ('A4-Portrait'     , 'paper'  , -4 * PT_PER_MM),
-    '1of2col-Letter' : ('Letter-Portrait' , 'paper'  , -4 * PT_PER_MM),
+    '1of2col-A4'     : ('A4-Portrait'     , 'paper'  , 0 * PT_PER_MM),
+    '1of2col-Letter' : ('Letter-Portrait' , 'paper'  , 0 * PT_PER_MM),
     'Letter-Portrait': ('A4-Landscape'    , 'booklet', -5 * PT_PER_MM),
 }
 

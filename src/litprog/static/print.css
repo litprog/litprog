@@ -1,8 +1,8 @@
+
 @media print {
     body, .wrapper {
         color: #000;
     }
-
     p, blockquote, ul, ol {
         orphans: 3;
         widows: 3;
@@ -31,19 +31,54 @@
         margin-left: -2em;
     }
 
-    p a {
+    p a, ol a, li a {
+        counter-increment: link;
         color: black;
-        /*text-decoration: none;*/
-        /*border-bottom: 1px dashed #666;*/
+        text-decoration: underline dotted;
     }
 
-    p a:after, li a:after {
-        /*content: "[" attr(href) "]";*/
-        display: inline-block;
-        margin-left: 0.2em;
-        color: #333;
-        font-size: 0.75em;
+    body {
+        counter-reset: link;
+    }
+
+    /*p > a, ol > a, li > a {margin-right: 1.1em;}*/
+
+    p > a:after, ol > a:after, li > a:after {
         vertical-align: super;
+        font-size: 0.65em;
+        content: "{" counter(link) "}";
+        /*min-width: .9em;*/
+        /*margin-right: -.9em;*/
+        /*display: inline-block;*/
+        /*position: relative;*/
+        /*left: 0.1em;*/
+        /*bottom: 0.8em;*/
+        color: #000;
+        text-decoration: none;
+        /*outline: 1px solid green;*/
+    }
+
+    .footnote a.footnote-backref {
+        counter-increment: none;
+        display: none;
+    }
+
+    .footnote-backref:after {
+        display: none;
+    }
+
+    sup[id^=fnref] {
+        font-size: 0.65em;
+    }
+
+    a.footnote-ref {
+        color: #000;
+        /*display: inline-block;*/
+        text-decoration: none;
+        /*min-width: .9em;*/
+        /*margin-left: -.9em;*/
+        /*position: relative;*/
+        /*outline: 1px solid red;*/
     }
 
     h1 {string-set: chapter content();}
@@ -51,13 +86,13 @@
 
     @page {
         @top-left {
-            font-family: lp-bitter, Bitter, serif;
+            font-family: lp-enriqueta, Enriqueta, Bitter, serif;
             font-size: 8.5pt;
             margin: 0 0 -5mm 0;
             white-space: pre;
         }
         @top-right {
-            font-family: lp-bitter, Bitter, serif;
+            font-family: lp-enriqueta, Enriqueta, Bitter, serif;
             font-size: 8.5pt;
             margin: 0 0 -5mm 0;
             white-space: pre;

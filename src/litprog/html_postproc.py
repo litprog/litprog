@@ -392,6 +392,13 @@ def _add_code_scrollers(soup: bs4.BeautifulSoup) -> None:
         list(elem.children)[0].wrap(scroller)
 
 
+def _add_heading_links(soup: bs4.BeautifulSoup) -> None:
+    selector = ", ".join(f"h{i}" for i in range(1, 6))
+    for heading in soup.select(selector):
+        a_tag = soup.new_tag("a", href="#" + heading['id'])
+        heading.string.wrap(a_tag)
+
+
 def _add_heading_numbers(
     soup: bs4.BeautifulSoup, toc_tokens: md2html.TocTokens, heading_prefix: str = ""
 ) -> None:
@@ -400,9 +407,26 @@ def _add_heading_numbers(
 
         tag     = "h" + str(entry['level'])
         heading = soup.find(tag, {'id': entry['id']})
-        if entry['level'] > 1:
+        if heading_prefix:
             heading.string = heading_number + " " + heading.string
         _add_heading_numbers(soup, entry['children'], heading_number + ".")
+
+
+def _add_nav_numbers(ul: bs4.BeautifulSoup, heading_prefix: str = "") -> None:
+    li_children = [child for child in ul.children if child.name == "li"]
+    for i, li in enumerate(li_children):
+        heading_number = heading_prefix + str(i + 1)
+        if heading_prefix:
+            li.a.string = heading_number + " " + li.a.string
+        sub_uls = [child for child in li.children if child.name == "ul"]
+        for sub_ul in sub_uls:
+            _add_nav_numbers(sub_ul, heading_number + ".")
+
+
+def add_nav_numbers(nav_html: HTMLText) -> HTMLText:
+    soup = bs4.BeautifulSoup(nav_html, PARSER_MODULE)
+    _add_nav_numbers(soup.select(".toc > ul")[0])
+    return str(soup)
 
 
 def postproc4screen(html_res: md2html.HTMLResult) -> HTMLText:
@@ -411,9 +435,9 @@ def postproc4screen(html_res: md2html.HTMLResult) -> HTMLText:
     # html_text = "".join(_wrap_firstpara(html_text))
     html_text = "".join(_iter_postproc_html(html_text, max_line_len=0))
 
-    fobj = io.StringIO(html_text)
-    soup = bs4.BeautifulSoup(fobj, PARSER_MODULE)
+    soup = bs4.BeautifulSoup(html_text, PARSER_MODULE)
     _add_heading_numbers(soup, html_res.toc_tokens)
+    _add_heading_links(soup)
     _shyphenate_html(soup)
     _add_sentence_spacing(soup)
     _add_code_scrollers(soup)
@@ -426,11 +450,15 @@ def postproc4print(html_res: md2html.HTMLResult, fmt: str) -> HTMLText:
     # TODO: split code blocks
     # - add ids to headlines
     # - collect links and insert superscript (footnote links)
-    max_line_len = 65 if "ereader" in fmt else 80
+    max_line_len = 80
+    if "ereader" in fmt:
+        max_line_len = 65
+    if "tallcol" in fmt:
+        max_line_len = 75
+
     html_text    = "".join(_iter_postproc_html(html_res.raw_html, max_line_len=max_line_len))
 
-    fobj = io.StringIO(html_text)
-    soup = bs4.BeautifulSoup(fobj, PARSER_MODULE)
+    soup = bs4.BeautifulSoup(html_text, PARSER_MODULE)
     _add_heading_numbers(soup, html_res.toc_tokens)
     html_text = str(soup)
 

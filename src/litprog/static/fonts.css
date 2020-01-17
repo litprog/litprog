@@ -32,6 +32,39 @@
       url('bitter-v15-latin_latin-ext-700.ttf') format('truetype'); /* Chrome 6+, Firefox 3.6+, IE 9+, Safari 5.1+ */
 }
 
+/* enriqueta-400 -latin-ext */
+@font-face {
+  font-family: 'lp-enriqueta';
+  font-style: normal;
+  font-display: block;
+  font-weight: 400;
+  /*unicode-range: U+0030-0039;*/
+  src: local('Enriqueta Regular'), local('Enriqueta-Regular'),
+      url('enriqueta-400.woff2') format('woff2'), /* Chrome 26+, Opera 23+, Firefox 39+ */
+      url('enriqueta-400.woff') format('woff'),
+      url('enriqueta-400.ttf') format('truetype'); /* Chrome 6+, Firefox 3.6+, IE 9+, Safari 5.1+ */
+}
+
+@font-face {
+  font-family: 'lp-enriqueta';
+  font-style: normal;
+  font-display: block;
+  font-weight: 400;
+  /*unicode-range: U+0030-0039;*/
+  src: local('Enriqueta Regular'), local('Enriqueta-Regular'),
+      url('Enriqueta-Regular.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'lp-enriqueta';
+  font-style: italic;
+  font-display: block;
+  font-weight: 400;
+  /*unicode-range: U+0030-0039;*/
+  src: local('Enriqueta Bold'), local('Enriqueta-Bold'),
+      url('Enriqueta-Bold.ttf') format('truetype');
+}
+
 @font-face {
   font-family: 'lp-iosevka';
   font-weight: 400;
