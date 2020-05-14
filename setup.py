@@ -37,6 +37,9 @@ if any(arg.startswith("bdist") for arg in sys.argv):
 
 long_description = "\n\n".join((read("README.md"), read("CHANGELOG.md")))
 
+# because our code to load static files is naive
+zip_safe = False
+
 
 setuptools.setup(
     name="litprog",
@@ -51,12 +54,14 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     packages=["litprog"],
     package_dir=package_dir,
+    include_package_data=True,
+    package_data={"": ["static/*"]},
+    zip_safe=zip_safe,
     install_requires=install_requires,
     entry_points="""
         [console_scripts]
         litprog=litprog.cli:cli
     """,
-    zip_safe=True,
 
     # See https://pypi.python.org/pypi?%3Aaction=list_classifiers
     classifiers=[

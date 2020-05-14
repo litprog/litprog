@@ -479,15 +479,15 @@ bump_version:
 
 
 ## Create python sdist and bdist_wheel files
-.PHONY: build_dists
-build_dists:
+.PHONY: dist_build
+dist_build:
 	$(DEV_ENV_PY) setup.py sdist;
 	$(DEV_ENV_PY) setup.py bdist_wheel --python-tag=$(BDIST_WHEEL_PYTHON_TAG);
 
 
 ## Upload sdist and bdist files to pypi
-.PHONY: upload_dists
-upload_dists:
+.PHONY: dist_upload
+dist_upload:
 	@if [[ "1" != "1" ]]; then \
 		echo "FAILSAFE! Not publishing a private package."; \
 		echo "  To avoid this set IS_PUBLIC=1 in bootstrap.sh and run it."; \
@@ -501,7 +501,7 @@ upload_dists:
 
 ## Publish on pypi
 .PHONY: publish
-publish: bump_version build_dists upload_dists
+publish: bump_version dist_build dist_upload
 
 
 ## Build docker images. Must be run when dependencies are added

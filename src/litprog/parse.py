@@ -438,6 +438,9 @@ class MarkdownFile:
     def __str__(self) -> str:
         return "".join(elem.content for elem in self.elements)
 
+    def __repr__(self) -> str:
+        return f"litprog.parse.MarkdownFile(\"{self.md_path}\")"
+
 
 def _iter_raw_md_elements(content: str) -> typ.Iterable[_RawMarkdownElement]:
     line_no = 1
