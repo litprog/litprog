@@ -3,11 +3,11 @@
 #
 # Copyright (c) 2019 Manuel Barkhau (mbarkhau@gmail.com) - MIT License
 # SPDX-License-Identifier: MIT
+import time
 import shutil
 import logging
 import typing as typ
 import pathlib2 as pl
-import datetime as dt
 
 import yaml
 import jinja2
@@ -51,10 +51,12 @@ MULTIPAGE_FORMATS = {
 }
 
 PART_PAGE_SIZES = {
-    'screen'              : "screeen",
+    'screen'              : "screen",
     'print_ereader'       : "ereader",
     'print_a5'            : "a5",
+    'print_a4'            : "a4",
     'print_booklet_a4'    : "a5",
+    'print_letter'        : "letter",
     'print_halfletter'    : "halfletter",
     'print_booklet_letter': "halfletter",
     'print_tallcol_a4'    : "tallcol_a4",
@@ -78,9 +80,12 @@ STATIC_DEPS = {
     STATIC_DIR / "popper.min.js",
     STATIC_DIR / "app.js",
     STATIC_DIR / "print.css",
+    STATIC_DIR / "print_a4.css",
     STATIC_DIR / "print_a5.css",
+    STATIC_DIR / "print_letter.css",
     STATIC_DIR / "print_ereader.css",
     STATIC_DIR / "print_halfletter.css",
+    STATIC_DIR / "print_tallcol.css",
     STATIC_DIR / "print_tallcol_a4.css",
     STATIC_DIR / "print_tallcol_letter.css",
 }
@@ -216,12 +221,13 @@ def wrap_content_html(
         'page_size'        : PART_PAGE_SIZES[target],
         'is_print_target'  : target.startswith('print_'),
         'is_web_target'    : not target.startswith('print_'),
+        'is_tallcol_target': "_tallcol_" in target,
     }
 
     nav = {}
 
     if nav_html:
-        nav['outline_html'] = html_postproc.add_nav_numbers(nav_html)
+        nav['outline_html'] = html_postproc.postproc_nav_html(nav_html)
 
     # nav['outline_html'] = DEBUG_NAVIGATION_OUTLINE
 
@@ -240,30 +246,52 @@ def parse_front_matter(md_text: MarkdownText) -> typ.Tuple[Metadata, MarkdownTex
     return meta, md_text
 
 
+def _init_meta() -> typ.Dict[str, str]:
+    build_tt = time.localtime()
+    return {
+        'litprog_version': "202001.1001-alpha",
+        'git_revision'   : "0123_TODO_4567",
+        'build_timestamp': time.strftime("%a %Y-%m-%d %H:%M %Z", build_tt),
+    }
+
+
 def gen_html(ctx: parse.Context, html_dir: pl.Path) -> None:
     log.info(f"Writing html to '{html_dir}'")
     if not html_dir.exists():
         html_dir.mkdir(parents=True)
 
     md_file: parse.MarkdownFile
-    meta = {
-        "litprog_version": "202001.1001-alpha",
-        "git_revision"   : "0123abcdef",
-        "build_timestamp": dt.datetime.utcnow().strftime("%Y-%m-%d %H:%M") + " UTC"
-    }
+
+    # NOTE (mb): In order to do linking between documents, we need
+    #   the full toc. This is why there are two passes.
+
+    cur_meta = _init_meta()
+    metas = []
+    md_paths: typ.List[pl.Path] = []
+    full_toc: typ.List[md2html.TocHTML] = []
+    html_results: typ.List[md2html.HTMLResult] = []
 
     for md_file in ctx.files:
-        html_fname = md_file.md_path.stem + ".html"
-        html_fpath = html_dir / html_fname
-        log.info(f"converting '{md_file.md_path}' -> '{html_fpath}'")
-
+        log.info(f"processing '{md_file.md_path}'")
         md_text: MarkdownText = str(md_file)
         new_meta, md_text = parse_front_matter(md_text)
-        meta.update(new_meta)
+        cur_meta = cur_meta.copy()
+        cur_meta.update(new_meta)
 
         html_res: md2html.HTMLResult = md2html.md2html(md_text)
+
+        if html_res.raw_html:
+            metas.append(cur_meta)
+            md_paths.append(md_file.md_path)
+            full_toc.append(html_res.toc)
+            html_results.append(html_res)
+
+    for md_path, meta, toc, html_res in zip(md_paths, metas, full_toc, html_results):
+        html_fname = md_path.stem + ".html"
+        html_fpath = html_dir / html_fname
+        log.info(f"writing '{md_path}' -> '{html_fpath}'")
         content_html = html_postproc.postproc4screen(html_res)
-        wrapped_html = wrap_content_html(content_html, 'screen', meta, html_res.toc)
+        wrapped_html = wrap_content_html(content_html, 'screen', meta, toc)
         with html_fpath.open(mode="w") as fobj:
             fobj.write(wrapped_html)
 
@@ -292,7 +320,7 @@ def gen_pdf(
     if not pdf_dir.exists():
         pdf_dir.mkdir(parents=True)
 
-    meta = {}
+    meta = _init_meta()
 
     all_md_texts = []
     for md_file in ctx.files:
@@ -305,7 +333,7 @@ def gen_pdf(
 
     html_res: md2html.HTMLResult = md2html.md2html(full_md_text)
     multipage_formats = {fmt for fmt in formats if fmt in MULTIPAGE_FORMATS}
-    onepage_formats = set(formats) - set(multipage_formats)
+    onepage_formats   = set(formats) - set(multipage_formats)
     for fmt in multipage_formats:
         part_page_fmt = MULTIPAGE_FORMATS[fmt]
         onepage_formats.add(part_page_fmt)
@@ -322,8 +350,8 @@ def gen_pdf(
         html2pdf.html2pdf(wrapped_html, pdf_fpath, html_dir)
 
     for fmt in multipage_formats:
-        part_page_fmt = MULTIPAGE_FORMATS[fmt]
+        part_page_fmt       = MULTIPAGE_FORMATS[fmt]
         part_page_pdf_fpath = pdf_dir / (part_page_fmt + ".pdf")
-        booklet_pdf_fpath = pdf_dir / (fmt         + ".pdf")
+        booklet_pdf_fpath   = pdf_dir / (fmt           + ".pdf")
         log.info(f"creating booklet '{part_page_pdf_fpath}' -> '{booklet_pdf_fpath}'")
         pdf_booklet.create(in_path=part_page_pdf_fpath, out_path=booklet_pdf_fpath)

@@ -24,19 +24,16 @@ LitProg is a [Markdown][href_wiki_markdown] processor for [Literate Programming 
         Code                   HTML/PDF
 ```
 
-ABCD EFG HIJKL MNOPQ RSTUV WXYZ abcd efg hijkl mnopq rstuv wxyz ABCD EFG HIJKL MNOPQ RSTUV WXYZ abcd efg hijkl mnopq rstuv wxyz
-
 LitProg aims to strike a great balance between
 
-  - Ease of writing and editing
-  - Greate layout even if little to no concern is given to it
-  - Highly integrated generation of code, diagrams and charts
+  - Low friction when writing and editing
+  - High quality of generated documentation
 
-In short, LitProg aims to be your first choice for all technical writing, to let you focus on your ideas and not on document layout and to get beautiful documents fit for publication.
+In short, LitProg aims to be your first choice for technical writing, be it for software documentation, blog articles or tutorials. With LitProg you can focus on your ideas and code, rather than on document layout and typesetting. Even without review, the mismatch between the markdown you edit and the html/pdf output is small enough that you won't have to constantly review the generated output.
 
-ABCD EFG HIJKL MNOPQ RSTUV WXYZ abcd efg hijkl mnopq rstuv wxyz ABCD EFG HIJKL MNOPQ RSTUV WXYZ abcd efg hijkl mnopq rstuv wxyz
+LitProg aims to be your second choice for software development, once you've determined that your project or module is feasible and can justify the extra effort required to write it as a high quality literate program.
 
-I hope the day is not too far, where [each][] [and][] [literate][] [program][] must not either be itself or start with with an exposition on literate programming. I hope that this small program can serve that purpose for other programs, so that they can just get on with explaining themselves.
+I hope the day is not too far, where [everybody][href_pbr_preface] [who mentions][href_ctan_web2w] [literate][href_amazon_understanding_mp3] [programming][href_johndcook_blog1] is not obliged to explain what it is. Perhaps this small program can serve that purpose for others programs, so that they themselves can focus on their own problems.
 
 The lack of broad adoption casts some doubt on the [claims of the benefits of Literate Programming][href_knuthweb]. The closest thing to adoption of LP has been with some writers using [Jupyter][href_jupyter] style notebooks in the area of data science. Such notebooks can communicate to readers how data was processed and what calculations were used. The fact that these notebooks are executable is a form of automated review, which gives some credence to the correctness of the results. Literate Programming as a paradigm is somewhat different in that the communication between programmers is supposed. proported to result in higher quality software, at a higher initial pricehave a lower long term cost of development. Understanding such programs leads to greater trust in the results, but this is not the same as understanding the program The a to get a better idea of how a data analyst arrived at their results, but this is not the same as a programming are better suited to data analysis and reporting however, rather than creating libraries and applications. I believe lack of adoption of LP is partially the result of inadequate tooling and I hope LitProg will enable you to write good software in an LP style.
 

@@ -1,5 +1,6 @@
 import re
 import io
+import string
 import typing as typ
 import itertools as it
 
@@ -198,7 +199,8 @@ def _wrap_firstpara(html_text: HTMLText) -> typ.Iterable[HTMLText]:
     # NOTE: It appears that WeasyPrint avoids orphaned
     #   headlines already, so this isn't needed there. The
     #   only case this might make sense is when printing
-    #   using the browser.
+    #   using the browser, where an orphaned headline is
+    #   often a problem.
 
     headline_re    = re.compile(r"\<(h\d)[^>]*\>.*?\<\/\1\>")
     tag_re         = re.compile(r"\<(\w+)[^>]*\>.*\<\/\1\>")
@@ -386,10 +388,60 @@ def _add_sentence_spacing(soup: bs4.BeautifulSoup) -> None:
 
 
 def _add_code_scrollers(soup: bs4.BeautifulSoup) -> None:
-    for elem in soup.find_all("div", {'class': "codehilite"}):
-        scroller = soup.new_tag("div")
+    for elem in soup.find_all('div', {'class': 'codehilite'}):
+        scroller = soup.new_tag('div')
         scroller.attrs['class'] = ['code-scroller']
         list(elem.children)[0].wrap(scroller)
+
+
+def _update_footnote_refs(soup: bs4.BeautifulSoup) -> None:
+    for elem in soup.find_all('a', {'class': 'footnote-ref'}):
+        elem.string = "[" + elem.string + "]"
+
+
+FNOTES_TEXT = "Footnotes and References"
+
+
+def _add_footnotes_header(soup: bs4.BeautifulSoup) -> None:
+    refs_h        = soup.new_tag('h1')
+    refs_h.string = FNOTES_TEXT
+    refs_h['id'] = ['references']
+
+    footnotes = soup.find('div', {'class': 'footnote'})
+    footnotes.insert(2, refs_h)
+
+
+def _add_footer_links(soup: bs4.BeautifulSoup, fmt: str) -> None:
+    hrefs = []
+    for a_tag in soup.select('a'):
+        href = a_tag.attrs['href']
+        if not href.startswith("http"):
+            continue
+        hrefs.append(href)
+
+    linklist = soup.new_tag('ol')
+    linklist.attrs['class'] = ['linklist']
+    soup.find('div', {'class': 'footnote'}).append(linklist)
+
+    if 'tallcol' in fmt:
+        stride = 70
+    elif 'letter' in fmt:
+        stride = 40
+    else:
+        stride = 42
+
+    for i, href in enumerate(hrefs):
+        linktext        = soup.new_tag('code')
+        href_lines      = [href[i : i + stride] for i in range(0, len(href), stride)]
+        linktext.string = "\n".join(href_lines)
+
+        link = soup.new_tag('a')
+        link['href'] = href
+        link.append(linktext)
+
+        li = soup.new_tag('li')
+        li.append(link)
+        linklist.append(li)
 
 
 def _add_heading_links(soup: bs4.BeautifulSoup) -> None:
@@ -407,9 +459,48 @@ def _add_heading_numbers(
 
         tag     = "h" + str(entry['level'])
         heading = soup.find(tag, {'id': entry['id']})
+        heading['heading-num'] = heading_number
         if heading_prefix:
             heading.string = heading_number + " " + heading.string
         _add_heading_numbers(soup, entry['children'], heading_number + ".")
+
+
+def _add_figure_numbers(soup: bs4.BeautifulSoup) -> None:
+    selectors = [
+        "h1",
+        "p > img",
+        ".codehilite",
+        ".katex-display",
+        "table",
+        ".admonition.caption",
+    ]
+    chapter = 0
+    fig_num = -1
+    for elem in soup.select(", ".join(selectors)):
+        if elem.name == 'h1':
+            chapter += 1
+            fig_num = -1
+        elif 'caption' in elem.get('class', []):
+            fig_id      = ""
+            cur_fig_num = fig_num
+            while cur_fig_num > 0:
+                cur_fig_num, rem = divmod(cur_fig_num, 26)
+                fig_id = string.ascii_lowercase[rem - 1 if fig_id else rem] + fig_id
+
+            if not fig_id:
+                fig_id = "a"
+
+            fig_prefix = "Figure " + str(chapter) + fig_id
+            title_elem = elem.find('p', {'class': 'admonition-title'})
+            if title_elem:
+                title_elem.string = fig_prefix + ": " + (title_elem.string or "")
+            else:
+                title_elem = soup.new_tag('p')
+                title_elem.attrs['class'] = ['admonition-title']
+                title_elem.string = fig_prefix
+                elem.insert(0, title_elem)
+        else:
+            fig_num += 1
 
 
 def _add_nav_numbers(ul: bs4.BeautifulSoup, heading_prefix: str = "") -> None:
@@ -423,9 +514,19 @@ def _add_nav_numbers(ul: bs4.BeautifulSoup, heading_prefix: str = "") -> None:
             _add_nav_numbers(sub_ul, heading_number + ".")
 
 
-def add_nav_numbers(nav_html: HTMLText) -> HTMLText:
-    soup = bs4.BeautifulSoup(nav_html, PARSER_MODULE)
-    _add_nav_numbers(soup.select(".toc > ul")[0])
+def postproc_nav_html(nav_html: HTMLText) -> HTMLText:
+    soup   = bs4.BeautifulSoup(nav_html, PARSER_MODULE)
+    toc_ul = soup.select(".toc > ul")[0]
+    _add_nav_numbers(toc_ul)
+
+    refs_a        = soup.new_tag('a')
+    refs_a.string = FNOTES_TEXT
+    refs_a['href'] = "#references"
+    refs_li = soup.new_tag('li')
+    refs_li.append(refs_a)
+
+    toc_ul.append(refs_li)
+
     return str(soup)
 
 
@@ -437,10 +538,13 @@ def postproc4screen(html_res: md2html.HTMLResult) -> HTMLText:
 
     soup = bs4.BeautifulSoup(html_text, PARSER_MODULE)
     _add_heading_numbers(soup, html_res.toc_tokens)
+    _add_figure_numbers(soup)
     _add_heading_links(soup)
     _shyphenate_html(soup)
     _add_sentence_spacing(soup)
     _add_code_scrollers(soup)
+    _update_footnote_refs(soup)
+    _add_footnotes_header(soup)
     html_text = str(soup)
     # html_text.replace("\u00AD", "&shy;")
     return html_text
@@ -454,12 +558,18 @@ def postproc4print(html_res: md2html.HTMLResult, fmt: str) -> HTMLText:
     if "ereader" in fmt:
         max_line_len = 65
     if "tallcol" in fmt:
-        max_line_len = 75
+        max_line_len = 70
+    if fmt in ("print_a4", "print_letter"):
+        max_line_len = 95
 
-    html_text    = "".join(_iter_postproc_html(html_res.raw_html, max_line_len=max_line_len))
+    html_text = "".join(_iter_postproc_html(html_res.raw_html, max_line_len=max_line_len))
 
     soup = bs4.BeautifulSoup(html_text, PARSER_MODULE)
     _add_heading_numbers(soup, html_res.toc_tokens)
+    _add_figure_numbers(soup)
+    _update_footnote_refs(soup)
+    _add_footnotes_header(soup)
+    _add_footer_links(soup, fmt)
     html_text = str(soup)
 
     return html_text

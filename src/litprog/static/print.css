@@ -11,7 +11,9 @@
         break-inside: avoid;
     }
     img {
+        display: block;
         max-width: 100%;
+        margin: 1em auto;
     }
 
     code {
@@ -31,19 +33,19 @@
         margin-left: -2em;
     }
 
-    p a, ol a, li a {
+    body {
+        counter-reset: link;
+    }
+
+    a[href^=http] {
         counter-increment: link;
         color: #333;
         text-decoration: underline dotted;
     }
 
-    body {
-        counter-reset: link;
-    }
-
     /*p > a, ol > a, li > a {margin-right: 1.1em;}*/
 
-    p > a:after, ol > a:after, li > a:after {
+    a[href^=http]:after {
         vertical-align: super;
         font-size: 0.65em;
         content: "{" counter(link) "}";
@@ -63,38 +65,74 @@
         display: none;
     }
 
+    .linklist a:after,
+    .footer a:after,
     .footnote-backref:after {
         display: none;
+    }
+    .halfletter .linklist,
+    .letter .linklist,
+    .a4 .linklist,
+    .a5 .linklist {
+        column-count: 2;
+        column-gap: 3em;
+    }
+    .linklist {
+        font-size: 0.9em;
+        line-height: 1.25em;
+        letter-spacing: -0.03em;
+        hyphens: none !important;
+    }
+    .linklist li {
+        margin-bottom: 0.5em;
+    }
+    .linklist a {
+        text-decoration: none;
+        white-space: pre-wrap;
+    }
+    .linklist code {
+        padding: 0;
     }
 
     sup[id^=fnref] {
         font-size: 0.65em;
     }
 
+<<<<<<< Updated upstream
     a.footnote-ref {
         color: #333;
         /*display: inline-block;*/
+=======
+    a.footnote-ref, .footer a {
+        color: #000;
+>>>>>>> Stashed changes
         text-decoration: none;
+        /*display: inline-block;*/
         /*min-width: .9em;*/
         /*margin-left: -.9em;*/
         /*position: relative;*/
         /*outline: 1px solid red;*/
     }
 
-    h1 {string-set: chapter content();}
+    h1 {string-set: chapter content(), section "";}
     h2 {string-set: section content();}
+
+    @page :first {
+        @top-left {content: "";}
+        @top-right {content: "";}
+    }
 
     @page {
         @top-left {
             font-family: lp-enriqueta, Enriqueta, Bitter, serif;
             font-size: 8.5pt;
-            margin: 0 0 -5mm 0;
+            margin: 0;
             white-space: pre;
         }
         @top-right {
             font-family: lp-enriqueta, Enriqueta, Bitter, serif;
             font-size: 8.5pt;
-            margin: 0 0 -5mm 0;
+            margin: 0;
             white-space: pre;
         }
     }

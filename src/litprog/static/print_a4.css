@@ -1,0 +1,30 @@
+@media print {
+    @page {
+        /* A4 */
+        padding: 0;
+        margin: 30mm 20mm 15mm 20mm;
+        size: 210mm 297mm;
+    }
+    body {
+        /* for A4 and US-Letter */
+        font-size: 10pt;
+        line-height: 1.6em;
+    }
+    img {
+        max-height: calc(297mm - 45mm);
+        max-width: calc(210mm - 40mm);
+    }
+
+    @page {
+        @top-left {
+            content: counter(page) "        " string(chapter);
+            font-size: 10pt;
+            margin-bottom: -10mm;
+        }
+        @top-right {
+            content: string(section);
+            font-size: 10pt;
+            margin-bottom: -10mm;
+        }
+    }
+}

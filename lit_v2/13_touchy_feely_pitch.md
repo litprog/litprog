@@ -2,6 +2,11 @@
 
 Ideas
   - The torch metaphor: https://divan.dev/posts/visual_programming_go/
+  - The selfish contributor: https://fosdem.org/2020/schedule/event/selfish_contributor/
+    - How dows LP improve the motivation for contributors
+  - why are we so bad at software engineering (Iowa Caucus Fiasco)
+    - https://www.bitlog.com/2020/02/12/why-are-we-so-bad-at-software-engineering/
+    - https://www.reddit.com/r/programming/comments/f2rplr/why_are_we_so_bad_at_software_engineering/
   - Encouraging a Culture of Written Communication: https://news.ycombinator.com/item?id=23141353
   - Writing for Software Developers: https://news.ycombinator.com/item?id=23153469
 

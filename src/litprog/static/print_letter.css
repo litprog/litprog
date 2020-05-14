@@ -1,0 +1,30 @@
+@media print {
+    @page {
+        /* Letter */
+        padding: 0;
+        margin: 1.25in 0.75in 0.75in 0.75in;
+        size: 8.5in 11in ;
+    }
+    body {
+        /* for A4 and US-Letter */
+        font-size: 10pt;
+        line-height: 1.6em;
+    }
+    img {
+        max-height: calc(11in - 2.0in);
+        max-width: calc(8.5in - 1.5in);
+    }
+
+    @page {
+        @top-left {
+            content: counter(page) "        " string(chapter);
+            font-size: 10pt;
+            margin-bottom: -0.5in;
+        }
+        @top-right {
+            content: string(section);
+            font-size: 10pt;
+            margin-bottom: -0.5in;
+        }
+    }
+}

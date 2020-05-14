@@ -1,0 +1,41 @@
+@media print {
+
+    body {
+        /* 1of2col - for 2 column paper layout */
+        font-size: 8pt;
+        line-height: 1.4em;
+    }
+
+    div.codehilite pre {
+        font-size: 8pt;
+        letter-spacing: -0.04em;
+    }
+
+    @page :nth(1) {
+        @top-left {content: "";}
+        @top-right {content: "";}
+    }
+
+    @page :nth(2) {
+        @top-left {content: "";}
+        @top-right {content: "";}
+    }
+
+    @page :right {
+        font-size: 8pt;
+        counter-increment: pageno;
+        margin: 20mm 4mm 12mm 12mm;
+        @top-left {
+            content: string(chapter);
+            margin-bottom: -5mm;
+        }
+    }
+    @page :left {
+        font-size: 8pt;
+        margin: 20mm 12mm 12mm 4mm;
+        @top-right {
+            content: string(section) "        " counter(pageno);
+            margin-bottom: -5mm;
+        }
+    }
+}

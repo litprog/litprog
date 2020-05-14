@@ -4,42 +4,9 @@
         padding: 0;
         size: 105mm 297mm;
     }
-    body {
-        /* 1of2col - for 2 column paper layout */
-        font-size: 7.5pt;
-        line-height: 1.50em;
-    }
-
-    div.codehilite pre {
-        font-size: 7pt;
-        letter-spacing: -0.04em;
-    }
 
     img {
-        display: block;
         max-width: calc(105mm - 16mm);
         max-height: calc(297mm - 32mm);
-    }
-
-    @page :nth(1) {
-        @top-left {content: "";}
-        @top-right {content: "";}
-    }
-
-    @page :nth(2) {
-        @top-left {content: "";}
-        @top-right {content: "";}
-    }
-
-    @page :right {
-        font-size: 7.5pt;
-        counter-increment: pageno;
-        margin: 16mm 4mm 12mm 12mm;
-        @top-left {content: string(chapter); }
-    }
-    @page :left {
-        font-size: 7.5pt;
-        margin: 16mm 12mm 12mm 4mm;
-        @top-right { content: string(section) "        " counter(pageno); }
     }
 }

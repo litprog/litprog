@@ -5,28 +5,26 @@
         margin: 20mm 12mm 10mm 12mm;
         size: 5.5in 8.5in;
     }
-
-    @page :first {
-        @top-left {content: "";}
-        @top-right {content: "";}
-    }
-
-    @page :left {
-        @top-left {content: counter(page) "        " string(chapter); }
-    }
-    @page :right {
-        @top-right { content: string(section) "        " counter(page); }
-    }
-
     body {
         /* A5 - for A4 and US-Letter booklets */
         font-size: 8.5pt;
         line-height: 1.55em;
     }
-
     img {
-        display: block;
         max-width: calc(5.5in - 24mm);
         max-height: calc(8.5in - 30mm);
+    }
+
+    @page :left {
+        @top-left {
+            content: counter(page) "        " string(chapter);
+            margin-bottom: -5mm;
+        }
+    }
+    @page :right {
+        @top-right {
+            content: string(section) "        " counter(page);
+            margin-bottom: -5mm;
+        }
     }
 }

@@ -95,3 +95,14 @@ deploy_sketch:
 	cp src/litprog/static/*.css /run/user/1000/keybase/kbfs/public/mbarkhau/litprog/src/litprog/static/;
 	cp src/litprog/static/*.svg /run/user/1000/keybase/kbfs/public/mbarkhau/litprog/src/litprog/static/;
 
+
+.PHONY: sbk
+sbk:
+	$(DEV_ENV)/bin/litprog build -v ../sbk/READMEv2.md --html doc
+# 	$(DEV_ENV)/bin/litprog build -v ../sbk/READMEv2.md --pdf doc
+
+.PHONY: sync
+sync:
+	rsync -rtpov --exclude='*.woff' --exclude='*.woff2' --exclude='*.ttf' \
+		--exclude='*.pdf' --exclude='print*.html' \
+		doc/ /run/user/1000/keybase/kbfs/public/mbarkhau/sbk/

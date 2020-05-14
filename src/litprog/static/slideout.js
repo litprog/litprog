@@ -261,8 +261,11 @@ Slideout.prototype._initTouchEvents = function() {
       return;
     }
 
-    var codeScroller = eve.target.closest(".code-scroller");
-    if (codeScroller !== null && codeScroller.scrollLeft > 0) {
+    var scroller = eve.target.closest(".code-scroller");
+    if (scroller === null) {
+      scroller = eve.target.closest(".table-wrap");
+    }
+    if (scroller !== null && scroller.scrollLeft > 0) {
       if (!html.classList.contains('slideout-open')) {
         self._startOffsetX = eve.touches[0].clientX
         return;

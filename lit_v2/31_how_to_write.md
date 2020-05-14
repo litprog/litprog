@@ -11,10 +11,33 @@ https://www.youtube.com/watch?v=aFwVf5a3pZM
 Linguistics, Style and Writing in the 21st Century - Steven Pinker
 https://www.youtube.com/watch?v=OV5J6BfToSw
 
+Four kinds of Documentation
+https://news.ycombinator.com/item?id=21289832
+
+Learning technical writing using the engineering method
+https://news.ycombinator.com/item?id=22283919
+
+How to Write a Git Commit Message
+https://chris.beams.io/posts/git-commit/
+
+Good ways to capture institional knowledge
+https://news.ycombinator.com/item?id=22454333
+
+ - Separate subject from body with a blank line
+ - Limit the subject line to 50 characters
+ - Capitalize the subject line
+ - Do not end the subject line with a period
+ - Use the imperative mood in the subject line
+ - Wrap the body at 72 characters
+ - Use the body to explain what and why vs. how
+
+How to write the perfect pull request
+https://news.ycombinator.com/item?id=22362226
+
 
 ## Disclaimer/Caveat Emptor
 
-As of now, these "best practices" are in flux as I figure out and gather feedback on how best to approach this style of programming. It will be updated as I write more and larger literate programs, but for now this chapter represents my best guess at what can work, as well as 
+As of now, these "best practices" are in flux as I figure out and gather feedback on how best to approach this style of programming. It will be updated as I write more and larger literate programs, but for now this chapter represents my best guess at what can work, as well as
 
 duplication:
 This chapter was written without extensive experience writing
@@ -42,7 +65,7 @@ possible to read this documentation like an essay from beginning
  - Knowledge level for programming language/tools
  - Project setup
  - Background Knowledge
- 
+
 
 ### Types of Documentation
 

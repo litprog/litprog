@@ -1,24 +1,22 @@
 @media print {
     @page {
+        /* ereader/kindle */
         padding: 0;
         margin: 5mm 5mm;
         size: 90mm 120mm;
     }
-
     body {
+        /* ereader/kindle */
         font-size: 7.5pt;
         line-height: 1.50em;
+    }
+    img {
+        max-width: calc(90mm - 5mm);
+        max-height: calc(120mm - 5mm);
     }
 
     div.codehilite pre {
         font-size: 7pt;
         letter-spacing: -0.04em;
     }
-
-    img {
-        display: block;
-        max-width: calc(90mm - 5mm);
-        max-height: calc(120mm - 5mm);
-    }
-
 }

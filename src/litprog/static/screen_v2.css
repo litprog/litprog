@@ -1,7 +1,9 @@
 
-body, body .wrapper, .header {
-    transition: background 400ms linear 150ms, color 0ms linear 200ms;
-    will-change: background;
+body, body .wrapper {
+    transition: background 400ms linear 150ms,
+        color 0ms linear 200ms,
+        box-shadow 120ms linear;
+    will-change: background, box-shadow;
 }
 
 .nav a {
@@ -17,6 +19,7 @@ body, body .wrapper, .header {
     text-align: left;
     list-style-type: none;
     padding-inline-start: 1em;
+
 }
 
 /* Layout Styles*/
@@ -25,25 +28,13 @@ body, body .wrapper, .header {
     padding: 2em 1.2em;
     transition: padding 400ms linear;
     will-change: padding;
-    margin-bottom: 2em;
-}
-.footer {
-    max-width: 90%;
-    text-align: center;
-    margin-bottom: 2em;
 }
 
-.footer {color: #333; }
-.dark .footer {color: #CCC;}
-.footer a, .footer span {
-    display: inline-block;
-    margin: 0em 1em;
-}
 .wrapper {
     background: #FBFAFA;;
 }
 
-.content > p, .content > .codehilite {
+.content > .codehilite {
     margin: 1em 0;
 }
 
@@ -59,19 +50,26 @@ body {
 
 /* Lift page effect */
 
-@media only screen and (min-width: 800px) {
+@media only screen and (min-width: 750px) {
     body {
         background: #CCC;
     }
     .wrapper {
-        box-shadow: #888 0 0.1em 0.5em 0;
         border-radius: 5px;
         margin: 120px auto 0 auto;
-        width: calc(100% - 80px);
+        width: calc(100% - 30px);
         max-width: 900px;
+        box-shadow: #888 0 0.1em 0.5em 0;
     }
-    .footer {
-        max-width: 900px;
+    .lift-fold-left ,
+    .lift-fold-right {
+        cursor: pointer;
+    }
+    .lift-fold-left .wrapper {
+        box-shadow: #888 -0.2em 0.3em 0.8em 0;
+    }
+    .lift-fold-right .wrapper {
+        box-shadow: #888 0.2em 0.3em 0.8em 0;
     }
 }
 
@@ -96,21 +94,30 @@ body {
 }
 
 .nav-scroller > .toc {
-    margin-top: 150px;
+    margin-top: 80px;
 }
 
+.toc > ul {
+    /* room so elements aren't hidden by header */
+    padding-bottom: 90px;
+}
 .toc li {
     font-weight: normal;
     line-height: 1.3em;
+    padding: 0;
+    margin: 0;
 }
 .toc li a {
     display: inline-block;
     width: 175px;
-    padding: 5px 25px 5px 30px;
-    text-indent: -20px;
-
+    padding: 4px 25px 4px 30px;
+    text-indent: -1.2em;
     will-change: background;
     transition: background 1s ease;
+    margin-left: -0.1em;
+}
+.toc > ul > li > a {
+    margin-top: 0.8em;
 }
 
 .toc li a:hover,
@@ -119,25 +126,42 @@ body {
     background: #EEE;
 }
 
-.toc ul {
-    padding-inline-start: 0;
-}
 .toc > ul > li {
     font-weight: bold;
-    margin-top: 1em;
+    margin: 0;
     margin-left: 1em;
 }
+.toc ul {
+    padding-inline-start: 0;
+    margin-left: 8px;
+    border-left: 2px solid #8888;
+    margin-top: 2px;
+    margin-bottom: 0.3em;
+}
+.toc > ul > li > ul,
+.toc > ul {
+    margin: 0;
+    border: none;
+}
 
-.slideout-menu {
+.nav {
   position: fixed;
   display: none;
   top: 0;
-  left: 0;
-  bottom: 0;
-  right: 0;
   z-index: 0;
   width: 256px;
   -webkit-overflow-scrolling: touch;
+}
+
+.nav,
+.menu {
+    left: 0;
+}
+
+.nav.active {
+    display: block;
+    background: #CCC;
+    z-index: 1;
 }
 
 .slideout-panel {
@@ -152,7 +176,7 @@ body {
   overflow: hidden;
 }
 
-.slideout-open .slideout-menu {
+.slideout-open .nav {
   display: block;
 }
 
@@ -160,11 +184,15 @@ body {
 /* Show menu on left */
 
 @media only screen and (min-width: 1200px) {
-    .wrapper, .footer {
-        margin: 40px 0 40px calc(25% - 280px + 256px);
+    .wrapper {
+        margin: 40px 0 40px calc(55% - 400px);
     }
-    .slideout-menu {
+    .nav {
         display: block;
+    }
+    .nav, .menu {
+        left: 0;
+        left: calc(55% - (400px + 300px));
     }
 }
 
@@ -193,17 +221,35 @@ body.dark, body.dark .wrapper {
     filter: invert(1);
 }
 
-body.dark .content {
-    padding: 2em 1em 2em 0.5em;
+@media only screen and (max-width: 749px) {
+    /* Dark is it's own boundary -> reduce padding to gain line length. */
+    body.dark .content {
+        padding: 2em 1em 2em 0.5em;
+    }
 }
 
-@media only screen and (min-width: 800px) {
+@media only screen and (min-width: 750px) {
     body.dark {
         background: #292929;
     }
     /* Lift page effect needs extra padding inside*/
     body.dark .content, .content {
+        padding: 2rem;
+    }
+}
+
+@media only screen and (min-width: 900px) {
+    body.dark .content, .content {
         padding: 3rem;
+    }
+}
+
+@media only screen and (min-width: 1400px) {
+    .wrapper {
+        max-width: calc(900px + 4rem);
+    }
+    body.dark .content, .content {
+        padding: 5rem;
     }
 }
 
@@ -257,31 +303,86 @@ body.dark .content {
         min-width: calc(100% - 15px);
         margin-bottom: 25px;
     }
+    .table-wrap {
+        max-width: 100%;
+        overflow-x: auto;
+    }
+    .table-wrap table {
+        white-space: pre;
+    }
 }
 
 
-/* Header */
+/* Menu */
 
-.header {
+.header img {
+    width: 32px;
+    height: 32px;
+    padding: 4px;
+}
+.header div {
+    position: absolute;
+    display: block;
+    font-size: 24px;
+    font-family: lp-enriqueta;
+    left: 100px;
+    width: calc(100% - 200px);
+    text-align: center;
+    vertical-align: middle;
+    line-height: 40px;
+    top: 4px;
+}
+
+.header,
+.menu {
     position: fixed;
-    width: 100%;
-    top: 0;
+    padding: 5px 5px 5px 20px;
+    width: calc(100% - 25px);
     z-index: 2;
-    padding: 20px 20px 15px 40px;
+    line-height: 0;
+    will-change: transform, background;
+    transition: transform 300ms, background 400ms linear 150ms, color 0ms linear 200ms;
+    transform: none;
 }
+.header {
+    top: 0;
+    border-bottom: 1px solid #888;
+    box-shadow: 0px -30px 20px 20px;
+}
+.menu {
+    bottom: 0;
+    border-top: 1px solid #888;
+    box-shadow: 0px 30px 20px 20px;
+}
+
 .wrapper {
-    margin-top: 120px;
+    margin-bottom: 60px;
 }
 
-h1:hover, h2:hover, h3:hover, h4:hover {
-}
-
-/* Scroll headlines below the fixed header. */
-h1[id]::before, h2[id]::before, h3[id]::before, h4[id]::before, h5[id]::before  {
+/* These cause fragment links (for headers and footnote links) to be scrolled into view. */
+h1[id]:before, h2[id]:before, h3[id]:before, h4[id]:before, h5[id]:before {
     content: '';
     display: block;
-    height:      100px;
-    margin-top: -100px;
+    height: 120px;
+    margin-top: -120px;
+    visibility: hidden;
+}
+h1, h2, h3, h4, h5 {
+    position: relative;
+}
+h2[id] a:hover:before, h3[id] a:hover:before, h4[id] a:hover:before, h5[id] a:hover:before {
+    content: '§';
+    font-size: 0.85em;
+    position: absolute;
+    left: -0.7em;
+    bottom: -0.05em;;
+}
+a.footnote-ref:before {
+    content: '';
+    padding-top: 120px;
+    margin-top: -120px;
+    width: 1px;
+    display: inline-block;
     visibility: hidden;
 }
 
@@ -294,21 +395,26 @@ h1 a:visited, h2 a:visited, h3 a:visited, h4 a:visited, h5 a:visited {
     color: white;
 }
 
-.header {background: #FBFAFA; }
-.dark .header {background: #000; }
-
-@media only screen and (min-width: 800px) {
-    .header {background: #CCC;}
-    .dark .header {background: #292929;}
-}
+.menu, .header {background: #CCC}
+.dark .menu, .dark .header {background: #292929;}
 
 @media only screen and (min-width: 1200px) {
-    .header {
+    .header > div {
+        width: 100%;
+        overflow-x: hidden;
+    }
+    .header, .menu {background: #CCC}
+    .dark .header, .dark .menu {
+        background: #292929;
+    }
+    .header, .menu {
+        box-shadow: none;
+        border: none;
         position: relative;
     }
 }
 
-.header > span {
+.menu > span {
     display: inline-block;
     width: 50px;
     height: 50px;
@@ -319,11 +425,11 @@ h1 a:visited, h2 a:visited, h3 a:visited, h4 a:visited, h5 a:visited {
 .menu-icon > span {background: #292929;}
 .dark .menu-icon > span {background: #CCC;}
 
-.header > span:hover {
+.menu > span:hover {
     cursor: pointer;
     background: #999;
 }
-.dark .header > span:hover {
+.dark .menu > span:hover {
     background: #666;
 }
 
@@ -355,17 +461,62 @@ h1 a:visited, h2 a:visited, h3 a:visited, h4 a:visited, h5 a:visited {
   transform: translate(0px, -8px) rotate(-45deg);
 }
 
-@media only screen and (min-width: 1200px) {
-    .header span.menu-icon {display: none;}
-    .header {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 210px;
+@media only screen and (max-width: 1199px) {
+    .header.offscreen,
+    .menu.offscreen {
+        box-shadow: none;
+        border: none;
     }
+    .header.offscreen {transform: translate3d(0, -100%, 0); }
+    .menu.offscreen {transform: translate3d(0, 100%, 0); }
 }
 
-.header .toggle-contrast > span {
+@media only screen and (min-width: 1200px) {
+    .menu,
+    .header {
+        position: fixed;
+        left: 0;
+        width: 235px;
+    }
+    .header {top: 0;}
+    .menu {bottom: 0;}
+    .menu span.menu-icon {display: none;}
+}
+
+.menu .pdf-icon {
+    display: inline-block;
+    width: 42px;
+    height: 40px;
+    padding: 10px 0 0 10px;
+}
+.menu .pdf-icon > span {
+    display: block;
+    border: none;
+}
+.menu .pdf-icon > span:nth-child(1) {
+    margin-left: 10px;
+    width: 12px;
+    border-bottom: 8px solid black;
+}
+.menu .pdf-icon > span:nth-child(2) {
+    margin-left: 2px;
+    width: 0;
+    border-top: 14px solid black;
+}
+.menu .pdf-icon > span:nth-child(3) {
+    width: 32px;
+    border-bottom: 6px solid black;
+}
+.dark .menu .pdf-icon > span {
+    border-color: #CCC;
+}
+.menu .pdf-icon > span:nth-child(2),
+.dark .menu .pdf-icon > span:nth-child(2) {
+    border-left: 14px solid transparent;
+    border-right: 14px solid transparent;
+}
+
+.menu .toggle-contrast > span {
     display: block;
     width: 30px;
     height: 30px;
@@ -382,30 +533,30 @@ h1 a:visited, h2 a:visited, h3 a:visited, h4 a:visited, h5 a:visited {
     box-shadow: 10px 10px 0 0 #292929;
 }
 
-.dark .header .toggle-contrast > span {
+.dark .menu .toggle-contrast > span {
     margin-left: -30px;
     margin-top: 10px;
     box-shadow: 40px 0px 0 0 #CCC;
 }
 
-.header .print-icon {
+.menu .print-icon {
     width: 42px;
     height: 40px;
     padding: 10px 0 0 8px;
 }
-.header .print-icon > span {
+.menu .print-icon > span {
     display: block;
     background-color: #EEE;
     transition: background-color 400ms ease, border-color 400ms ease;
     will-change: background-color, border-color;
 }
-.header .print-icon span:nth-child(1) {
+.menu .print-icon span:nth-child(1) {
     width: 15px;
     height: 8px;
     margin-left: 8px;
     border: 2px solid #292929;
 }
-.header .print-icon span:nth-child(3) {
+.menu .print-icon span:nth-child(3) {
     width: 15px;
     height: 5px;
     margin-left: 8px;
@@ -414,7 +565,7 @@ h1 a:visited, h2 a:visited, h3 a:visited, h4 a:visited, h5 a:visited {
     margin-top: -4px;
 }
 
-.header .print-icon span:nth-child(2) {
+.menu .print-icon span:nth-child(2) {
     width: 35px;
     height: 15px;
     background-color: #292929;
@@ -422,145 +573,163 @@ h1 a:visited, h2 a:visited, h3 a:visited, h4 a:visited, h5 a:visited {
     margin-top: -2px;
 }
 
-.dark .header .print-icon span:nth-child(1) {
+.dark .menu .print-icon span:nth-child(1) {
     background-color: #292929;
     border-color: #CCC;
 }
-.dark .header .print-icon span:nth-child(3) {
+.dark .menu .print-icon span:nth-child(3) {
     background-color: #292929;
     border-color: #CCC;
 }
-.dark .header .print-icon span:nth-child(2) {
+.dark .menu .print-icon span:nth-child(2) {
     background-color: #CCC;
 }
 
 /* PDF Download Dialog*/
 
+.pdf-links table,
+.pdf-links tr,
+.pdf-links td,
+.pdf-links th {
+    border-width: 0;
+    background: none;
+}
+.pdf-links td {
+    text-align: center;
+}
+
+.pdf-links th {
+    vertical-align: middle;
+}
+
 .pdf-links {
     position: fixed;
     top: 130px;
     left: 50%;
-    transform:translate(-50%, 0);
-    min-width: 260px;
-    width: 48vmin;
+    transform: translate(-50%, 0);
     margin: 0 auto;
     z-index: 2;
 
-    padding: 0 20px 20px 20px;
+    padding: 20px;
     background: white;
     display: none;
     opacity: 0;
 
-    box-shadow: #888 0px 2px 20px -5px;
+    box-shadow: #8885 0px 0px 30px 20px;
     transition: opacity 250ms ease;
     will-change: opactiy;
     border-radius: 2px;
+}
+.dark .pdf-links {
+    background: black;
 }
 
 .pdf-links.active {
     opacity: 1;
 }
 
-.pdf-links > div {
-    text-align: center;
-    font-size: 11px;
-    font-weight: bold;
-    color: #000;
-    margin: 2em 0 1em 0;
-}
-
-.pdf-links a:hover {
-    background: #DDD;
-}
-.pdf-links a:hover span {
-    background: #DDD;
-}
-
+.pdf-links table a:hover {background: #DDD; }
+.pdf-links table a:hover span {background: #DDD; }
+.dark .pdf-links table a:hover {background: #444; }
+.dark .pdf-links table a:hover span {background: #444; }
 
 .pdf-links .a4.portrait {width: calc(2.10 * 6vmin); height: calc(2.96 * 6vmin);}
 .pdf-links .a5.portrait {width: calc(1.48 * 6vmin); height: calc(2.10 * 6vmin);}
 .pdf-links .a6.portrait {width: calc(1.05 * 6vmin); height: calc(1.48 * 6vmin);}
 .pdf-links .ereader {width: calc(0.90 * 6vmin); height: calc(1.20 * 6vmin);}
-.pdf-links .a4.portrait {min-width: calc(2.10 * 40px); min-height: calc(2.96 * 40px);}
-.pdf-links .a5.portrait {min-width: calc(1.48 * 40px); min-height: calc(2.10 * 40px);}
-.pdf-links .a6.portrait {min-width: calc(1.05 * 40px); min-height: calc(1.48 * 40px);}
-.pdf-links .ereader {min-width: calc(0.90 * 40px); min-height: calc(1.20 * 40px);}
+.pdf-links .a4.portrait {min-width: calc(2.10 * 35px); min-height: calc(2.96 * 35px);}
+.pdf-links .a5.portrait {min-width: calc(1.48 * 35px); min-height: calc(2.10 * 35px);}
+.pdf-links .a6.portrait {min-width: calc(1.05 * 35px); min-height: calc(1.48 * 35px);}
+.pdf-links .ereader {min-width: calc(0.90 * 35px); min-height: calc(1.20 * 35px);}
 
 .pdf-links .a4.landscape {width: calc(2.96 * 6vmin); height: calc(2.10 * 6vmin);}
 .pdf-links .a5.landscape {width: calc(2.10 * 6vmin); height: calc(1.48 * 6vmin);}
 .pdf-links .a6.landscape {width: calc(1.48 * 6vmin); height: calc(1.05 * 6vmin);}
-.pdf-links .a4.landscape {min-width: calc(2.96 * 40px); min-height: calc(2.10 * 40px);}
-.pdf-links .a5.landscape {min-width: calc(2.10 * 40px); min-height: calc(1.48 * 40px);}
-.pdf-links .a6.landscape {min-width: calc(1.48 * 40px); min-height: calc(1.05 * 40px);}
+.pdf-links .a4.landscape {min-width: calc(2.96 * 35px); min-height: calc(2.10 * 35px);}
+.pdf-links .a5.landscape {min-width: calc(2.10 * 35px); min-height: calc(1.48 * 35px);}
+.pdf-links .a6.landscape {min-width: calc(1.48 * 35px); min-height: calc(1.05 * 35px);}
 
 .pdf-links .letter.portrait {width: calc(2.16 * 6vmin); height: calc(2.79 * 6vmin);}
 .pdf-links .half-letter.portrait {width: calc(1.40 * 6vmin); height: calc(2.16 * 6vmin);}
-.pdf-links .letter.portrait {min-width: calc(2.16 * 40px); min-height: calc(2.79 * 40px);}
-.pdf-links .half-letter.portrait {min-width: calc(1.40 * 40px); min-height: calc(2.16 * 40px);}
+.pdf-links .letter.portrait {min-width: calc(2.16 * 35px); min-height: calc(2.79 * 35px);}
+.pdf-links .half-letter.portrait {min-width: calc(1.40 * 35px); min-height: calc(2.16 * 35px);}
 
 .pdf-links .letter.landscape {width: calc(2.79 * 6vmin); height: calc(2.16 * 6vmin);}
 .pdf-links .half-letter.landscape {width: calc(2.16 * 6vmin); height: calc(1.40 * 6vmin);}
-.pdf-links .letter.landscape {min-width: calc(2.79 * 40px); min-height: calc(2.16 * 40px);}
-.pdf-links .half-letter.landscape {min-width: calc(2.16 * 40px); min-height: calc(1.40 * 40px);}
+.pdf-links .letter.landscape {min-width: calc(2.79 * 35px); min-height: calc(2.16 * 35px);}
+.pdf-links .half-letter.landscape {min-width: calc(2.16 * 35px); min-height: calc(1.40 * 35px);}
 
+.pdf-links {
+    text-align: center;
+}
 .pdf-links a {
     position: relative;
-    border: 1px solid #000;
     display: inline-block;
     cursor: pointer;
-    text-align: center;
     vertical-align: middle;
     background: #FFF;
     color: #000;
 }
-
-.pdf-links > div {
-    margin: 1em auto;
+.dark .pdf-links a {
+    font-size: 1.5em;
+    color: #FFF;
+    background: #222;
+    border-color: #FFF;
+}
+.pdf-links table a {
+    border: 1px solid #000;
 }
 
-.pdf-links span {
-    line-height: 1.2em;
-    padding: 0.3em 0.5em;
-    margin-top: 1em;
-
-    display: inline-block;
-    position: relative;
-    background: #FFF;
-    z-index: 3;
-}
-
-.pdf-links a.portrait:before,
-.pdf-links a.twocol:before,
-.pdf-links a.twocol:after {
+.pdf-links table a.ereader:before,
+.pdf-links table a.portrait:before,
+.pdf-links table a.twocol:before,
+.pdf-links table a.twocol:after {
     z-index: 2;
-    top: 5%;
+    top: 0;
     position: absolute;
-    font: 1.5vmin/0.7vmin black sans-serif;
+    font: 1vmin/0.8em sans-serif;
     text-align: justify;
-    content: "– — – — – – – — – — – – – — – — – – — –– — – –– – — – — – – – — – — – – — –– — – – — – – — – – — – — — – – — – — – — – — – — – — – — —– — – — – – — –– — – – — – – — – – — – — — – – — – — – — – — – — – — – — —– — – — – – — –– — – – — – – — – – — – — — – – — – — – — – — – — – — – — — – — – — – – – — – — – – – — – — – – — –– — – –– – — – — – – – — – — – – — –– — – – — – – — – – — – — — – – — – — – — – — – — – — – — —– — – — – – — –– — – – — – – — – – — – — — – – — – — – — – — – — – — – — —– — – — – – — –– — – – — – – — – – — – — — – – — – — – — – — – — – — – — —";
+    content: "– — – — – – – — – — – – – — – — – – — –– — – –– – — – — – – – — – — – – — –– — – – — – – — – – — – — — – – — – — – — – — – — – — – — —– — – — – – — –– — – – — – – — – – — – — — – – — – — – — – — – — – — – — —– — – — – – — –– — – – — – – — – – — – — — – – — – — – — – — – — – — – — — – — – — – – – — – — – – – — – — – – — –– — – –– – — – — – – – — – — – – — –– — – – — – – — – – — – — — – – — – — – — – — – — – — – — —– — – — – – — –– — – – — – – — – – — – — — – – — – — – — – — – — – — – — —– — – — – – — –– — – – — – – — – – — – — — – – — – — – — – — – — – — – — – — – — – – – — – — – – – — – — – – — –– — – –– – — – — – – – — – — – – — –– — – – — – – — – – — – — — – – — – — – — – — – — – — – — —– — – — – – — –– — – – — – – — – – — – — — – – — – — – — – — – — – — – — —– — – — – – — –– — – – — – – — – – — – — — – – — – — – — – — – — – — – — — – — – — – – – — – — – – – — – — – – — –– — – –– – — – — – – – — – — – – — –– — – – — – – — – – — – — — – – — – — – — – — – — – — – — —– — – — – – — –– — – – — – – — – – — – — — – – — – — – — – — – — – — – — —– — – — – – — –– — – – — – – — – – — – — — – – — – — – — – — – — – — – — ——";
     color: #555;
     overflow: hidden;
     display: block;
-    padding: 0 10%;
-    height: 85%;
-    margin: 1em;
-}
-.pdf-links a.twocol:before,
-.pdf-links a.twocol:after {
-    padding: 0 5%;
-    width: 40%;
+    height: 88%;
+    margin: 8%;
 }
 
-.pdf-links a.twocol:before {right: 0;}
-.pdf-links a.twocol:after {left: 0;}
-
-.dark .pdf-links {
-    filter: invert(1);
+.pdf-links .ereader {
+    border-radius: 4px;
+    border: 1px solid #888;
+    border-width: 6px 6px 15px 6px;
 }
+
+.pdf-links table a.ereader:before {
+    font: 0.8vmin/0.5em sans-serif;
+}
+
+@media only screen and (min-width: 400px) {
+    .pdf-links table a.twocol:before,
+    .pdf-links table a.twocol:after {
+        font: 1vmin/0.6em sans-serif;
+    }
+}
+
+
+.pdf-links table a.twocol:before,
+.pdf-links table a.twocol:after {
+    width: 38%;
+}
+.pdf-links table a.landscape:before,
+.pdf-links table a.landscape:after {
+    height: 80%;
+}
+
+.pdf-links table a.twocol:before {right: 0;}
+.pdf-links table a.twocol:after {left: 0;}
 
 .popper {
     font-size: 0.9em;
-    max-height: 15em;
+    max-height: 45vh;
     max-width: 80vw;
     border-radius: 4px;
     z-index: 2;
@@ -579,12 +748,15 @@ h1 a:visited, h2 a:visited, h3 a:visited, h4 a:visited, h5 a:visited {
     box-shadow: #8888 0 0.1em 2em 0;
 }
 .popper-wrap {
-    max-width: 35em;
-    max-height: 14em;
+    max-width: 40em;
+    max-height: 45vh;
     overflow-y: auto;
     margin: 2px 0;
 }
 
+.popper table,
+.popper ul,
+.popper ol,
 .popper p {
     margin: 1em;
 }
@@ -593,9 +765,10 @@ h1 a:visited, h2 a:visited, h3 a:visited, h4 a:visited, h5 a:visited {
 }
 
 .popper .arrow {
-    padding: 25px 0;
-    margin-top: -25px;
-    margin-bottom: -25px;
+    /* This increases the hover target just a bit to the link. */
+    padding: 11px 0;
+    margin-top: -10px;
+    margin-bottom: -10px;
 }
 .popper .arrow,
 .popper .arrow::before {
@@ -618,7 +791,12 @@ h1 a:visited, h2 a:visited, h3 a:visited, h4 a:visited, h5 a:visited {
 }
 
 .popper[data-popper-placement^='top'] .arrow {bottom: -11px;}
-.popper[data-popper-placement^='bottom'] .arrow {top: -11px;}
+.popper[data-popper-placement^='bottom'] .arrow {top: -12px;}
 
 .popper[data-popper-placement^='top'] .arrow::before {transform: rotate(135deg);}
 .popper[data-popper-placement^='bottom'] .arrow::before {transform: rotate(315deg);}
+
+.admonition {
+    will-change: background;
+    transition: background 400ms linear 150ms, color 0ms linear 200ms;
+}
