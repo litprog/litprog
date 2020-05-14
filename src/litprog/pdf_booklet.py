@@ -173,24 +173,24 @@ def create(in_path: pl.Path, out_path: typ.Optional[pl.Path]) -> pl.Path:
             raise Exception(err_msg)
 
         (out_format_id, page_order, center_margin) = BOOKLET_FORMAT_MAPPING[in_format_id]
-        # print(f"Converting 2x{in_format_id} -> {out_format_id}")
+        log.info(f"Converting 2x{in_format_id} -> {out_format_id}")
 
         out_width, out_height = PAPER_FORMATS_PT[out_format_id]
 
         scale_w = round((out_width / 2) / in_page_width, 2)
         scale_h = round(out_height / in_page_height, 2)
-        # print("scale", min(scale_w, scale_h), scale_w, scale_h)
         scale = min(scale_h, scale_w)
+        log.info(f"{!scale} {!scale_w} {!scale_h}")
         scale = scale_h
-        # if scale < 1:
-        #     print(f"scaling down by {1/scale:5.2f}x")
-        # elif scale > 1:
-        #     print(f"scaling up by {scale}x")
+        if scale < 1:
+            log.info(f"scaling down by {1/scale:5.2f}x")
+        elif scale > 1:
+            log.info(f"scaling up by {scale}x")
 
-        # if rescale < 1:
-        #     print(f"adding padding of {abs(rescale_pct):3.2f}%")
-        # elif rescale > 1:
-        #     print(f"trimming by {abs(rescale_pct):5.2f}%")
+        if rescale < 1:
+            log.info(f"adding padding of {abs(rescale_pct):3.2f}%")
+        elif rescale > 1:
+            log.info(f"trimming by {abs(rescale_pct):5.2f}%")
 
         scale = scale * rescale
 

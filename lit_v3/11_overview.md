@@ -27,7 +27,7 @@ LitProg is a [Markdown][href_wiki_markdown] processor for [Literate Programming 
 ABCD EFG HIJKL MNOPQ RSTUV WXYZ abcd efg hijkl mnopq rstuv wxyz ABCD EFG HIJKL MNOPQ RSTUV WXYZ abcd efg hijkl mnopq rstuv wxyz
 
 LitProg aims to strike a great balance between
- 
+
   - Ease of writing and editing
   - Greate layout even if little to no concern is given to it
   - Highly integrated generation of code, diagrams and charts
@@ -46,7 +46,7 @@ I've written more about the motivation for this project in the [next chapter][ir
 ### Getting Started
 
 > Writing is nature's way of letting you know how sloppy your thinking is.
-> 
+>
 > – Dick Guindon
 
 *Literate Programming* is a programming paradigm. *LitProg* is a compiler/build tool. Even if you are not on board with LP, you may nonetheless find LitProg to be useful, for example if you want to write a technical article or tutorial. This book is a documentation artefact of the literate program for the `litprog` cli command, which has of course been compiled using itself. To get started you can download one of the software artifacts of LitProg and run `litprog build` with an example file.
@@ -94,7 +94,7 @@ To produce an inline equation, write LaTeX as inline code, surrounded by $ chara
     F_0 = 0 \\
     F_1 = 1 \\
     F_n = F_{n-1} + F_{n-2}
-    \end{array}    
+    \end{array}
     ```
 
 Produces:
@@ -104,7 +104,7 @@ Produces:
 F_0 = 0 \\
 F_1 = 1 \\
 F_n = F_{n-1} + F_{n-2}
-\end{array}    
+\end{array}
 ```
 
 A Python implementation of the Fibbonacci function might look like this:
@@ -112,7 +112,7 @@ A Python implementation of the Fibbonacci function might look like this:
 ```python
 def fib(n: int) -> int:
     if n < 2:
-        return n 
+        return n
     else:
         return fib(n - 1) + fib(n - 2)
 ```
@@ -122,7 +122,7 @@ In case you weren't aware, this naive recursive implementation is well known to 
 
 ### The `lp_add` Directive
 
-The previous[^fnote_avoid_above] code block is not treated specially by LitProg. It is not written to any file, not converted by any compiler, nor executed by any interpreter. It will end up in the documentation, just as you would expect from any Markdown renderer, but that's about it.
+The previous[^fnote_avoid_relative] code block is not treated specially by LitProg. It is not written to any file, not converted by any compiler, nor executed by any interpreter. It will end up in the documentation, just as you would expect from any Markdown renderer, but that's about it.
 
 To actually use this code block, it must be referenced in a later code block by the use of an `lp_add` directive. LitProg directives are written using the comment syntax of the programming language declared for the block.
 
@@ -136,7 +136,7 @@ In this case, the syntax of the block is `python`, so all lines which start with
     ```python
     def fib(n: int) -> int:
         if n < 2:
-            return n 
+            return n
         else:
             return fib(n - 1) + fib(n - 2)
     assert fib(8) == 21
@@ -144,7 +144,7 @@ In this case, the syntax of the block is `python`, so all lines which start with
 
 !!! aside "On Parsing Comments"
 
-    It is often seen critically, to embed programming constructs inside comments and rightfully so. Considering the context of LitProg however, where programmers have Markdown available to them for documentation and don't need to resort as much to comments, I think this repurposing of the comment syntax is a reasonable compromise: 
+    It is often seen critically, to embed programming constructs inside comments and rightfully so. Considering the context of LitProg however, where programmers have Markdown available to them for documentation and don't need to resort as much to comments, I think this repurposing of the comment syntax is a reasonable compromise:
 
     1. It allows existing code/syntax highlight and formatting tools to work, without having to implement anything specific to LitProg.
     2. Only the distinctive `lp_<directive>` syntax is parsed and each directive can only span a single line. All other comments are ignored, so you can continue to use comments for other uses you see as appropriate.
@@ -195,7 +195,7 @@ If the [exit status][href_wiki_exit_status] of the `python3` process is anything
 
 !!! aside "Options of `lp_run`"
 
-    - `lp_expect`: The expected exit status of the process. The default value is `0`. 
+    - `lp_expect`: The expected exit status of the process. The default value is `0`.
     - `lp_timeout`: How many seconds a process may run before being terminated. The default value is `1.0`.
     - `lp_hide`: If the block should be hidden from generated documentation. Using this goes against the ethos of Literate Programming, but if your readers don't care about the assurance that they have access to the full program (for example if you're using LitProg to write a blog article) then this may be appropriate. The default value is `false`
 
@@ -224,7 +224,7 @@ The `lp_out` directive marks its block as a container for the output of the proc
 !!! note "Options of `lp_out`"
 
      - `lp_proc_info`: A format string used to customize the process info that is appended to output blocks. It can be set to "none" to supress the process info. The available info is `exit`, `time` and `time_ms`. The default is "# exit: {exit:>3}".
-     - `lp_max_lines`: The maximum number of lines to keep of the captured output. default `10`    
+     - `lp_max_lines`: The maximum number of lines to keep of the captured output. default `10`
      - `lp_max_bytes`: The maximum number of bytes to keep of the captured output. default `1000`
      - `lp_out_prefix`: A string which is used to prefix every line of the stdout. default `""`
      - `lp_err_prefix`: A string which is used to prefix every line of the stderr. default `"! "`
@@ -263,7 +263,7 @@ This approach also has the advantage that output of the most recent execution an
 
 !!! note "Escaping Output"
 
-    A corner case of how LitProg processes captured output is when detects three &#96;&#96;&#96; (backtick) or &#126;&#126;&#126; (tilde) characters. These are treated specially if they would cause the code block to be closed prematurly. 
+    A corner case of how LitProg processes captured output is when detects three &#96;&#96;&#96; (backtick) or &#126;&#126;&#126; (tilde) characters. These are treated specially if they would cause the code block to be closed prematurly.
 
     1. If closing the block can be avoided by changing the style of the fence in the original file, LitProg will automatically do so.
     2. If both substrings appear in the output, LitProg will raise an error.
@@ -273,7 +273,7 @@ This approach also has the advantage that output of the most recent execution an
 
 ## Creating Files
 
-It might be enough for academics if LitProg were only to produce documentation, but most other people wnat to have artifacts that are actually useful. In the most simple case you can use the `lp_file: <filename>` directive to generate files. 
+It might be enough for academics if LitProg were only to produce documentation, but most other people wnat to have artifacts that are actually useful. In the most simple case you can use the `lp_file: <filename>` directive to generate files.
 
 ```python
 # lp_file: examples/fib.py
@@ -283,7 +283,7 @@ for i in range(10):
 ```
 
 !!! note "Cross Platform Filenames"
-    
+
     Paths in LitProg always use the `/` (forward slash) character, even if you are running on a Windows machine. Avoid using absolute paths, so that your program can be built on machines with different directory layouts.
 
 
@@ -299,7 +299,7 @@ The `lp_out` directive can also have a command parameter: `lp_out: <command>`. U
 ### Porcelain vs. Plumbing
 
 ```python
-from typing import Sequence 
+from typing import Sequence
 
 def pretty_print_fibs(ns: Sequence[int]) -> None:
     fibs = [fib(n) for n in ns]
@@ -311,7 +311,7 @@ def pretty_print_fibs(ns: Sequence[int]) -> None:
         in_str = f"fib({n:>{pad_n}})"
         res_str = f"{fib_n:>{pad_fib_n}}"
         print(f"{in_str} => {res_str}", end ="  ")
-        if (i + 1) % 3 == 0: 
+        if (i + 1) % 3 == 0:
             print()
 
 ```
@@ -367,7 +367,7 @@ We can run the same validation code as before, the only differenc being that we 
 # lp_run: python3
 # lp_add: def fast_fib
 fib = fast_fib
-# lp_add: assert fibs == 
+# lp_add: assert fibs ==
 ```
 
 ```python
@@ -384,7 +384,7 @@ This feature was dropped. If anything is needed it will have to be much better t
 
 The simplest macro supported by LitProg is the `lp_const` directive. These can be defined inline or for example inside of a markdown listing.
 
- - The largest Fibonacci number to calculate: `lp_const: MAX_FIB=20` 
+ - The largest Fibonacci number to calculate: `lp_const: MAX_FIB=20`
  - How many numbers to print per line `lp_const: FIBS_PER_LINE=5`
 
 ```python
@@ -411,7 +411,7 @@ fib(2..20):
 # exit:   0
 ```
 
-The choice of names for such a constant may be influenced by the language being used. If you want make it possible for code formatters to reformat a code block, then the code block must be syntactically valid even if it includes non-expanded macros. 
+The choice of names for such a constant may be influenced by the language being used. If you want make it possible for code formatters to reformat a code block, then the code block must be syntactically valid even if it includes non-expanded macros.
 
 The preceding example prin
 LitProg has support for macros using the `lp_def` directive. These are non-hygenic, can be parameterized and are recursively expanded.
@@ -460,7 +460,7 @@ fast     0.002 ms
 
 !!! aside "`import timeit` is a thing"
 
-    There is a perfectly good builtin module named `timeit`, indeed it is much better than this macro, especially for very fast expressions. The purpose here is to demonstrate the macro functionality of LitProg. 
+    There is a perfectly good builtin module named `timeit`, indeed it is much better than this macro, especially for very fast expressions. The purpose here is to demonstrate the macro functionality of LitProg.
 
 
 ### Writing Code to Disk
@@ -508,7 +508,7 @@ if __name__ == '__main__':
     sys.exit(main())
 ```
 
-Don't worry if you're not familiar with python or top level scripts. The noteworthy thing about preceeding block are the two `lp_add` directives inside the `main` function. 
+Don't worry if you're not familiar with python or top level scripts. The noteworthy thing about preceeding block are the two `lp_add` directives inside the `main` function.
 
 The first is to print a help message.
 
@@ -577,7 +577,7 @@ Invalid parameters:  ['invalid', 'argument']
 
 ### Make Directive
 
-So far every process was independent of every other. In principle the process could have been executed in any order, or indeed concurrently to each other. Their dependencies on code blocks are explicitly declared by the `lp_add` directives inside of each `lp_run` block. 
+So far every process was independent of every other. In principle the process could have been executed in any order, or indeed concurrently to each other. Their dependencies on code blocks are explicitly declared by the `lp_add` directives inside of each `lp_run` block.
 
     ```bash
     # lp_make: examples/fib_cli_compat.py
@@ -606,10 +606,10 @@ chmod +x examples/fib_cli_compat.py
 
     In my defense, I don't feel that I'm reinventing the wheel, rather I'm reimplementing an existing and vernerable wheel called `make`. If you are familiar with make, you should have no problem using the build system of LitProg.
 
-    Many large programs use a build system to produce the final artifacts, such as binaries or packages. Documenting how to produce these artifacts should at least be possible, otherwise there is a thick curtain behind which the reader can . 
+    Many large programs use a build system to produce the final artifacts, such as binaries or packages. Documenting how to produce these artifacts should at least be possible, otherwise there is a thick curtain behind which the reader can .
 
 !!! note "redo: mtime dependencies done right"
-    
+
     @apenwarr has written enough about the [pitfalls of detecting changes using mtime comparison][href_apenwarr_mtime]. LitProg takes the reccomended apporoach of keeping a database/index of files and falling back on content hashing only as an optimization when file system metadata cannot be relied upon to determine if a dependency has changed.
 
 
@@ -652,7 +652,7 @@ These examples are intended as a quick overview, but there is much more to be sa
 TODO: Further reading.
 
 
-[^fnote_avoid_above]: When referencing parts of a document in your text, avoid phrases that are particular a specific format. Phrases like "the above image" or the below "code block" may be confusing if the reader is viewing a printed version of your program. Instead prefer wording which uses "previous"/"preceeding"/"earlier", "next"/"following"/"later".
+[^fnote_avoid_relative]: When referencing parts of a document in your text, avoid phrases that are particular a specific format. Phrases like "the above image" or the below "code block" may be confusing if the reader is viewing a printed version of your program and the image or code block may be on a different page. Such relative references can also be error prone when reordering paragraphs. Instead, prefer to use named references which are less error prone and confusing, regardless of output format.
 
 [^fnote_avoid_numbers]: Chapter and section numbers can change when the structure of a project changes. Chapters can be reordered, new sections can be inserted, so any phrases such as "see chapter 3 section 2 for further details" will become invalid, or worse, point to something other than originally intended. TODO: stable links using names.
 

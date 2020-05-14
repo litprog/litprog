@@ -10,7 +10,7 @@ The literate source is ordered according to the following manifest. Using the `l
 ```yaml
 lptype  : meta
 title   : LitProg
-subtitle: Programs for Humans
+subtitle: Pragmatic Literate Programming
 language: en
 authors : [
     "Manuel Barkhau",

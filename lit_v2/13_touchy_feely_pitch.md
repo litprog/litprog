@@ -2,6 +2,8 @@
 
 Ideas
   - The torch metaphor: https://divan.dev/posts/visual_programming_go/
+  - Encouraging a Culture of Written Communication: https://news.ycombinator.com/item?id=23141353
+  - Writing for Software Developers: https://news.ycombinator.com/item?id=23153469
 
 ### The Thin End of the Web
 
@@ -23,7 +25,7 @@ http://themaintainers.org/blog/2019/7/30/why-do-people-neglect-maintenance
 
 I argue that this is a lost cause and propose to hack this system. Instead of moralizing we should accept that developers want credit for new work and we should make it easer to produce small incremental deliverables that replace previous work. The derogetory German term "Wegwerfgesellschaft" (literally throwaway society) captures the attitude we should take to deliverables. Get a hold of the new shiny thing, forget about repairing stuff and throw out the old stuff. Fortunately software does not suffer from the same problems of waste and pollution that we have in the physical world.
 
-In the line of programming, every line of code can be seen along a gradient, starting from throwaway experiment read only by the author (perhaps only entered once into a repl to clarify how something works) and ending at highly reusable well tested infrastructure code that changes very slowly if at all. The former can be seen as code that is produced merely for consumption, the latter for production. The former is produced quickly, cheaply and gives an immediate sexy result, the latter is boring and tedious. 
+In the line of programming, every line of code can be seen along a gradient, starting from throwaway experiment read only by the author (perhaps only entered once into a repl to clarify how something works) and ending at highly reusable well tested infrastructure code that changes very slowly if at all. The former can be seen as code that is produced merely for consumption, the latter for production. The former is produced quickly, cheaply and gives an immediate sexy result, the latter is boring and tedious.
 
 The hack is to make infrastructure code much easier to write (decrease its cost) in a way that is more accessible (increase its value), so that it is more likely to be reused and leveraged for the production of code that is consumed. Ideally, each individual piece of infrastructure software will be much more focused, so that it is easier to use as a building block and each piece of consumer software is itself much smaller, but built on a much broader base.
 
@@ -43,7 +45,7 @@ In the best case, LitProg will lower one barrier to LP, but by itself it cannot 
 
 LitProg will do little to change a culture in which the short-term price of writing software is always minimized, even at the cost of long-term maintainability. The development of such a culture is understandable: While short-term costs are visible and concrete, long-term costs are vague and may not not even materialize if a project fails early in its life.
 
-Be that as it may, there are some projects for which a larger investment in quality and maintainability does make sense and project owners are to be the judge of that. LitProg is an experiment to provide examples of literate programs, so that you can judge if this approach makes sense. 
+Be that as it may, there are some projects for which a larger investment in quality and maintainability does make sense and project owners are to be the judge of that. LitProg is an experiment to provide examples of literate programs, so that you can judge if this approach makes sense.
 
 
 ### Contra LP
@@ -54,7 +56,7 @@ Be that as it may, there are some projects for which a larger investment in qual
     Good programmers write code that humans can understand.
 
 
-While LitProg aims to improve on tooling to generate code and documentation files, this does come at the cost of integration with tools used by many programmers. Common IDEs and programming environments will not provide the same level of support for code embedded in markdown files as they do for code in customary source code files. LitProg may be more appropriate for programmers who are comfortable working 
+While LitProg aims to improve on tooling to generate code and documentation files, this does come at the cost of integration with tools used by many programmers. Common IDEs and programming environments will not provide the same level of support for code embedded in markdown files as they do for code in customary source code files. LitProg may be more appropriate for programmers who are comfortable working
 
 Writing is a different skillset than programming. Adoption of LP will likely result in reduced speed of development, without much benefit if programmers don't know how to explain themselves.
 
@@ -69,7 +71,7 @@ LitProg allows programmers to capture their state of mind, so that it is easier 
 
 LP allows for a more sustainable approach to software development. During development, programmers expose flaws in their own thinking as they try to express their thoughts. They can structure their program in ways that benefit human comprehension, rather than in ways that suit the compiler. The increased accessibility of their programs in the form of documentation. Put differently, LP enables the up front investment to prevent long run costs from spiralling out of control.
 
-LitProg can be used to produce good documentation, including diagrams using [Svgbob][href_svgbob], equations that use [KaTeX][href_katex] for typesetting, footnotes, tables, and much more. Keep in mind however, that the primary goal of LitProg is to make it possible to write programs with a coherent narrative, and only secondarilly to create pretty PDF files. The layout, typesetting and esthetics of the documentation is secondary to the extend it causes friction during programming. The primary goal is for programmers to focus on the logic and narrative of their programs. The purpose of the documentation is to make programs more accessible to more people and in a more situations. The the documentation is not there to be pretty, but so that more eyeballs can take a deep look at your program. 
+LitProg can be used to produce good documentation, including diagrams using [Svgbob][href_svgbob], equations that use [KaTeX][href_katex] for typesetting, footnotes, tables, and much more. Keep in mind however, that the primary goal of LitProg is to make it possible to write programs with a coherent narrative, and only secondarilly to create pretty PDF files. The layout, typesetting and esthetics of the documentation is secondary to the extend it causes friction during programming. The primary goal is for programmers to focus on the logic and narrative of their programs. The purpose of the documentation is to make programs more accessible to more people and in a more situations. The the documentation is not there to be pretty, but so that more eyeballs can take a deep look at your program.
 
 
 
@@ -181,7 +183,7 @@ Literate programming offers a similar kind of exposure. Programmers who express 
 
     Der Mensch ist doch ein Augentier,
     nur schöne Dinge wünsch' ich mir.
-    
+
         – Goethe
 
 
