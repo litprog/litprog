@@ -1,3 +1,8 @@
+# This file is part of the litprog project
+# https://gitlab.com/mbarkhau/litprog
+#
+# Copyright (c) 2020 Manuel Barkhau (mbarkhau@gmail.com) - MIT License
+# SPDX-License-Identifier: MIT
 #!/home/mbarkhau/miniconda3/envs/litprog_py37/bin/python
 import io
 import sys

@@ -32,8 +32,7 @@ RUN if ! test -z "${ENV_SSH_PRIVATE_RSA_KEY}"; then \
 ADD requirements/ requirements/
 ADD scripts/ scripts/
 
-ADD makefile.extra.make makefile.extra.make
-ADD makefile.config.make makefile.config.make
+ADD makefile.bootstrapit.make makefile.bootstrapit.make
 ADD makefile makefile
 
 RUN make install
@@ -41,7 +40,7 @@ RUN make install
 RUN rm -f /root/.ssh/id_rsa
 
 # Deleting pkgs implies that `conda install`
-# will at have to pull all packages again.
+# will have to pull all packages again.
 RUN conda clean --all --yes
 # Conda docs say that it is not safe to delete pkgs
 # because there may be symbolic links, so we verify

@@ -46,6 +46,8 @@ pip-delete-this-directory.txt
 
 # Unit test / coverage reports
 htmlcov/
+mypycov/
+reports/
 .tox/
 .coverage
 .cache
@@ -71,7 +73,8 @@ README.html
 envs.txt
 test_build_logs/*.log
 build/miniconda3.sh
-lit_out/
+compat_test/
 fonts/
 katex_static/
+lit_out/
 

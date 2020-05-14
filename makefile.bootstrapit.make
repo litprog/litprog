@@ -10,7 +10,6 @@ SHELL := /bin/bash
 .DEFAULT_GOAL := help
 .SUFFIXES:
 
-
 PROJECT_DIR := $(notdir $(abspath .))
 
 ifndef DEVELOPMENT_PYTHON_VERSION
@@ -43,6 +42,16 @@ CONDA_ENV_NAMES := \
 CONDA_ENV_PATHS := \
 	$(subst pypy,$(ENV_PREFIX)/$(PKG_NAME)_pypy,$(subst python=,$(ENV_PREFIX)/$(PKG_NAME)_py,$(subst .,,$(SUPPORTED_PYTHON_VERSIONS))))
 
+# envname/bin/python is unfortunately not always the correct
+# interpreter. In the case of pypy it is either envname/bin/pypy or
+# envname/bin/pypy3
+CONDA_ENV_BIN_PYTHON_PATHS := \
+	$(shell echo "$(CONDA_ENV_PATHS)" \
+	| sed 's!\(_py[[:digit:]]\{1,\}\)!\1/bin/python!g' \
+	| sed 's!\(_pypy2[[:digit:]]\)!\1/bin/pypy!g' \
+	| sed 's!\(_pypy3[[:digit:]]\)!\1/bin/pypy3!g' \
+)
+
 
 empty :=
 literal_space := $(empty) $(empty)
@@ -66,6 +75,8 @@ DOCKER_BASE_IMAGE := registry.gitlab.com/mbarkhau/litprog/base
 GIT_HEAD_REV = $(shell git rev-parse --short HEAD)
 DOCKER_IMAGE_VERSION = $(shell date -u +'%Y%m%dt%H%M%S')_$(GIT_HEAD_REV)
 
+MAX_LINE_LEN = $(shell grep 'max-line-length' setup.cfg | sed 's![^0-9]\{1,\}!!')
+
 
 build/envs.txt: requirements/conda.txt
 	@mkdir -p build/;
@@ -73,13 +84,13 @@ build/envs.txt: requirements/conda.txt
 	@if [[ ! -f $(CONDA_BIN) ]]; then \
 		echo "installing miniconda ..."; \
 		if [[ $(PLATFORM) == "Linux" ]]; then \
-			curl "https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh" \
+			curl "https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh" --location \
 				> build/miniconda3.sh; \
 		elif [[ $(PLATFORM) == "MINGW64_NT-10.0" ]]; then \
-			curl "https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh" \
+			curl "https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh" --location \
 				> build/miniconda3.sh; \
 		elif [[ $(PLATFORM) == "Darwin" ]]; then \
-			curl "https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh" \
+			curl "https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh" --location \
 				> build/miniconda3.sh; \
 		fi; \
 		bash build/miniconda3.sh -b -p $(CONDA_ROOT); \
@@ -91,6 +102,7 @@ build/envs.txt: requirements/conda.txt
 	@SUPPORTED_PYTHON_VERSIONS="$(SUPPORTED_PYTHON_VERSIONS)" \
 		CONDA_ENV_NAMES="$(CONDA_ENV_NAMES)" \
 		CONDA_ENV_PATHS="$(CONDA_ENV_PATHS)" \
+		CONDA_ENV_BIN_PYTHON_PATHS="$(CONDA_ENV_BIN_PYTHON_PATHS)" \
 		CONDA_BIN="$(CONDA_BIN)" \
 		bash scripts/setup_conda_envs.sh;
 
@@ -108,6 +120,7 @@ build/deps.txt: build/envs.txt requirements/*.txt
 	@SUPPORTED_PYTHON_VERSIONS="$(SUPPORTED_PYTHON_VERSIONS)" \
 		CONDA_ENV_NAMES="$(CONDA_ENV_NAMES)" \
 		CONDA_ENV_PATHS="$(CONDA_ENV_PATHS)" \
+		CONDA_ENV_BIN_PYTHON_PATHS="$(CONDA_ENV_BIN_PYTHON_PATHS)" \
 		CONDA_BIN="$(CONDA_BIN)" \
 		bash scripts/update_conda_env_deps.sh;
 
@@ -130,9 +143,8 @@ build/deps.txt: build/envs.txt requirements/*.txt
 
 	@rm -f build/deps.txt.tmp;
 
-	@for env_name in $(CONDA_ENV_NAMES); do \
-		env_py="$(ENV_PREFIX)/$${env_name}/bin/python"; \
-		printf "\npip freeze for $${env_name}:\n" >> build/deps.txt.tmp; \
+	@for env_py in $(CONDA_ENV_BIN_PYTHON_PATHS); do \
+		printf "\n# pip freeze for $${env_py}:\n" >> build/deps.txt.tmp; \
 		$${env_py} -m pip freeze >> build/deps.txt.tmp; \
 		printf "\n\n" >> build/deps.txt.tmp; \
 	done
@@ -144,7 +156,7 @@ build/deps.txt: build/envs.txt requirements/*.txt
 .PHONY: help
 help:
 	@awk '{ \
-			if ($$0 ~ /^.PHONY: [a-zA-Z\-\_0-9.\/]+$$/) { \
+			if ($$0 ~ /^.PHONY: [a-zA-Z\-\_0-9]+$$/) { \
 				helpCommand = substr($$0, index($$0, ":") + 2); \
 				if (helpMessage) { \
 					printf "\033[36m%-20s\033[0m %s\n", \
@@ -169,7 +181,7 @@ help:
 				helpMessage = ""; \
 			} \
 		}' \
-		$(MAKEFILE_LIST)
+		makefile.bootstrapit.make makefile
 
 	@if [[ ! -f $(DEV_ENV_PY) ]]; then \
 	echo "Missing python interpreter at $(DEV_ENV_PY) !"; \
@@ -191,8 +203,8 @@ help:
 
 
 ## Full help message for each task.
-.PHONY: fullhelp
-fullhelp:
+.PHONY: helpverbose
+helpverbose:
 	@printf "Available make targets for \033[97m$(PKG_NAME)\033[0m:\n";
 
 	@awk '{ \
@@ -203,7 +215,7 @@ fullhelp:
 						helpCommand, helpMessage; \
 					helpMessage = ""; \
 				} \
-			} else if ($$0 ~ /^[a-zA-Z\-\_0-9.]+:/) { \
+			} else if ($$0 ~ /^[a-zA-Z\-\_0-9.\/]+:/) { \
 				helpCommand = substr($$0, 0, index($$0, ":")); \
 				if (helpMessage) { \
 					printf "\033[36m%-20s\033[0m %s\n", \
@@ -223,7 +235,7 @@ fullhelp:
 				helpMessage = ""; \
 			} \
 		}' \
-		$(MAKEFILE_LIST)
+		makefile.bootstrapit.make makefile
 
 
 ## -- Project Setup --
@@ -288,9 +300,29 @@ git_hooks:
 ## -- Integration --
 
 
-## Run flake8 linter
+## Run flake8 linter and check for fmt
 .PHONY: lint
 lint:
+	@printf "isort ..\n"
+	@$(DEV_ENV)/bin/isort \
+		--check-only \
+		--force-single-line-imports \
+		--length-sort \
+		--recursive \
+		--line-width=$(MAX_LINE_LEN) \
+		--project $(PKG_NAME) \
+		src/ test/
+	@printf "\e[1F\e[9C ok\n"
+
+	@printf "sjfmt ..\n"
+	@$(DEV_ENV)/bin/sjfmt \
+		--target-version=py36 \
+		--skip-string-normalization \
+		--line-length=$(MAX_LINE_LEN) \
+		--check \
+		src/ test/ 2>&1 | sed "/All done/d" | sed "/left unchanged/d"
+	@printf "\e[1F\e[9C ok\n"
+
 	@printf "flake8 ..\n"
 	@$(DEV_ENV)/bin/flake8 src/
 	@printf "\e[1F\e[9C ok\n"
@@ -302,7 +334,10 @@ mypy:
 	@rm -rf ".mypy_cache";
 
 	@printf "mypy ....\n"
-	@MYPYPATH=stubs/:vendor/ $(DEV_ENV_PY) -m mypy src/
+	@MYPYPATH=stubs/:vendor/ $(DEV_ENV_PY) -m mypy \
+		--html-report mypycov \
+		--no-error-summary \
+		src/ | sed "/Generated HTML report/d"
 	@printf "\e[1F\e[9C ok\n"
 
 
@@ -336,16 +371,17 @@ test:
 		--verbose \
 		--cov-report html \
 		--cov-report term \
+		-k "$${PYTEST_FILTER}" \
 		$(shell cd src/ && ls -1 */__init__.py | awk '{ sub(/\/__init__.py/, "", $$1); print "--cov "$$1 }') \
 		test/ src/;
 
 	# Next we install the package and run the test suite against it.
 
-	IFS=' ' read -r -a env_paths <<< "$(CONDA_ENV_PATHS)"; \
-	for i in $${!env_paths[@]}; do \
-		env_py=$${env_paths[i]}/bin/python; \
+	IFS=' ' read -r -a env_py_paths <<< "$(CONDA_ENV_BIN_PYTHON_PATHS)"; \
+	for i in $${!env_py_paths[@]}; do \
+		env_py=$${env_py_paths[i]}; \
 		$${env_py} -m pip install --upgrade .; \
-		ENV=$${ENV-dev} $${env_py} -m pytest test/; \
+		PYTHONPATH="" ENV=$${ENV-dev} $${env_py} -m pytest test/; \
 	done;
 
 	@rm -rf ".pytest_cache";
@@ -359,14 +395,23 @@ test:
 ## Run code formatter on src/ and test/
 .PHONY: fmt
 fmt:
+	@$(DEV_ENV)/bin/isort \
+		--force-single-line-imports \
+		--length-sort \
+		--recursive \
+		--line-width=$(MAX_LINE_LEN) \
+		--project $(PKG_NAME) \
+		src/ test/;
+
 	@$(DEV_ENV)/bin/sjfmt \
-		--target-version py36 \
+		--target-version=py36 \
 		--skip-string-normalization \
-		--line-length=100 \
-		src/ test/
+		--line-length=$(MAX_LINE_LEN) \
+		src/ test/;
 
 
-## Shortcut for make fmt lint pylint test
+
+## Shortcut for make fmt lint mypy test
 .PHONY: check
 check:  fmt lint mypy test
 
@@ -424,31 +469,27 @@ devtest:
 	@rm -rf "src/__pycache__";
 	@rm -rf "test/__pycache__";
 
-ifdef FILTER
 	ENV=$${ENV-dev} PYTHONPATH=src/:vendor/:$$PYTHONPATH \
 		$(DEV_ENV_PY) -m pytest -v \
 		--doctest-modules \
 		--no-cov \
+		--durations 5 \
 		--verbose \
 		--capture=no \
 		--exitfirst \
 		--failed-first \
-		-k $(FILTER) \
+		-k "$${PYTEST_FILTER}" \
 		test/ src/;
-else
-	ENV=$${ENV-dev} PYTHONPATH=src/:vendor/:$$PYTHONPATH \
-		$(DEV_ENV_PY) -m pytest -v \
-		--doctest-modules \
-		--no-cov \
-		--verbose \
-		--capture=no \
-		--exitfirst \
-		--failed-first \
-		test/ src/;
-endif
 
 	@rm -rf "src/__pycache__";
 	@rm -rf "test/__pycache__";
+
+
+## Run `make lint mypy test` using docker
+.PHONY: citest
+citest:
+	docker build --file Dockerfile --tag tmp_citest_$(PKG_NAME) .
+	docker run --tty tmp_citest_$(PKG_NAME) make lint mypy test
 
 
 ## -- Build/Deploy --
@@ -482,6 +523,7 @@ bump_version:
 dist_build:
 	$(DEV_ENV_PY) setup.py sdist;
 	$(DEV_ENV_PY) setup.py bdist_wheel --python-tag=$(BDIST_WHEEL_PYTHON_TAG);
+	@rm -rf src/*.egg-info
 
 
 ## Upload sdist and bdist files to pypi
@@ -495,12 +537,13 @@ dist_upload:
 
 	$(DEV_ENV)/bin/twine check $$($(SDIST_FILE_CMD));
 	$(DEV_ENV)/bin/twine check $$($(BDIST_WHEEL_FILE_CMD));
-	$(DEV_ENV)/bin/twine upload $$($(SDIST_FILE_CMD)) $$($(BDIST_WHEEL_FILE_CMD));
+	$(DEV_ENV)/bin/twine upload --skip-existing \
+		$$($(SDIST_FILE_CMD)) $$($(BDIST_WHEEL_FILE_CMD));
 
 
-## Publish on pypi
-.PHONY: publish
-publish: bump_version dist_build dist_upload
+## bump_version dist_build dist_upload
+.PHONY: dist_publish
+dist_publish: bump_version dist_build dist_upload
 
 
 ## Build docker images. Must be run when dependencies are added
@@ -511,8 +554,8 @@ publish: bump_version dist_build dist_upload
 ##   2. Your docker daemon is not running
 ##   3. You're using WSL and docker is not exposed on tcp://localhost:2375
 ##   4. You're using WSL but didn't do export DOCKER_HOST="tcp://localhost:2375"
-.PHONY: build_docker
-build_docker:
+.PHONY: docker_build
+docker_build:
 	@if [[ -f "$(RSA_KEY_PATH)" ]]; then \
 		docker build \
 			--build-arg SSH_PRIVATE_RSA_KEY="$$(cat '$(RSA_KEY_PATH)')" \
@@ -529,6 +572,3 @@ build_docker:
 	fi
 
 	docker push $(DOCKER_BASE_IMAGE)
-
-
-
