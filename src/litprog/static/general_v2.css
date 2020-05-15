@@ -17,9 +17,9 @@ body {
     hyphenate-limit-chars: 7 3 3;
 }
 
-.content p {
-    letter-spacing: -0.02em;
-    word-spacing: -0.01em;
+.content p, .content li {
+    letter-spacing: -0.03em;
+    word-spacing: 0.02em;
     margin: 0 0 1em 0;
 }
 
