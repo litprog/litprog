@@ -7,32 +7,35 @@
 # Binary (non-pure) packages may also be listed here, but you
 # should see if there is a conda package that suits your needs.
 
+typing;python_version<"3.5"
 six
-typing
-click
+click~=7;python_version<"3.5"
+click;python_version>="3.5"
 pathlib2
 
-pyphen
-pygments
 markdown
 markdown-svgbob
 markdown-aafigure
 markdown-blockdiag
 markdown-katex
-weasyprint
+Pygments<2.6;python_version<"3.6"
+Pygments;python_version>="3.6"
+Pyphen~=0.95;python_version<"3.6"
+Pyphen;python_version>="3.6"
+WeasyPrint<43;python_version<"3.6"
+WeasyPrint;python_version>="3.6"
+beautifulsoup4~=4.9;python_version<"3.6"
+beautifulsoup4;python_version>="3.6"
+Jinja2<3.0.0;python_version<"3.6"
+Jinja2;python_version>="3.6"
 PyPDF2
-beautifulsoup4
-Jinja2
 
 toml
 PyYAML
 # ujson
 
-# https://github.com/gorakhargosh/watchdog
-# From readme:
-# > If you want to use an old version of Python,
-# > you should stick with watchdog < 0.10.0.
-watchdog<0.10.0
+watchdog<0.10.0;python_version<"3.6"
+watchdog;python_version>="3.6"
 
 # https://github.com/WojciechMula/aspell-python
-aspell-python-ctypes
+# aspell-python-ctypes
