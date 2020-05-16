@@ -7,6 +7,7 @@
 import os
 import sys
 import setuptools
+import fastentrypoints  # noqa
 
 
 def project_path(*sub_paths):
