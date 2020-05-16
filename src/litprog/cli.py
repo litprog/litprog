@@ -127,6 +127,9 @@ def build(
 
     html_dir = pl.Path(html)
 
+    # lazy import since we don't always need it
+    import litprog.gen_docs
+
     litprog.gen_docs.gen_html(built_ctx, html_dir)
 
     if pdf:

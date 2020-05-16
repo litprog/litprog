@@ -5,10 +5,8 @@
 # SPDX-License-Identifier: MIT
 import sys
 import logging
+
 import pathlib2 as pl
-
-import weasyprint
-
 
 log = logging.getLogger(__name__)
 
@@ -16,6 +14,9 @@ logging.getLogger('weasyprint').setLevel(logging.ERROR)
 
 
 def html2pdf(html_text: str, out_path: pl.Path, html_dir: pl.Path) -> None:
+    # lazy import since we don't always need it
+    import weasyprint
+
     wp_ctx = weasyprint.HTML(string=html_text, base_url=str(html_dir))
     with out_path.open(mode="wb") as fobj:
         wp_ctx.write_pdf(fobj)
