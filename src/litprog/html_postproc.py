@@ -3,8 +3,8 @@
 #
 # Copyright (c) 2020 Manuel Barkhau (mbarkhau@gmail.com) - MIT License
 # SPDX-License-Identifier: MIT
-import re
 import io
+import re
 import string
 import typing as typ
 import itertools as it
@@ -13,7 +13,6 @@ import bs4
 import pyphen
 
 from . import md2html
-
 
 HTML_PART_PATTERN = re.compile(r"(&[#\w]+?;|<.*?>|\s+\w+)")
 

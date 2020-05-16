@@ -3,29 +3,33 @@
 #
 # Copyright (c) 2019 Manuel Barkhau (mbarkhau@gmail.com) - MIT License
 # SPDX-License-Identifier: MIT
-import logging
-
-log = logging.getLogger(__name__)
-
-import os
 import io
+import os
 import re
 import sys
+import enum
 import math
 import time
-import enum
-import os.path
-import collections
 import typing as typ
-import pathlib2 as pl
-import operator as op
+import logging
+import os.path
 import datetime as dt
-import itertools as it
+import operator as op
 import functools as ft
+import itertools as it
+import collections
 
-from litprog.parse import MarkdownElement, Headline, Block, Directive, MarkdownFile, Context
+import pathlib2 as pl
 
 import litprog.session
+from litprog.parse import Block
+from litprog.parse import Context
+from litprog.parse import Headline
+from litprog.parse import Directive
+from litprog.parse import MarkdownFile
+from litprog.parse import MarkdownElement
+
+log = logging.getLogger(__name__)
 
 
 COLOR_CODE_RE = re.compile(r"\d+(;\d)?")

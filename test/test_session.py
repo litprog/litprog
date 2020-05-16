@@ -10,6 +10,7 @@
 #  Changes will be overwritten!   #
 ###################################
 import io
+
 import litprog.session as sut
 
 RAW_TEST_TEXT = b"""

@@ -6,11 +6,11 @@
 import sys
 import math
 import time
-import logging
 import typing as typ
-import pathlib2 as pl
+import logging
 
 import PyPDF2 as pdf
+import pathlib2 as pl
 
 log = logging.getLogger(__name__)
 

@@ -29,15 +29,15 @@
 
 import os
 import sys
-import uuid
-import time
 import json
+import time
+import uuid
 import socket
-import hashlib
 import typing as typ
-import pathlib2 as pl
-
+import hashlib
 import logging
+
+import pathlib2 as pl
 
 log = logging.getLogger(__name__)
 

@@ -3,11 +3,10 @@
 #
 # Copyright (c) 2019 Manuel Barkhau (mbarkhau@gmail.com) - MIT License
 # SPDX-License-Identifier: MIT
-import logging
 import typing as typ
+import logging
 
 import markdown as md
-
 
 log = logging.getLogger(__name__)
 

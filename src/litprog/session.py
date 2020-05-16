@@ -4,38 +4,39 @@
 # Copyright (c) 2019 Manuel Barkhau (mbarkhau@gmail.com) - MIT License
 # SPDX-License-Identifier: MIT
 
+import io
+import os
+import re
+import sys
+import enum
+import math
+import time
+import shlex
+import typing as typ
+
 ###################################
 #    This is a generated file.    #
 # This file should not be edited. #
 #  Changes will be overwritten!   #
 ###################################
 import logging
+import os.path
+import datetime as dt
+import operator as op
+import functools as ft
+import itertools as it
+import threading
+import subprocess as sp
+import collections
+
+import pathlib2 as pl
 
 log = logging.getLogger(__name__)
-import os
-import io
-import re
-import sys
-import math
-import time
-import enum
-import os.path
-import collections
-import typing as typ
-import pathlib2 as pl
-import operator as op
-import datetime as dt
-import itertools as it
-import functools as ft
 
 InputPaths = typ.Sequence[str]
 FilePaths  = typ.Iterable[pl.Path]
 
 ExitCode = int
-import time
-import shlex
-import threading
-import subprocess as sp
 
 
 class RawCapturedLine(typ.NamedTuple):

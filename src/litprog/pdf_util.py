@@ -7,9 +7,9 @@
 import io
 import sys
 import typing as typ
-import pathlib2 as pl
 
 import PyPDF2 as pdf
+import pathlib2 as pl
 
 PT_PER_INCH = 72
 PT_PER_MM   = PT_PER_INCH / 25.4

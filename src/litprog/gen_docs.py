@@ -5,12 +5,12 @@
 # SPDX-License-Identifier: MIT
 import time
 import shutil
-import logging
 import typing as typ
-import pathlib2 as pl
+import logging
 
 import yaml
 import jinja2
+import pathlib2 as pl
 
 from . import parse
 from . import md2html
@@ -266,9 +266,9 @@ def gen_html(ctx: parse.Context, html_dir: pl.Path) -> None:
     #   the full toc. This is why there are two passes.
 
     cur_meta = _init_meta()
-    metas = []
-    md_paths: typ.List[pl.Path] = []
-    full_toc: typ.List[md2html.TocHTML] = []
+    metas    = []
+    md_paths    : typ.List[pl.Path           ] = []
+    full_toc    : typ.List[md2html.TocHTML   ] = []
     html_results: typ.List[md2html.HTMLResult] = []
 
     for md_file in ctx.files:
