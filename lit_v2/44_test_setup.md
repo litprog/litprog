@@ -22,7 +22,7 @@ command: python3
 Using `mode="w"` to overwrite any previously captured output.
 
 ```python
-# lpid = test_start_marker
+# lp: test_start_marker
 import datetime as dt
 
 ts = dt.datetime.utcnow().isoformat()
@@ -47,7 +47,7 @@ TODO:
  - --disable-warnings
 
 ```python
-# lpid = run_pytest
+# lp: run_pytest
 set -o errexit;
 export ENABLE_BACKTRACE=0;
 export PYTHONPATH=src/:vendor/:$$PYTHONPATH;

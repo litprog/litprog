@@ -1,6 +1,6 @@
 ## Introduction to LitProg
 
-LitProg is a [Markdown][href_wiki_markdown] processor for [Literate Programming (LP)][href_wiki_litprog] software.
+LitProg is a [Markdown][href_wiki_markdown] processor for development of [Literate Programs (LP)][href_wiki_litprog].
 
 
 ```bob
@@ -24,12 +24,19 @@ LitProg is a [Markdown][href_wiki_markdown] processor for [Literate Programming 
         Code                   HTML/PDF
 ```
 
-LitProg aims to strike a great balance between
+LitProg can be used with any textual programming language and
 
-  - Low friction when writing and editing
-  - High quality of generated documentation
+ 1. uses [markdown][ref_wiki_markdown] files as input,
+ 2. generates source code artifacts from fenced code blocks,
+ 3. generates documentation in HTML and PDF formats.
 
-In short, LitProg aims to be your first choice for technical writing, be it for software documentation, blog articles or tutorials. With LitProg you can focus on your ideas and code, rather than on document layout and typesetting. Even without review, the mismatch between the markdown you edit and the html/pdf output is small enough that you won't have to constantly review the generated output.
+With LitProg, you can focus on your ideas, your code, and your writing, rather than on document layout and typesetting. You can treat the generated documentation as an afterthought and your readers and peers will still get great html/pdf output.
+
+  - Easy of writing and editing
+  - Well integrated tooling
+  - Reasonably good documentation artifacts (html/pdf)
+
+In short, LitProg aims to be your first choice for technical writing, be it for software documentation, blog articles or tutorials.
 
 LitProg aims to be your second choice for software development, once you've determined that your project or module is feasible and can justify the extra effort required to write it as a high quality literate program.
 
@@ -69,7 +76,7 @@ Generating the full documentation can take some time, so it introduces a frictio
 
 
 ```bash
-$ litprog build 11_intro.md --html doc/ --pdf doc/
+$ litprog build --verbose 11_intro.md --html doc/ --pdf doc/
 $ ls -R
 examples/fib.py
 doc/litprog.pdf
@@ -117,18 +124,29 @@ def fib(n: int) -> int:
 In case you weren't aware, this naive recursive implementation is well known to have a complexity of $`O(2^n)`$ (in other words: it's pretty bad).
 
 
-### The `lp_add` Directive
+### The `lp` Directive
 
 The previous[^fnote_avoid_relative] code block is not treated specially by LitProg. It is not written to any file, not converted by any compiler, nor executed by any interpreter. It will end up in the documentation, just as you would expect from any Markdown renderer, but that's about it.
 
-To actually use this code block, it must be referenced in a later code block by the use of an `lp_add` directive. LitProg directives are written using the comment syntax of the programming language declared for the block.
+To make a code block usable, it must be assigned to a namespace using the `lp` directive. It can then referenced in a later code block using the `lp_include` directive.
+
+```python
+# lp: fib
+def fib(n: int) -> int:
+    if n < 2:
+        return n
+    else:
+        return fib(n - 1) + fib(n - 2)
+```
+
+LitProg directives are written using the comment syntax of the programming language declared for the block. In this case, the syntax of the block is `python`, so all lines which start with a `#` character are parsed in search of litprog directives. In this case there is only one such line: `# lp: fib`. The text after[^fnote_whitespace_in_directives] the `:` (`fib`) is an identifier, which places the block in the namespace of this file. It can be referenced within this file as `fib` and from outside this file as `overview.fib`, as this file is named `11_overview.md`, from which the file extension and any leading digits are stripped, which produces the namespace identifier `overview`.
 
     ```python
-    # lp_add: def fib
+    # lp_include: fib
     assert fib(8) == 21
     ```
 
-In this case, the syntax of the block is `python`, so all lines which start with a `#` character are parsed in search of litprog directives. In this case there is only one such line: `# lp_add: def fib`. The text after[^fnote_whitespace_in_directives] the `:` (`def fib`) is a query string that must be a substring of some other block in the literate program. The first block[^fnote_block_queries] which contains that substring is substituted in place of the directive. In other words, once the preceding block is expanded, it will be equivalent to the following:
+In other words, once the preceding block is expanded, it will be equivalent to the following:
 
     ```python
     def fib(n: int) -> int:
@@ -167,11 +185,12 @@ In this case, the syntax of the block is `python`, so all lines which start with
 
 ### Running Commands
 
-While the `fib` function is quite simple to understand, you as a reader are either left to validate if it is correct for yourself, or to trust the claims of the author that the implementation is correct. The previous assertion `assert fib(8) == 21` is not actually executed anywhere, so who is to say if it is correct?
+While the `fib` function is quite simple to understand, you as a reader are either left to validate if it is correct for yourself, or to trust the claims of the author that the implementation is correct. The previous assertion `assert fib(8) == 21` is not actually executed anywhere, so who is to say if it will pass?
 
 Instead of manual validation or trust, we can instead provide some code which will actually execute the `fib` function, and which would cause an error if any of our assertions were not to hold.
 
 ```python
+# lp: test_fib
 fibs = [fib(n) for n in range(9)]
 assert fibs == [0, 1, 1, 2, 3, 5, 8, 13, 21]
 assert fib(12) == 144
@@ -181,16 +200,16 @@ assert fib(20) == fib(19) + fib(18)
 I will use these assertions again later, so I've declared them in a separate block first, before now proceeding to run them.
 
 ```python
-# lp_run: python3
-# lp_add: def fib
-# lp_add: assert fibs == [0, 1, 1, 2
+# lp_exec: python3
+# lp_include: fib
+# lp_include: test_fib
 ```
 
-The `lp_run` directive invokes a command (in this case `python3`), which receives the expanded block (after substitution of all `lp_add` directives) via its [stdin][href_wiki_std_streams].
+The `lp_exec` directive invokes a command (in this case `python3`), which receives the expanded block (after substitution of all `lp_include` directives) via its [stdin][href_wiki_std_streams].
 
 If the [exit status][href_wiki_exit_status] of the `python3` process is anything other than the expected value of `0`, then the LitProg build will fail. This is an important point: The fact that you can read this literate program at all (assuming you have HTML or PDF form), is proof that the command exited successfully.
 
-!!! aside "Options of `lp_run`"
+!!! aside "Options of `lp_exec`"
 
     - `lp_expect`: The expected exit status of the process. The default value is `0`.
     - `lp_timeout`: How many seconds a process may run before being terminated. The default value is `1.0`.
@@ -202,8 +221,8 @@ If the [exit status][href_wiki_exit_status] of the `python3` process is anything
 While assertions and an exit status are nice, it will often be better to show some output generated by a program. The previous process didn't write anything to `stdout` or `stderr`, so let's run another which does.
 
 ```python
-# lp_run: python3
-# lp_add: def fib
+# lp_exec: python3
+# lp_include: fib
 for i in range(9):
     print(fib(i), end=" ")
 ```
@@ -216,7 +235,7 @@ The output of a process is always captured but that output is only made visible 
 # exit:   0
 ```
 
-The `lp_out` directive marks its block as a container for the output of the process that was previously run. When the LitProg build is completed, the contents of the `lp_out` block is updated in-place with the captured output. If there is no `lp_out` block after an `lp_run` block, then the captured output is discarded.
+The `lp_out` directive marks its block as a container for the output of the process that was previously run. When the LitProg build is completed, the contents of the `lp_out` block is updated in-place with the captured output. If there is no `lp_out` block after an `lp_exec` block, then the captured output is discarded.
 
 !!! note "Options of `lp_out`"
 
@@ -274,7 +293,7 @@ It might be enough for academics if LitProg were only to produce documentation, 
 
 ```python
 # lp_file: examples/fib.py
-# lp_add: def fib
+# lp_include: fib
 for i in range(10):
     print(fib(i), end=" ")
 ```
@@ -284,10 +303,10 @@ for i in range(10):
     Paths in LitProg always use the `/` (forward slash) character, even if you are running on a Windows machine. Avoid using absolute paths, so that your program can be built on machines with different directory layouts.
 
 
-The `lp_out` directive can also have a command parameter: `lp_out: <command>`. Unlike `lp_run`, the process will not receive anything via stdin. This is not too limiting however, as all commands are only run after all `lp_file` directives have been completed. In other words, we can use `lp_out` to run the example script created by the previous block.
+The `lp_run: <command>` directive  combines `lp_exec` and `lp_out`, except that unlike `lp_exec`, the process will not receive anything via stdin. This is not too limiting however, as all commands are only run after all `lp_file` directives have been completed. In other words, we can use `lp_run` to run the example script created by the previous block.
 
 ```bash
-# lp_out: python3 examples/fib.py
+# lp_run: python3 examples/fib.py
 0 1 1 2 3 5 8 13 21 34
 # exit:   0
 ```
@@ -296,6 +315,7 @@ The `lp_out` directive can also have a command parameter: `lp_out: <command>`. U
 ### Porcelain vs. Plumbing
 
 ```python
+# lp: pretty_print_fibs
 from typing import Sequence
 
 def pretty_print_fibs(ns: Sequence[int]) -> None:
@@ -316,9 +336,9 @@ def pretty_print_fibs(ns: Sequence[int]) -> None:
 This function could be clearer, but sometimes it's ok for code to be a bit gnarly. Readers may not be interested in how every part of a program works, especially when the code is not part of the core logic of the program. A deep understanding of `pretty_print_fibs` will contribute little to the understanding of Fibonacci numbers or of LitProg. The very first line of the function is very straightforward and is also the most important line, everything else deals with padding, line breaks and writing output etc.
 
 ```python
-# lp_run: python3
-# lp_add: def fib
-# lp_add: def pretty_print_fibs
+# lp_exec: python3
+# lp_include: fib
+# lp_include: pretty_print_fibs
 pretty_print_fibs(range(18))
 ```
 
@@ -341,6 +361,7 @@ fib(15) =>  610  fib(16) =>  987  fib(17) => 1597
 Now that we have some code that is good, and which we can also see is correct, it's time we turned to optimization.
 
 ```python
+# lp: fast_fib
 from typing import Dict
 
 _fib_cache: Dict[int, int] = {}
@@ -361,10 +382,10 @@ def fast_fib(n: int) -> int:
 We can run the same validation code as before, the only differenc being that we replace `fib` with `fast_fib`
 
 ```python
-# lp_run: python3
-# lp_add: def fast_fib
+# lp_exec: python3
+# lp_include: fast_fib
 fib = fast_fib
-# lp_add: assert fibs ==
+# lp_include: test_fib
 ```
 
 ```python
@@ -385,8 +406,8 @@ The simplest macro supported by LitProg is the `lp_const` directive. These can b
  - How many numbers to print per line `lp_const: FIBS_PER_LINE=5`
 
 ```python
-# lp_run: python3
-# lp_add: def fib
+# lp_exec: python3
+# lp_include: fib
 MAX_FIB = 20
 FIBS_PER_LINE = 5
 
@@ -419,6 +440,7 @@ LitProg has support for macros using the `lp_def` directive. These are non-hygen
 
 
 ```python
+# lp: timeit
 import time
 import contextlib
 
@@ -432,10 +454,10 @@ def timeit(marker=""):
 ```
 
 ```python
-# lp_run: python3
-# lp_add: def timeit
-# lp_add: def fib
-# lp_add: def fast_fib
+# lp_exec: python3
+# lp_include: timeit
+# lp_include: fib
+# lp_include: fast_fib
 with timeit("slow"): fib(13)
 with timeit("slow"): fib(15)
 with timeit("slow"): fib(17)
@@ -467,6 +489,7 @@ Up to here our code has been floating around in memory, but eventually we want t
 Next is some boring python scaffolding to wrap the functions written so far.
 
 ```python
+# lp: parse_args
 ParamsAndFlags = Tuple[List[str], Set[str]]
 
 def parse_args(args: List[str]) -> ParamsAndFlags:
@@ -477,20 +500,20 @@ def parse_args(args: List[str]) -> ParamsAndFlags:
 
 ```python
 #!/usr/bin/env python
-__doc__ = f"""Usage: python {__file__} [--help] [--pretty] <n>..."""
-
+# lp: main
 import sys
 from typing import List, Set, Tuple
 
-# lp_add: def fast_fib
+__doc__ = f"""Usage: python {__file__} [--help] [--pretty] <n>..."""
+
+# lp_include: fast_fib
 fib = fast_fib
-# lp_add: def pretty_print_fibs
-# lp_add: def parse_args
+# lp_include: pretty_print_fibs
+# lp_include: parse_args
 
 def main(args: List[str] = sys.argv[1:]) -> int:
     params, flags = parse_args(args)
-    # lp_add: if not args or "--help"
-    # lp_add: if any(invalid_params):
+    # lp_include: args_check
 
     ns = [int(n) for n in params]
     if "-p" in flags or "--pretty" in flags:
@@ -505,63 +528,60 @@ if __name__ == '__main__':
     sys.exit(main())
 ```
 
-Don't worry if you're not familiar with python or top level scripts. The noteworthy thing about preceeding block are the two `lp_add` directives inside the `main` function.
+Don't worry if you're not familiar with python or top level scripts. The noteworthy thing about preceeding block is the `lp_include` directive inside the `main` function.
 
-The first is to print a help message.
+The first thing in `main` is to validate the arguments to the script and either print a help message or an error message.
 
 ```python
+# lp: args_check
 if not args or "--help" in flags or "-h" in flags:
     print(__doc__)
     return 0
-```
 
-The second step in `main` is to validate the arguments to the script. They must all be numerical/decimal digits.
-
-```python
 invalid_params = [n for n in params if not n.isdigit()]
 if any(invalid_params):
     print("Invalid parameters: ", invalid_params)
     return 1
 ```
 
-Apart from their function it is important to see how the `lp_add` directive treats indentation. When a block is added, the indent level of the comment which holds the directive is prepended to every line of the added block. In other words the indent level of the added block is the same as the indent level of the directive that adds it.
+Note that `lp_include` expands indentation to the level of the comment which holds the directive. In other words, every line of the block that is included is prepended with indentation according to where it is included and the block where it is defined does not have to anticipate the indentation level where it will be included. Note also that the `lp_include: args_check` directive preceeds the `lp: args_check` directive. When LitProg expands an `lp_include` directive, LitProg will recursivly resolve
 
 Finally after we have prepared all our code, we can write it to disk...
 
 ```python
 # lp_file: examples/fib_cli.py
-# lp_add: def main
+# lp_include: main
 ```
 
 ...and give it a spin.
 
 ```bash
-# lp_out: python3 --version
+# lp_run: python3 --version
 Python 3.7.3
 # exit:   0
 ```
 
 ```bash
-# lp_out: python3 examples/fib_cli.py --help
+# lp_run: python3 examples/fib_cli.py --help
 Usage: python examples/fib_cli.py [--help] [--pretty] <n>...
 # exit:   0
 ```
 
 ```bash
-# lp_out: python3 examples/fib_cli.py 22
+# lp_run: python3 examples/fib_cli.py 22
 17711
 # exit:   0
 ```
 
 ```bash
-# lp_out: python3 examples/fib_cli.py --pretty 3 7 8 9 19 20
+# lp_run: python3 examples/fib_cli.py --pretty 3 7 8 9 19 20
 fib( 3) =>    2  fib( 7) =>   13  fib( 8) =>   21
 fib( 9) =>   34  fib(19) => 4181  fib(20) => 6765
 # exit:   0
 ```
 
 ```bash
-# lp_out: python3 examples/fib_cli.py invalid argument
+# lp_run: python3 examples/fib_cli.py invalid argument
 Invalid parameters:  ['invalid', 'argument']
 # exit:   1
 ```
@@ -572,9 +592,9 @@ Invalid parameters:  ['invalid', 'argument']
     Although the final invocation of `fib_example.py` has a non-zero exit status, the session nontheless has an exit status of `0`. This is because python3 is invoced by a bash process, which does not propagate the exit status of a command by default. If we wanted to propagate the exit status we could use [`set -e` / `set -o errexit`][href_explainsh_errexit].
 
 
-### Make Directive
+### The `lp_make` Directive
 
-So far every process was independent of every other. In principle the process could have been executed in any order, or indeed concurrently to each other. Their dependencies on code blocks are explicitly declared by the `lp_add` directives inside of each `lp_run` block.
+So far every process was independent of every other. In principle the process could have been executed in any order, or indeed concurrently to each other. Dependencies on code blocks are explicitly declared by the `lp_include` directives inside of each `lp_exec` block.
 
     ```bash
     # lp_make: examples/fib_cli_compat.py
@@ -585,7 +605,7 @@ So far every process was independent of every other. In principle the process co
     chmod +x examples/fib_cli_compat.py
     ```
 
-I'm implementing this using lp_run for now.
+I'm implementing this using `lp_exec` for now.
 
 ```bash
 # lp_file: examples/build_cli_compat.sh
@@ -595,13 +615,15 @@ chmod +x examples/fib_cli_compat.py
 ```
 
 ```bash
-# lp_run: bash examples/build_cli_compat.sh
+# lp_exec: bash examples/build_cli_compat.sh
 ```
 
 
 !!! note "Why, oh why, does every tool need a new build system?!"
 
     In my defense, I don't feel that I'm reinventing the wheel, rather I'm reimplementing an existing and vernerable wheel called `make`. If you are familiar with make, you should have no problem using the build system of LitProg.
+
+    Even if this were reinventing the wheel, since output generated earlier phases of a LitProg build can be used by later phases (for example test results can be shown in output documents), it makes sense to have the build system be integrated and not separate.
 
     Many large programs use a build system to produce the final artifacts, such as binaries or packages. Documenting how to produce these artifacts should at least be possible, otherwise there is a thick curtain behind which the reader can .
 
@@ -611,13 +633,13 @@ chmod +x examples/fib_cli_compat.py
 
 
 ```bash
-# lp_out: python2 --version
+# lp_run: python2 --version
 ! Python 2.7.17rc1
 # exit:   0
 ```
 
 ```bash
-# lp_out: python2 examples/fib_cli_compat.py 22
+# lp_run: python2 examples/fib_cli_compat.py 22
 ! Traceback (most recent call last):
 !   File "examples/fib_cli_compat.py", line 16, in <module>
 !     from typing import List, Set, Tuple
@@ -626,19 +648,19 @@ chmod +x examples/fib_cli_compat.py
 ```
 
 ```bash
-# lp_out: python3 --version
+# lp_run: python3 --version
 Python 3.7.3
 # exit:   0
 ```
 
 ```bash
-# lp_out: python3 examples/fib_cli_compat.py 22
+# lp_run: python3 examples/fib_cli_compat.py 22
 17711
 # exit:   0
 ```
 
 ```bash
-# lp_out: examples/fib_cli_compat.py --pretty 2 5 8 12 19 20
+# lp_run: examples/fib_cli_compat.py --pretty 2 5 8 12 19 20
 fib( 2) =>    1  fib( 5) =>    5  fib( 8) =>   21
 fib(12) =>  144  fib(19) => 4181  fib(20) => 6765
 # exit:   0
@@ -654,8 +676,6 @@ TODO: Further reading.
 [^fnote_avoid_numbers]: Chapter and section numbers can change when the structure of a project changes. Chapters can be reordered, new sections can be inserted, so any phrases such as "see chapter 3 section 2 for further details" will become invalid, or worse, point to something other than originally intended. TODO: stable links using names.
 
 [^fnote_whitespace_in_directives]: Leading and trailing whitespace is stripped from directives. If you don't want this to happen, the value of a directive can be surrounded with `'` quotes or `"` double quotes.
-
-[^fnote_block_queries]: For now, blocks can only reference other blocks in the same file and the first block to match is what will be used.
 
 [^fnote_max_hedging]: Sorry about all the hedging. Any "proof" of correctness is only as good as the assertions made by the programmer. Hopefully the broader accessibility of LitProg programs means that programmers will feel the watchful eyes of readers and put some effort into making their programs demonstrably correct.
 

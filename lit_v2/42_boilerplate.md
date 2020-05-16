@@ -6,7 +6,7 @@
 All files start with some legal boilerplate. I honestly can't say what legal relevance of this is, probably it's mostly just ceremonial.
 
 ```python
-# lpid = boilerplate::preamble::license_header
+# lp: boilerplate::preamble::license_header
 
 # This file is part of the litprog project
 # https://gitlab.com/mbarkhau/litprog
@@ -22,7 +22,7 @@ Since the litprog tool is self hosting, there is a good chance that it breaks it
 In case somebody browses the generated files, we add some more boilerplate to each file to warn them that their changes will be overwritten.
 
 ```python
-# lpid = boilerplate::preamble::generated
+# lp: boilerplate::preamble::generated
 
 ###################################
 #    This is a generated file.    #
@@ -36,7 +36,7 @@ In case somebody browses the generated files, we add some more boilerplate to ea
 Most modules have their own local logger named `log`. If `litprog` is used as a library, then logging configuration is left to the importing module. If the `litprog` cli command is used, then logging is configured via the `litprog.cli` submodule.
 
 ```python
-# lpid = boilerplate::module::logger
+# lp: boilerplate::module::logger
 import logging
 
 log = logging.getLogger(__name__)
@@ -55,7 +55,7 @@ inputs  : ["boilerplate::preamble::*", "dunder_version"]
 Note that version strings may appear to be hard-coded, but they are in fact programmatically updated before each release using `make bump_version` or `pycalver bump`.
 
 ```python
-# lpid = dunder_version
+# lp: dunder_version
 
 __version__ = "v201901.0001-alpha"
 ```
@@ -65,7 +65,7 @@ __version__ = "v201901.0001-alpha"
 Across the implementation of LitProg there are commonly used aliases for imported modules. In general, the plain `import x` or `import longlib as ll` imports are preferred over `from x import y` so that usage code always includes the context from where they came.
 
 ```python
-# lpid = boilerplate::module::imports
+# lp: boilerplate::module::imports
 import os
 import io
 import re

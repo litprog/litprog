@@ -10,6 +10,7 @@ Ideas
   - Encouraging a Culture of Written Communication: https://news.ycombinator.com/item?id=23141353
   - Writing for Software Developers: https://news.ycombinator.com/item?id=23153469
 
+
 ### The Thin End of the Web
 
 to write your programs, for example by stringing together a series of code blocks without spending any time on formulating a coherent narrative. No ghosts of LP purism will come to haunt you for using LitProg in this way 🤞.
