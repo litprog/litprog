@@ -83,7 +83,7 @@ def _configure_logging(verbosity: int = 0) -> None:
 
 
 @click.group()
-@click.version_option(version="v201901.0001-alpha")
+@click.version_option(version="2020.1001-alpha")
 @verbosity_option
 def cli(verbose: int = 0) -> None:
     """litprog cli."""

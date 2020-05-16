@@ -13,7 +13,7 @@ MODULE_NAME="litprog"
 GIT_REPO_NAMESPACE="mbarkhau"
 GIT_REPO_DOMAIN="gitlab.com"
 
-PACKAGE_VERSION="v201901.0001-alpha"
+PACKAGE_VERSION="2020.0001-alpha"
 
 DEFAULT_PYTHON_VERSION="python=3.7"
 SUPPORTED_PYTHON_VERSIONS="python=3.7 python=3.6 python=3.4 python=2.7"

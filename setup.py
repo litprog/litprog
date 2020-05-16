@@ -7,7 +7,7 @@
 import os
 import sys
 import setuptools
-import fastentrypoints  # noqa
+import pkg_resources
 
 
 def project_path(*sub_paths):
@@ -41,6 +41,7 @@ long_description = "\n\n".join((read("README.md"), read("CHANGELOG.md")))
 # because our code to load static files is naive
 zip_safe = False
 
+version = "2020.1001-alpha"
 
 setuptools.setup(
     name="litprog",
@@ -48,7 +49,7 @@ setuptools.setup(
     author="Manuel Barkhau",
     author_email="mbarkhau@gmail.com",
     url="https://gitlab.com/mbarkhau/litprog",
-    version="201901.1a0",
+    version=str(pkg_resources.parse_version(version)),
     keywords="literate programming markdown litprog",
     description="Literate Programming using Markdown.",
     long_description=long_description,
@@ -81,6 +82,8 @@ setuptools.setup(
         "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: Implementation :: CPython",
         "Programming Language :: Python :: Implementation :: PyPy",
         "Topic :: Software Development :: Libraries",
