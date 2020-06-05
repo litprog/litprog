@@ -175,13 +175,24 @@ class InteractiveSession:
         returncode: typ.Optional[int] = None
         try:
             self._proc.stdin.close()
+        except BrokenPipeError:
+            # NOTE (mb 2020-06-05): Some subprocesses exit so fast that the pipe
+            #   may already be closed.
+            log.debug("stdin already closed")
+
+        try:
             max_time = self.start + timeout
-            while returncode is None and max_time > time.time():
+            while True:
                 time_left = max_time - time.time()
-                # print("poll", max_time - time.time())
                 log.debug(f"poll {time_left}")
                 time.sleep(min(0.01, max(0, time_left)))
                 returncode = self._proc.poll()
+                if returncode is not None:
+                    log.debug(f"poll() returned {returncode}")
+                    break
+                if time.time() > max_time:
+                    log.debug("timeout")
+                    break
         finally:
             if self._proc.returncode is None:
                 log.debug("sending SIGTERM")
