@@ -13,7 +13,9 @@ click~=7;python_version<"3.5"
 click;python_version>="3.5"
 pathlib2
 
-markdown
+Markdown<=3.2.2;python_version<"3.6"
+Markdown;python_version>="3.6"
+Markdown>=3.0
 markdown-svgbob
 markdown-aafigure
 markdown-blockdiag
