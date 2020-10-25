@@ -32,15 +32,6 @@ install_requires = [
 ]
 
 
-package_dir = {"": "src"}
-
-
-if any(arg.startswith("bdist") for arg in sys.argv):
-    import lib3to6
-
-    package_dir = lib3to6.fix(package_dir)
-
-
 long_description = "\n\n".join((read("README.md"), read("CHANGELOG.md")))
 
 # because our code to load static files is naive
@@ -60,7 +51,7 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     packages=["litprog"],
-    package_dir=package_dir,
+    package_dir={"": "src"},
     include_package_data=True,
     package_data={"": ["static/*"]},
     zip_safe=zip_safe,
@@ -82,9 +73,7 @@ setuptools.setup(
         "Operating System :: MacOS :: MacOS X",
         "Operating System :: Microsoft :: Windows",
         "Programming Language :: Python",
-        "Programming Language :: Python :: 2.7",
-        "Programming Language :: Python :: 3.4",
-        "Programming Language :: Python :: 3.5",
+        "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
