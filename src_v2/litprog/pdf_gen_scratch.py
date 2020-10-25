@@ -1,9 +1,9 @@
 import io
 import re
 import sys
+import pathlib as pl
 
 import typing as typ
-import pathlib2 as pl
 
 import pyphen
 import html5lib

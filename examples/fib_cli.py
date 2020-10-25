@@ -1,70 +1,50 @@
 #!/usr/bin/env python
-__doc__ = f"""Usage: python {__file__} [--help] [--pretty] <n>..."""
-
+from typing import Tuple, List, Dict, Set, Sequence
 import sys
-from typing import List, Set, Tuple
-
-
-from typing import Dict
-
-_fib_cache: Dict[int, int] = {}
-
-def fast_fib(n: int) -> int:
-    if n <= 1:
+__doc__ = f"""Usage: python {__file__} [--help] [--pretty] <n>..."""
+def fib(n: int) -> int:
+    if n < 2:
         return n
-
-    if n in _fib_cache:
-        return _fib_cache[n]
-
-    _fib_cache[n - 2] = fast_fib(n - 2)
-    _fib_cache[n - 1] = fast_fib(n - 1)
-    assert n - 1 in _fib_cache, n
-    return _fib_cache[n - 1] + _fib_cache[n - 2]
-fib = fast_fib
-
-from typing import Sequence 
-
+    else:
+        return fib(n - 1) + fib(n - 2)
+_cache: Dict[int, int] = {}
+def fast_fib(n: int) -> int:
+    if n < 2:
+        return n
+    if n not in _cache:
+        _cache[n] = fast_fib(n - 1) + fast_fib(n - 2)
+    return _cache[n]
 def pretty_print_fibs(ns: Sequence[int]) -> None:
+    """Calculate Fibbonacci numbers and print them to stdout."""
     fibs = [fib(n) for n in ns]
-
     pad_n     = len(str(max(ns)))
     pad_fib_n = len(str(max(fibs)))
-
     for i, (n, fib_n) in enumerate(zip(ns, fibs)):
         in_str = f"fib({n:>{pad_n}})"
         res_str = f"{fib_n:>{pad_fib_n}}"
         print(f"{in_str} => {res_str}", end ="  ")
-        if (i + 1) % 3 == 0: 
+        if (i + 1) % 3 == 0:
             print()
-
-
 ParamsAndFlags = Tuple[List[str], Set[str]]
-
 def parse_args(args: List[str]) -> ParamsAndFlags:
     flags = {arg for arg in args if arg.startswith("-")}
     params = [arg for arg in args if arg not in flags]
     return params, flags
-
 def main(args: List[str] = sys.argv[1:]) -> int:
     params, flags = parse_args(args)
-    
     if not args or "--help" in flags or "-h" in flags:
         print(__doc__)
         return 0
-    
     invalid_params = [n for n in params if not n.isdigit()]
     if any(invalid_params):
         print("Invalid parameters: ", invalid_params)
         return 1
-
     ns = [int(n) for n in params]
     if "-p" in flags or "--pretty" in flags:
         pretty_print_fibs(ns)
     else:
         for n in ns:
-            print(fib(n))
+            print(fast_fib(n))
     return 0
-
-
 if __name__ == '__main__':
     sys.exit(main())

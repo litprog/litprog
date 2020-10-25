@@ -1,7 +1,7 @@
 # This file is part of the litprog project
 # https://gitlab.com/mbarkhau/litprog
 #
-# Copyright (c) 2019 Manuel Barkhau (mbarkhau@gmail.com) - MIT License
+# Copyright (c) 2018-2020 Manuel Barkhau (mbarkhau@gmail.com) - MIT License
 # SPDX-License-Identifier: MIT
 import typing as typ
 import logging
@@ -42,12 +42,10 @@ def md2html(md_text: MarkdownText) -> HTMLResult:
         "markdown.extensions.meta",
         "markdown.extensions.sane_lists",
         "markdown.extensions.wikilinks",
-
         "markdown_aafigure",
         "markdown_blockdiag",
         "markdown_svgbob",
         "markdown_katex",
-
         #####
         # "markdown.extensions.legacy_attr",
         # "markdown.extensions.legacy_em",
@@ -64,7 +62,7 @@ def md2html(md_text: MarkdownText) -> HTMLResult:
                 'fg_color'      : "black",
                 'min_char_width': 70,
             },
-            'markdown_katex': {'no_inline_svg': True, 'insert_fonts_css': False},
+            'markdown_katex'                : {'no_inline_svg': True, 'insert_fonts_css': False},
             "markdown.extensions.codehilite": {
                 # NOTE (mb 2020-06-05): The default guess_lexer=True can detect the
                 #   wrong language for certain blocks and colour everything as an

@@ -1,39 +1,29 @@
 # This file is part of the litprog project
 # https://gitlab.com/mbarkhau/litprog
 #
-# Copyright (c) 2019 Manuel Barkhau (mbarkhau@gmail.com) - MIT License
+# Copyright (c) 2018-2020 Manuel Barkhau (mbarkhau@gmail.com) - MIT License
 # SPDX-License-Identifier: MIT
-import io
-import os
-import re
 import sys
-import enum
-import math
-import time
 import shutil
 import typing as typ
 import logging
-import os.path
-import datetime as dt
-import operator as op
 import tempfile
-import functools as ft
-import itertools as it
-import collections
 
 import click
 import pathlib2 as pl
 
-import litprog.build
-import litprog.parse
+import litprog.build as lp_build
+import litprog.parse as lp_parse
+
+try:
+    import pretty_traceback
+    pretty_traceback.install()
+except ImportError:
+    pass    # no need to fail because of missing dev dependency
+
 
 log = logging.getLogger(__name__)
 
-
-if os.environ.get('ENABLE_BACKTRACE') == '1':
-    import backtrace
-
-    backtrace.hook(align=True, strip_path=True, enable_on_envvar_only=True)
 
 InputPaths = typ.Sequence[str]
 FilePaths  = typ.Iterable[pl.Path]

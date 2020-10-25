@@ -1,8 +1,9 @@
 # This file is part of the litprog project
 # https://gitlab.com/mbarkhau/litprog
 #
-# Copyright (c) 2020 Manuel Barkhau (mbarkhau@gmail.com) - MIT License
+# Copyright (c) 2018-2020 Manuel Barkhau (mbarkhau@gmail.com) - MIT License
 # SPDX-License-Identifier: MIT
+
 # After reading "https://apenwarr.ca/log/20181113" I've
 # concluded, that we need to
 #  1. create an index of files we care about, with

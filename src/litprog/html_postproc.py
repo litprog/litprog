@@ -1,7 +1,7 @@
 # This file is part of the litprog project
 # https://gitlab.com/mbarkhau/litprog
 #
-# Copyright (c) 2020 Manuel Barkhau (mbarkhau@gmail.com) - MIT License
+# Copyright (c) 2018-2020 Manuel Barkhau (mbarkhau@gmail.com) - MIT License
 # SPDX-License-Identifier: MIT
 import io
 import re
@@ -9,8 +9,9 @@ import string
 import typing as typ
 import itertools as it
 
-import bs4
 import pyphen
+
+import bs4
 
 from . import md2html
 

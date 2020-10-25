@@ -1,35 +1,19 @@
 # This file is part of the litprog project
 # https://gitlab.com/mbarkhau/litprog
 #
-# Copyright (c) 2019 Manuel Barkhau (mbarkhau@gmail.com) - MIT License
+# Copyright (c) 2018-2020 Manuel Barkhau (mbarkhau@gmail.com) - MIT License
 # SPDX-License-Identifier: MIT
 
-import io
 import os
-import re
-import sys
-import enum
-import math
 import time
 import shlex
 import typing as typ
-
-###################################
-#    This is a generated file.    #
-# This file should not be edited. #
-#  Changes will be overwritten!   #
-###################################
 import logging
 import os.path
-import datetime as dt
-import operator as op
-import functools as ft
-import itertools as it
 import threading
 import subprocess as sp
-import collections
 
-import pathlib2 as pl
+import pathlib as pl
 
 log = logging.getLogger(__name__)
 

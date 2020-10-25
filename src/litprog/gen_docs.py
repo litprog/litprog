@@ -1,7 +1,7 @@
 # This file is part of the litprog project
 # https://gitlab.com/mbarkhau/litprog
 #
-# Copyright (c) 2019 Manuel Barkhau (mbarkhau@gmail.com) - MIT License
+# Copyright (c) 2018-2020 Manuel Barkhau (mbarkhau@gmail.com) - MIT License
 # SPDX-License-Identifier: MIT
 import time
 import shutil
@@ -9,8 +9,9 @@ import typing as typ
 import logging
 
 import yaml
-import jinja2
 import pathlib2 as pl
+
+import jinja2
 
 from . import parse
 from . import md2html
@@ -249,7 +250,7 @@ def parse_front_matter(md_text: MarkdownText) -> typ.Tuple[Metadata, MarkdownTex
 def _init_meta() -> typ.Dict[str, str]:
     build_tt = time.localtime()
     return {
-        'litprog_version': "202001.1001-alpha",
+        'litprog_version': "2020.1001-alpha",
         'git_revision'   : "0123_TODO_4567",
         'build_timestamp': time.strftime("%a %Y-%m-%d %H:%M %Z", build_tt),
     }

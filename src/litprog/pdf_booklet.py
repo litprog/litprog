@@ -1,7 +1,7 @@
 # This file is part of the litprog project
 # https://gitlab.com/mbarkhau/litprog
 #
-# Copyright (c) 2020 Manuel Barkhau (mbarkhau@gmail.com) - MIT License
+# Copyright (c) 2018-2020 Manuel Barkhau (mbarkhau@gmail.com) - MIT License
 # SPDX-License-Identifier: MIT
 import sys
 import math
@@ -9,8 +9,9 @@ import time
 import typing as typ
 import logging
 
-import PyPDF2 as pdf
 import pathlib2 as pl
+
+import PyPDF2 as pdf
 
 log = logging.getLogger(__name__)
 
@@ -146,7 +147,7 @@ def get_format_id(page_width_pt: int, page_height_pt: int) -> typ.Optional[str]:
     return None
 
 
-def create(in_path: pl.Path, out_path: typ.Optional[pl.Path]) -> pl.Path:
+def create(in_path: pl.Path, out_path: typ.Optional[pl.Path] = None) -> pl.Path:
     # TODO: option for page scale
     # rescale = 1.33
     rescale     = 1.00
@@ -184,8 +185,8 @@ def create(in_path: pl.Path, out_path: typ.Optional[pl.Path]) -> pl.Path:
 
         scale_w = round((out_width / 2) / in_page_width, 2)
         scale_h = round(out_height / in_page_height, 2)
-        scale = min(scale_h, scale_w)
-        log.info(f"{!scale} {!scale_w} {!scale_h}")
+        scale   = min(scale_h, scale_w)
+        log.info(f"{scale=} {scale_w=} {scale_h=}")
         scale = scale_h
         if scale < 1:
             log.info(f"scaling down by {1/scale:5.2f}x")

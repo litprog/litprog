@@ -16,14 +16,17 @@ DEVELOPMENT_PYTHON_VERSION := python=3.8
 # - python=3.5
 # - python=3.6
 # - python=3.7
+# - python=3.8
 # - pypy2.7
 # - pypy3.5
-SUPPORTED_PYTHON_VERSIONS := python=3.8 python=2.7
+# - pypy3.6
+SUPPORTED_PYTHON_VERSIONS := python=3.8 pypy3.6
 
 
 include makefile.bootstrapit.make
 
 ## -- Extra/Custom/Project Specific Tasks --
+
 # TODO (mb 2018-11-15): Ammend installation to include
 #	system deps (related to weasyprint) and to
 #	download fonts and link them so weasyprint
@@ -58,31 +61,18 @@ pycalver_docs: ../pycalver/README.html ../pycalver/README_booklet.pdf
 	echo "noop"
 
 
-## MVP
-.PHONY: src/litprog/tmp__main__.py
-src/litprog/tmp__main__.py: lit/000_mvp.md src/litprog/__main__.py
-	touch src/litprog/tmp__main__.py
-	$(DEV_ENV)/bin/litprog build lit/000_mvp.md
-	$(DEV_ENV)/bin/sjfmt src/litprog/tmp*.py
-
-
-lit_out/out.html.tmp.html: lit/*.md
-	$(DEV_ENV)/bin/litprog build lit/000_mvp.md lit/005c_html_postproc_v2.md
-	$(DEV_ENV)/bin/python src/litprog/html_postproc_v2.py lit_out/out.html
-
-
-src/litprog/__main__.py: lit/*.md
-	ENABLE_BACKTRACE=0 $(DEV_ENV)/bin/litprog build -v lit/*.md
-
-
 ## Generate Litprog Documentation
+
+## Default target
 .PHONY: it
 it:
-	$(DEV_ENV)/bin/litprog build -v lit_v3/11_overview.md --html doc/
+	PYTHONPATH=src/:vendor/:$$PYTHONPATH \
+		$(DEV_ENV)/bin/litprog \
+			build -v lit_v3/11_overview.md --html doc/
 #	cp doc/*.html /run/user/1000/keybase/kbfs/public/mbarkhau/litprog/
 # 	rsync -r fonts/woff* /run/user/1000/keybase/kbfs/public/mbarkhau/litprog/fonts/
-	cp src/litprog/static/*.css /run/user/1000/keybase/kbfs/public/mbarkhau/litprog/
-	cp src/litprog/static/*.js /run/user/1000/keybase/kbfs/public/mbarkhau/litprog/
+#	cp src/litprog/static/*.css /run/user/1000/keybase/kbfs/public/mbarkhau/litprog/
+#	cp src/litprog/static/*.js /run/user/1000/keybase/kbfs/public/mbarkhau/litprog/
 
 
 ## Create favicon
@@ -99,10 +89,19 @@ favicon.ico: *.png
 KATEX_CDN_BASE_URL=https://cdn.jsdelivr.net/npm/katex@0.10.2/dist
 
 
+## Download css and fonts so font files are not from google
+.PHONY: download_fonts_static
+download_fonts_static:
+	# TODO:
+	# download stylesheets
+	# download fonts from urls in stylesheets
+	# ua IE: Mozilla/5.0 (compatible; MSIE 9.0; InfoChannel RNSafeBrowser/v.1.1.0G)
+
+
 ## Download css and fonts so pdf generation doesn't have to
 ## repeatedly request from the CDN.
-.PHONY: katex_static
-katex_static:
+.PHONY: download_katex_static
+download_katex_static:
 	curl $(KATEX_CDN_BASE_URL)/katex.css \
 		-s -o fonts/katex.css;
 	grep -Po "(?<=url\().*?\.(woff2|woff|ttf)" fonts/katex.css \
@@ -122,11 +121,14 @@ deploy_sketch:
 	cp src/litprog/static/*.svg /run/user/1000/keybase/kbfs/public/mbarkhau/litprog/src/litprog/static/;
 
 
+## build ../sbk/READMEv2.md -> doc/
 .PHONY: sbk
 sbk:
 	$(DEV_ENV)/bin/litprog build -v ../sbk/READMEv2.md --html doc
-# 	$(DEV_ENV)/bin/litprog build -v ../sbk/READMEv2.md --pdf doc
+	$(DEV_ENV)/bin/litprog build -v ../sbk/READMEv2.md --pdf doc
 
+
+## upload static doc/ to keybase
 .PHONY: sync
 sync:
 	rsync -rtpov --exclude='*.woff' --exclude='*.woff2' --exclude='*.ttf' \

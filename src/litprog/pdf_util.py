@@ -1,15 +1,16 @@
 # This file is part of the litprog project
 # https://gitlab.com/mbarkhau/litprog
 #
-# Copyright (c) 2020 Manuel Barkhau (mbarkhau@gmail.com) - MIT License
+# Copyright (c) 2018-2020 Manuel Barkhau (mbarkhau@gmail.com) - MIT License
 # SPDX-License-Identifier: MIT
 #!/home/mbarkhau/miniconda3/envs/litprog_py37/bin/python
 import io
 import sys
 import typing as typ
 
-import PyPDF2 as pdf
 import pathlib2 as pl
+
+import PyPDF2 as pdf
 
 PT_PER_INCH = 72
 PT_PER_MM   = PT_PER_INCH / 25.4

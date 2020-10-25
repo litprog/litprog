@@ -21,4 +21,4 @@
 #    the PYTHONPATH. The version from the virtualenv will then
 #    be loaded instead.
 
-pathlib2
+# pathlib2

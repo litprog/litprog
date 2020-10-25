@@ -7,37 +7,31 @@
 # Binary (non-pure) packages may also be listed here, but you
 # should see if there is a conda package that suits your needs.
 
-typing;python_version<"3.5"
-six
-click~=7;python_version<"3.5"
-click;python_version>="3.5"
-pathlib2
+typing              ;python_version<"3.5"
+click~=7            ;python_version<"3.5"
+click               ;python_version>="3.5"
 
-Markdown<=3.2.2;python_version<"3.6"
-Markdown;python_version>="3.6"
-Markdown>=3.0
+Markdown<=3.2.2     ;python_version<"3.6"
+Markdown>=3.0       ;python_version>="3.6"
 markdown-svgbob
 markdown-aafigure
 markdown-blockdiag
 markdown-katex
-Pygments<2.6;python_version<"3.6"
-Pygments;python_version>="3.6"
-Pyphen~=0.95;python_version<"3.6"
-Pyphen;python_version>="3.6"
-WeasyPrint<43;python_version<"3.6"
-WeasyPrint;python_version>="3.6"
-beautifulsoup4~=4.9;python_version<"3.6"
-beautifulsoup4;python_version>="3.6"
-Jinja2<3.0.0;python_version<"3.6"
-Jinja2;python_version>="3.6"
+Pygments<2.6        ;python_version<"3.6"
+Pygments            ;python_version>="3.6"
+Pyphen~=0.95        ;python_version<"3.6"
+Pyphen              ;python_version>="3.6"
+WeasyPrint<43       ;python_version<"3.6"
+WeasyPrint          ;python_version>="3.6"
+beautifulsoup4~=4.9 ;python_version<"3.6"
+beautifulsoup4      ;python_version>="3.6"
+Jinja2<3.0.0        ;python_version<"3.6"
+Jinja2              ;python_version>="3.6"
 PyPDF2
 
 toml
 PyYAML
 # ujson
 
-watchdog<0.10.0;python_version<"3.6"
-watchdog;python_version>="3.6"
-
-# https://github.com/WojciechMula/aspell-python
-# aspell-python-ctypes
+watchdog<0.10.0     ;python_version<"3.6"
+watchdog            ;python_version>="3.6"
