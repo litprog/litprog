@@ -2,8 +2,14 @@
 
 Best practices for structuring a LitProg project.
 
+Write the Docs Portland 2017:
+Building navigation for your doc site: 5 best practices by Tom Johnson
+https://www.youtube.com/watch?v=w-kEmsLwPDE
+
 TODO: Look into best practices for writing RFC documents
 which might make sense.
+
+https://dev.to/scottydocs/how-to-build-a-documentation-culture-2mk7
 
 The Craft of Writing Effectively - Larry McEnerney
 https://www.youtube.com/watch?v=aFwVf5a3pZM
