@@ -6,8 +6,16 @@ body, body .wrapper {
     will-change: background, box-shadow;
 }
 
+::selection {
+    background: #DDD;
+}
+
+body.dark ::selection {
+    background: #555;
+}
+
 .nav a {
-    font-family: lp-enriqueta, lp-bitter, Bitter, serif;
+    font-family: lp-enriqueta, Enriqueta, lp-bitter, Bitter, serif;
     border: none;
     text-decoration: none;
     color: #000;
@@ -25,13 +33,22 @@ body, body .wrapper {
 /* Layout Styles*/
 
 .content {
-    padding: 2em 1.2em;
+    padding: 2em 1em;
     transition: padding 400ms linear;
     will-change: padding;
 }
 
+body {
+    background: #FBFAFA;
+}
+
 .wrapper {
-    background: #FBFAFA;;
+    background: #FBFAFA;
+}
+
+body.dark, body.dark .wrapper {
+    background: #000;
+    color: #FFF;
 }
 
 .content > .codehilite {
@@ -44,9 +61,6 @@ img.bob {
     margin: 1em auto;
 }
 
-body {
-    background: #FBFAFA;
-}
 
 /* Lift page effect */
 
@@ -198,10 +212,6 @@ body {
 
 /* Dark Styles*/
 
-body.dark, body.dark .wrapper {
-    background: #000;
-    color: #FFF;
-}
 .dark a {
     color: #9CF;
 }
@@ -219,13 +229,6 @@ body.dark, body.dark .wrapper {
 
 .dark img.bob {
     filter: invert(1);
-}
-
-@media only screen and (max-width: 749px) {
-    /* Dark is it's own boundary -> reduce padding to gain line length. */
-    body.dark .content {
-        padding: 2em 1em 2em 0.5em;
-    }
 }
 
 @media only screen and (min-width: 750px) {
@@ -271,16 +274,16 @@ body.dark, body.dark .wrapper {
 }
 
 @media only screen and (min-width: 650px) {
-    body {font-size: 18px; line-height: 1.65em;}
+    body {font-size: 18px; line-height: 1.55em;}
     div.codehilite pre {font-size: 17px;}
 }
 
 @media only screen and (min-width: 700px) {
-    body {line-height: 1.70em;}
+    body {line-height: 1.55em;}
 }
 
 @media only screen and (min-width: 750px) {
-    body {line-height: 1.75em;}
+    body {line-height: 1.65em;}
 }
 
 @media only screen and (min-width: 850px) {

@@ -13,17 +13,15 @@
     <style type="text/css">
     /* inline styles to avoid flashing (esp. in dark mode) */
     .nav {display: none;}
-    body.dark {background: black;}
+    body.dark, body.dark .wrapper {background: #292929;}
+    /*body.gray, body.gray .wrapper {background: #777;}*/
     </style>
     {% endif %}
-    <link rel="stylesheet" type="text/css" href="static/fonts.css">
-    <link rel="stylesheet" type="text/css" href="static/katex.css">
-    <link rel="stylesheet" type="text/css" href="static/codehilite.css">
-    <link rel="stylesheet" type="text/css" href="static/general_v2.css">
-    {% if fmt.is_web_target %}
-    <link rel="stylesheet" type="text/css" href="static/screen_v2.css">
-    {% endif %}
     {% if fmt.is_print_target %}
+        <link rel="stylesheet" type="text/css" href="static/fonts.css">
+        <link rel="stylesheet" type="text/css" href="static/codehilite.css">
+        <link rel="stylesheet" type="text/css" href="static/general_v2.css">
+        <link rel="stylesheet" type="text/css" href="static/katex.css">
         <link rel="stylesheet" type="text/css" href="static/print.css">
         {% if fmt.page_size == "a6" %} <link rel="stylesheet" type="text/css" href="static/print_a6.css"> {% endif %}
         {% if fmt.page_size == "a5" %} <link rel="stylesheet" type="text/css" href="static/print_a5.css"> {% endif %}
@@ -53,6 +51,14 @@
             document.body.classList.add("dark")
         }
     </script>
+
+    {% if fmt.is_web_target %}
+        {% include "inline_font_styles.html" %}
+        <link rel="stylesheet" type="text/css" href="static/general_v2.css">
+        <link rel="stylesheet" type="text/css" href="static/screen_v2.css">
+        <noscript><link rel="stylesheet" href="static/katex.css" type="text/css"></noscript>
+        <noscript><link rel="stylesheet" href="static/codehilite.css" type="text/css"></noscript>
+    {% endif %}
     <div class="header">
         <img alt="Logo of {{ meta.project_name }} " src="{{ meta.logo_url }}">
         <div>{{ meta.title }}</div>
@@ -142,6 +148,22 @@
         </div>
     </div>
     {% if fmt.is_web_target %}
+    <script type="text/javascript">
+    (function() {
+        'use strict';
+        var head = document.getElementsByTagName('head').item(0);
+
+        function loadStylesheet(href) {
+            var s = document.createElement('link');
+            s.setAttribute("href", href);
+            s.setAttribute("rel", "stylesheet");
+            s.setAttribute("type", "text/css");
+            head.appendChild(s);
+        }
+        loadStylesheet("static/katex.css");
+        loadStylesheet("static/codehilite.css");
+    })();
+    </script>
     <script src="static/popper.js"></script>
     <script src="static/app.js"></script>
     {% endif %}

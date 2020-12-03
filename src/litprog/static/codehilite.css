@@ -1,13 +1,25 @@
 code {
-    font-family: "lp-iosevka", Courier, monospace;
+    font-family: "lp-iosevka", "Iosevka Term SS05", monospace;
 }
 
 pre {
-    font-family: "lp-iosevka", Courier, monospace;
+    font-family: "lp-iosevka", "Iosevka Term SS05", monospace;
     line-height: 1.25em;
 }
 
+@media print {
+    code {
+        font-family: "Iosevka Term SS05", monospace;
+    }
+
+    pre {
+        font-family: "Iosevka Term SS05", monospace;
+        line-height: 1.25em;
+    }
+}
+
 div.codehilite {
+    margin-top: -1.5em;
     padding-right: 0.5em;
 }
 
@@ -19,7 +31,7 @@ div.codehilite pre {
 }
 
 span.lineno {
-    color: #888;
+    color: #666;
     display: inline-block;
     width: 1.3em;
     padding-right: 0.3em;
@@ -77,6 +89,8 @@ span.lineno {
 
 
 @media screen {
+
+.dark span.lineno {color: #AAA;}
 
 .dark .codehilite .l {  color: #FFF; }  /* Literal */
 .dark .codehilite .c { font-style: italic; } /* Comment */

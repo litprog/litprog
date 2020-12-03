@@ -236,18 +236,7 @@ let activePopper = null;
 let activePopperNode = null;
 let popperDestroyTimeout = null;
 
-document.body.addEventListener("mousemove", (e) => {
-    let isPopper = !!e.target.closest(".popper")
-    if (isPopper) {
-        // keep active
-        if (popperDestroyTimeout != null) {
-            // back on target, cancel destruction
-            clearTimeout(popperDestroyTimeout)
-            popperDestroyTimeout = null;
-        }
-        return
-    }
-
+function updateContentFoldClass(e) {
     let foldClass = getContentFoldClass(e)
     let altFoldClass = (
         foldClass == "lift-fold-left" ? "lift-fold-right" :
@@ -268,6 +257,22 @@ document.body.addEventListener("mousemove", (e) => {
     } else if (!body.classList.contains(foldClass)) {
         body.classList.add(foldClass)
     }
+
+}
+
+document.body.addEventListener("mousemove", (e) => {
+    let isPopper = !!e.target.closest(".popper")
+    if (isPopper) {
+        // keep active
+        if (popperDestroyTimeout != null) {
+            // back on target, cancel destruction
+            clearTimeout(popperDestroyTimeout)
+            popperDestroyTimeout = null;
+        }
+        return
+    }
+
+    // updateContentFoldClass(e)
 
     // TODO: More hovers
     //  - Link URL

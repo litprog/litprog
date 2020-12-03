@@ -1,7 +1,7 @@
 
 @media print {
     body, .wrapper {
-        color: #333;
+        color: #000;
     }
     p, blockquote, ul, ol {
         orphans: 3;
@@ -39,7 +39,7 @@
 
     a[href^=http] {
         counter-increment: link;
-        color: #333;
+        color: #000;
         text-decoration: underline dotted;
     }
 
@@ -55,7 +55,7 @@
         /*position: relative;*/
         /*left: 0.1em;*/
         /*bottom: 0.8em;*/
-        color: #333;
+        color: #000;
         text-decoration: none;
         /*outline: 1px solid green;*/
     }
@@ -98,14 +98,9 @@
         font-size: 0.65em;
     }
 
-<<<<<<< Updated upstream
-    a.footnote-ref {
-        color: #333;
-        /*display: inline-block;*/
-=======
     a.footnote-ref, .footer a {
         color: #000;
->>>>>>> Stashed changes
+        /*display: inline-block;*/
         text-decoration: none;
         /*display: inline-block;*/
         /*min-width: .9em;*/

@@ -1,35 +1,46 @@
-/* bitter-regular - latin_latin-ext */
+/* Via https://google-webfonts-helper.herokuapp.com/
+ *
+ * Note that the lp- prefix is so that we give preference to the
+ * font files we serve, rather than to fonts installed on the system
+ * that might have the same name.
+ */
+
+
+/* gelasio-regular - latin-ext_latin */
 @font-face {
-  font-family: 'lp-bitter';
+  font-family: 'lp-gelasio';
   font-style: normal;
-  font-display: block;
   font-weight: 400;
-  src: local('Bitter Regular'), local('Bitter-Regular'),
-      url('bitter-v15-latin_latin-ext-regular.woff2') format('woff2'), /* Chrome 26+, Opera 23+, Firefox 39+ */
-      url('bitter-v15-latin_latin-ext-regular.woff') format('woff'),
-      url('bitter-v15-latin_latin-ext-regular.ttf') format('truetype'); /* Chrome 6+, Firefox 3.6+, IE 9+, Safari 5.1+ */
+  src: local('Gelasio Regular'), local('Gelasio-Regular'),
+       url('gelasio-v1-latin-ext_latin-regular.woff2') format('woff2'), /* Chrome 26+, Opera 23+, Firefox 39+ */
+       url('gelasio-v1-latin-ext_latin-regular.woff') format('woff'); /* Chrome 6+, Firefox 3.6+, IE 9+, Safari 5.1+ */
 }
-/* bitter-italic - latin_latin-ext */
+/* gelasio-italic - latin-ext_latin */
 @font-face {
-  font-family: 'lp-bitter';
+  font-family: 'lp-gelasio';
   font-style: italic;
-  font-display: block;
   font-weight: 400;
-  src: local('Bitter Italic'), local('Bitter-Italic'),
-      url('bitter-v15-latin_latin-ext-italic.woff2') format('woff2'), /* Chrome 26+, Opera 23+, Firefox 39+ */
-      url('bitter-v15-latin_latin-ext-italic.woff') format('woff'),
-      url('bitter-v15-latin_latin-ext-italic.ttf') format('truetype'); /* Chrome 6+, Firefox 3.6+, IE 9+, Safari 5.1+ */
+  src: local('Gelasio Italic'), local('Gelasio-Italic'),
+       url('gelasio-v1-latin-ext_latin-italic.woff2') format('woff2'), /* Chrome 26+, Opera 23+, Firefox 39+ */
+       url('gelasio-v1-latin-ext_latin-italic.woff') format('woff'); /* Chrome 6+, Firefox 3.6+, IE 9+, Safari 5.1+ */
 }
-/* bitter-700 - latin_latin-ext */
+/* gelasio-700 - latin-ext_latin */
 @font-face {
-  font-family: 'lp-bitter';
+  font-family: 'lp-gelasio';
   font-style: normal;
-  font-display: block;
   font-weight: 700;
-  src: local('Bitter Bold'), local('Bitter-Bold'),
-      url('bitter-v15-latin_latin-ext-700.woff2') format('woff2'), /* Chrome 26+, Opera 23+, Firefox 39+ */
-      url('bitter-v15-latin_latin-ext-700.woff') format('woff'),
-      url('bitter-v15-latin_latin-ext-700.ttf') format('truetype'); /* Chrome 6+, Firefox 3.6+, IE 9+, Safari 5.1+ */
+  src: local('Gelasio Bold'), local('Gelasio-Bold'),
+       url('gelasio-v1-latin-ext_latin-700.woff2') format('woff2'), /* Chrome 26+, Opera 23+, Firefox 39+ */
+       url('gelasio-v1-latin-ext_latin-700.woff') format('woff'); /* Chrome 6+, Firefox 3.6+, IE 9+, Safari 5.1+ */
+}
+/* gelasio-700italic - latin-ext_latin */
+@font-face {
+  font-family: 'lp-gelasio';
+  font-style: italic;
+  font-weight: 700;
+  src: local('Gelasio Bold Italic'), local('Gelasio-BoldItalic'),
+       url('gelasio-v1-latin-ext_latin-700italic.woff2') format('woff2'), /* Chrome 26+, Opera 23+, Firefox 39+ */
+       url('gelasio-v1-latin-ext_latin-700italic.woff') format('woff'); /* Chrome 6+, Firefox 3.6+, IE 9+, Safari 5.1+ */
 }
 
 /* enriqueta-400 -latin-ext */
@@ -244,3 +255,43 @@
        url('iosevka-term-ss05-heavyitalic.woff') format('woff'),
        url('iosevka-term-ss05-heavyitalic.ttf') format('truetype');
 }
+
+
+/* NOTE (mb): The only thing I don't like about Bitter, is that it's too wide,
+ *    otherwise i'd prefer it over Gelasio, Georgia for body text.
+ */
+
+/* bitter-regular - latin_latin-ext */
+@font-face {
+  font-family: 'lp-bitter';
+  font-style: normal;
+  font-display: block;
+  font-weight: 400;
+  src: local('Bitter Regular'), local('Bitter-Regular'),
+      url('bitter-v15-latin_latin-ext-regular.woff2') format('woff2'), /* Chrome 26+, Opera 23+, Firefox 39+ */
+      url('bitter-v15-latin_latin-ext-regular.woff') format('woff'),
+      url('bitter-v15-latin_latin-ext-regular.ttf') format('truetype'); /* Chrome 6+, Firefox 3.6+, IE 9+, Safari 5.1+ */
+}
+/* bitter-italic - latin_latin-ext */
+@font-face {
+  font-family: 'lp-bitter';
+  font-style: italic;
+  font-display: block;
+  font-weight: 400;
+  src: local('Bitter Italic'), local('Bitter-Italic'),
+      url('bitter-v15-latin_latin-ext-italic.woff2') format('woff2'), /* Chrome 26+, Opera 23+, Firefox 39+ */
+      url('bitter-v15-latin_latin-ext-italic.woff') format('woff'),
+      url('bitter-v15-latin_latin-ext-italic.ttf') format('truetype'); /* Chrome 6+, Firefox 3.6+, IE 9+, Safari 5.1+ */
+}
+/* bitter-700 - latin_latin-ext */
+@font-face {
+  font-family: 'lp-bitter';
+  font-style: bold;
+  font-display: block;
+  font-weight: 700;
+  src: local('Bitter Bold'), local('Bitter-Bold'),
+      url('bitter-v15-latin_latin-ext-700.woff2') format('woff2'), /* Chrome 26+, Opera 23+, Firefox 39+ */
+      url('bitter-v15-latin_latin-ext-700.woff') format('woff'),
+      url('bitter-v15-latin_latin-ext-700.ttf') format('truetype'); /* Chrome 6+, Firefox 3.6+, IE 9+, Safari 5.1+ */
+}
+
