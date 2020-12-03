@@ -7,8 +7,7 @@
 import io
 import sys
 import typing as typ
-
-import pathlib2 as pl
+import pathlib as pl
 
 import PyPDF2 as pdf
 

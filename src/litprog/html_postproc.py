@@ -9,9 +9,8 @@ import string
 import typing as typ
 import itertools as it
 
-import pyphen
-
 import bs4
+import pyphen
 
 from . import md2html
 
@@ -551,6 +550,7 @@ def postproc4screen(html_res: md2html.HTMLResult) -> HTMLText:
     _update_footnote_refs(soup)
     _add_footnotes_header(soup)
     html_text = str(soup)
+
     # html_text.replace("\u00AD", "&shy;")
     return html_text
 

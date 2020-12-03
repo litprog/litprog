@@ -8,8 +8,7 @@ import math
 import time
 import typing as typ
 import logging
-
-import pathlib2 as pl
+import pathlib as pl
 
 import PyPDF2 as pdf
 

@@ -7,10 +7,9 @@ import time
 import shutil
 import typing as typ
 import logging
+import pathlib as pl
 
 import yaml
-import pathlib2 as pl
-
 import jinja2
 
 from . import parse

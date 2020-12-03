@@ -17,9 +17,10 @@ import litprog.parse as lp_parse
 
 try:
     import pretty_traceback
+
     pretty_traceback.install()
 except ImportError:
-    pass    # no need to fail because of missing dev dependency
+    pass  # no need to fail because of missing dev dependency
 
 
 log = logging.getLogger(__name__)

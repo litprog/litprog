@@ -10,10 +10,9 @@ import shlex
 import typing as typ
 import logging
 import os.path
+import pathlib as pl
 import threading
 import subprocess as sp
-
-import pathlib as pl
 
 log = logging.getLogger(__name__)
 
