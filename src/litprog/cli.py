@@ -23,7 +23,7 @@ except ImportError:
     pass  # no need to fail because of missing dev dependency
 
 
-log = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 InputPaths = typ.Sequence[str]
@@ -88,20 +88,40 @@ _out_dir_arg = click.Path(file_okay=False, writable=True)
 @click.argument('input_paths', nargs=-1, type=_in_path_arg)
 @click.option('--html', nargs=1, type=_out_dir_arg)
 @click.option('--pdf' , nargs=1, type=_out_dir_arg)
+@click.option(
+    '-e', "--exitfirst/--no-exitfirst", default=False, help="Exit instantly on first error."
+)
+@click.option(
+    '-i',
+    "--in-place-update",
+    is_flag=True,
+    default=False,
+    help="In place update of lp_out and lp_run blocks in markdown files.",
+)
 @verbosity_option
 def build(
-    input_paths: InputPaths, html: typ.Optional[str], pdf: typ.Optional[str], verbose: int = 0
+    input_paths    : InputPaths,
+    html           : typ.Optional[str],
+    pdf            : typ.Optional[str],
+    exitfirst      : bool = False,
+    in_place_update: bool = False,
+    verbose        : int  = 0,
 ) -> None:
     _configure_logging(verbose)
-    # TODO: figure out how to share this code between sub-commands
-    md_paths = sorted(_iter_markdown_filepaths(input_paths))
-    if len(md_paths) == 0:
-        log.error("No markdown files found for {input_paths}.")
-        click.secho("No markdown files found", fg='red')
+
+    if len(input_paths) == 0:
+        click.secho("No markdown files given.", fg='red')
         sys.exit(1)
 
-    ctx       = litprog.parse.parse_context(md_paths)
-    built_ctx = litprog.build.build(ctx)
+    md_paths = sorted(_iter_markdown_filepaths(input_paths))
+    if len(md_paths) == 0:
+        msg = f"No markdown files found for {' '.join(input_paths)}"
+        logger.error(msg)
+        click.secho(msg, fg='red')
+        sys.exit(1)
+
+    ctx       = lp_parse.parse_context(md_paths)
+    built_ctx = lp_build.build(ctx, exitfirst=exitfirst, in_place_update=in_place_update)
 
     if pdf is None and html is None:
         return
@@ -119,24 +139,24 @@ def build(
     html_dir = pl.Path(html)
 
     # lazy import since we don't always need it
-    import litprog.gen_docs
+    import litprog.gen_docs as lp_gen_docs
 
-    litprog.gen_docs.gen_html(built_ctx, html_dir)
+    lp_gen_docs.gen_html(built_ctx, html_dir)
 
     if pdf:
         pdf_dir          = pl.Path(pdf)
         selected_formats = [
-            'print_letter',
-            'print_halfletter',
-            'print_booklet_letter',
-            'print_twocol_letter',
-            'print_a4',
+            # 'print_letter',
+            # 'print_halfletter',
+            # 'print_booklet_letter',
+            # 'print_twocol_letter',
+            # 'print_a4',
             'print_a5',
-            'print_booklet_a4',
-            'print_twocol_a4',
-            'print_ereader',
+            # 'print_booklet_a4',
+            # 'print_twocol_a4',
+            # 'print_ereader',
         ]
-        litprog.gen_docs.gen_pdf(built_ctx, html_dir, pdf_dir, formats=selected_formats)
+        lp_gen_docs.gen_pdf(built_ctx, html_dir, pdf_dir, formats=selected_formats)
 
     if is_html_tmp_dir:
         shutil.rmtree(html_dir)

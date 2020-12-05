@@ -233,7 +233,11 @@ def wrap_content_html(
 
     ctx = {'meta': meta, 'fmt': fmt, 'nav': nav, 'content': content}
 
-    tmpl   = jinja2.Template(read_static("template_v2.html"))
+    env = jinja2.Environment(
+        loader=jinja2.FileSystemLoader(str(STATIC_DIR.absolute()))
+        # loader=jinja2.PackageLoader('litprog'),
+    )
+    tmpl   = env.get_template("template_v2.html")
     result = tmpl.render(**ctx)
     return result
 

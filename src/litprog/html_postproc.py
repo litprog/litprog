@@ -37,7 +37,7 @@ def _part_len(part: str) -> int:
         return len(part)
 
 
-def _iter_wrapped_line_chunks(line: str, max_len: int) -> typ.Iterable[str]:
+def _iter_wrapped_line_parts(line: str, max_len: int) -> typ.Iterable[str]:
     if max_len == 0 or len(line) < max_len:
         yield line
         return
@@ -125,19 +125,40 @@ def iter_wrapped_lines(
 ) -> typ.Iterable[str]:
     pre_content_text  = pre_content_text.replace("<span></span>", "")
     pre_content_lines = pre_content_text.splitlines()
+
     # NOTE: code blocks are basically hardcoded to a width of two characters
     # line_number_width = len(str(len(pre_content_lines)))
     for line_idx, line in enumerate(pre_content_lines):
         lineno = line_idx + 1
-
-        for part_idx, line_part in enumerate(_iter_wrapped_line_chunks(line, max_len=max_line_len)):
+        parts  = list(_iter_wrapped_line_parts(line, max_len=max_line_len))
+        for part_idx, line_part in enumerate(parts):
             if add_line_numbers:
                 if part_idx == 0:
-                    yield f'<span class="lineno">{lineno}</span>'
+                    lineno_span = f'<span class="lineno">{lineno}</span>'
                 else:
-                    yield f'<span class="lineno">\u21AA</span>'
+                    lineno_span = f'<span class="lineno">\u21AA</span>'
 
-            yield line_part + "\n"
+                if line_part.startswith("<code"):
+                    tag_end_idx = line_part.index(">")
+                    # TODO: Fix this cludge. For some reason, the
+                    #   first line is indented by less than a full
+                    #   space and I have no idea why.
+                    _stupid_print_linebreak = "\n"
+                    line_part               = (
+                        line_part[: tag_end_idx + 1]
+                        + _stupid_print_linebreak
+                        + lineno_span
+                        + line_part[tag_end_idx + 1 :]
+                    )
+                elif line_part != "</code>":
+                    yield lineno_span
+
+            if line_part == "</code>":
+                # NOTE (mb 2020-06-04): since <code></code> is wrapped with <pre>
+                #   we don't want to add extra whitespace at the end.
+                yield line_part
+            else:
+                yield line_part + "\n"
 
 
 PRE_CODE_BLOCK = """
@@ -452,7 +473,12 @@ def _add_heading_links(soup: bs4.BeautifulSoup) -> None:
     selector = ", ".join(f"h{i}" for i in range(1, 6))
     for heading in soup.select(selector):
         a_tag = soup.new_tag("a", href="#" + heading['id'])
-        heading.string.wrap(a_tag)
+        if heading.string is None:
+            a_tag.extend(list(heading.children))
+            heading.clear()
+            heading.append(a_tag)
+        else:
+            heading.string.wrap(a_tag)
 
 
 def _add_heading_numbers(
@@ -465,7 +491,7 @@ def _add_heading_numbers(
         heading = soup.find(tag, {'id': entry['id']})
         heading['heading-num'] = heading_number
         if heading_prefix:
-            heading.string = heading_number + " " + heading.string
+            heading.insert(0, heading_number + " ")
         _add_heading_numbers(soup, entry['children'], heading_number + ".")
 
 

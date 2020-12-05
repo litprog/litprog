@@ -177,6 +177,14 @@ LANGUAGE_COMMENT_REGEXES = {
     for lang, (start_pattern, end_pattern) in LANGUAGE_COMMENT_PATTERNS.items()
 }
 
+KNOWN_INFO_STRINGS = {
+    'math',
+    'bob',
+    'aafigure',
+}
+
+KNOWN_INFO_STRINGS.update(LANGUAGE_COMMENT_REGEXES.keys())
+
 
 ELEMENT_RE = _re(ELEMENT_PATTERN)
 
@@ -191,8 +199,8 @@ BLOCK_END_RE = {"```": _re(r"^```"), "~~~": _re(r"^~~~")}
 class _RawMarkdownElement(typ.NamedTuple):
 
     md_type   : MarkdownElementType
-    content   : str
     first_line: int
+    content   : str
 
 
 # NOTE (mb 2019-05-30): The word "Successor" refers
@@ -205,10 +213,10 @@ Successor = typ.Optional['MarkdownElement']
 class MarkdownElement:
 
     md_path   : pl.Path
+    first_line: int
     elem_index: int
     md_type   : MarkdownElementType
     content   : str
-    first_line: int
     _successor: typ.Optional[typ.Any]
 
     # Recursive types not fully supported yet;
@@ -221,27 +229,27 @@ class MarkdownElement:
     def __init__(
         self,
         md_path   : pl.Path,
+        first_line: int,
         elem_index: int,
         md_type   : MarkdownElementType,
         content   : str,
-        first_line: int,
         successor : Successor,
     ) -> None:
         assert md_type in VALID_ELEMENT_TYPES
         self.md_path    = md_path
+        self.first_line = first_line
         self.elem_index = elem_index
         self.md_type    = md_type
         self.content    = content
-        self.first_line = first_line
         self._successor = successor
 
     def clone(self) -> 'MarkdownElement':
         return MarkdownElement(
             md_path=self.md_path,
+            first_line=self.first_line,
             elem_index=self.elem_index,
             md_type=self.md_type,
             content=self.content,
-            first_line=self.first_line,
             successor=self._successor or self,
         )
 
@@ -267,17 +275,25 @@ class Directive(typ.NamedTuple):
 
 class Block(typ.NamedTuple):
 
-    md_path      : pl.Path
-    elem_index   : int
-    info_string  : InfoString
-    directives   : typ.List[Directive]
-    content      : str
-    inner_content: str
+    md_path           : pl.Path
+    namespace         : str
+    first_line        : int
+    elem_index        : int
+    info_string       : InfoString
+    directives        : typ.List[Directive]
+    content           : str
+    inner_content     : str
+    includable_content: str
 
 
 VALID_DIRECTIVE_NAMES = {
     'lp_language',
-    'lp_add',
+    # block composition
+    'lp_def',
+    'lp_addto',
+    'lp_include',
+    # session/subprocess
+    'lp_exec',
     'lp_out',
     'lp_run',
     # parameters for lp_out and _lp_run
@@ -287,7 +303,7 @@ VALID_DIRECTIVE_NAMES = {
     # NOTE: lp_input_delay might allow the accurate
     #   association of input/output as long as output
     #   is always captured by the time the delay passes.
-    'lp_input_delay',
+    # 'lp_input_delay',
     'lp_hide',
     'lp_proc_info',
     'lp_out_prefix',
@@ -298,7 +314,6 @@ VALID_DIRECTIVE_NAMES = {
     'lp_file',
     'lp_deps',
     'lp_make',
-    #
     # 'lp_const'
     # 'lp_use_macro',
     # 'lp_def_macro',
@@ -314,19 +329,65 @@ def _parse_directive(directive_text: str, raw_text: str) -> Directive:
         name  = directive_text.strip()
         value = ""
 
-    assert name in VALID_DIRECTIVE_NAMES, name
+    if name not in VALID_DIRECTIVE_NAMES:
+        errmsg = f"Invalid directive '{name}'"
+        raise Exception(errmsg)
     return Directive(name, value, raw_text)
+
+
+# NOTE (mb 2020-05-22): Since we do multiple passes over the file, we
+#   avoid reporting
+
+FileLocation = str
+
+
+class ParseError(typ.NamedTuple):
+
+    location: FileLocation
+    level   : int
+    message : str
+
+
+AnyElem = typ.Union[MarkdownElement, Block]
+
+
+def location(elem: AnyElem) -> FileLocation:
+    return f"Line {elem.first_line:<4} of {elem.md_path}"
+
+
+def make_parse_error(message: str, elem: AnyElem, level: int = logging.ERROR) -> ParseError:
+    return ParseError(location(elem), level, message)
+
+
+FILENAME_PATTERN_URL = "https://regex101.com/r/sLzB5p/4"
+
+# Input files for LitProg must match this pattern.
+# The 'namespace' group is used to reference blocks
+# in different files in a way that doesn't break if
+# files are reordered.
+
+FILENAME_PATTERN = r"""
+^
+(?:[0-9_\-\s]+)?
+(?P<namespace>[\w ]+)
+(?:\.\w*)?
+$
+"""
+
+FILENAME_RE = re.compile(FILENAME_PATTERN, flags=re.VERBOSE)
 
 
 class MarkdownFile:
 
     md_path : pl.Path
+    errors  : typ.Set[ParseError]
     elements: typ.List[MarkdownElement]
 
     def __init__(
         self, md_path: pl.Path, elements: typ.Optional[typ.List[MarkdownElement]] = None
     ) -> None:
         self.md_path = md_path
+        self.errors  = set()
         if elements is None:
             self.elements = _parse_md_elements(md_path)
         else:
@@ -334,6 +395,20 @@ class MarkdownFile:
 
     def copy(self) -> 'MarkdownFile':
         return MarkdownFile(self.md_path, list(self.elements))
+
+    @property
+    def block_namespace(self) -> str:
+        # The namespace is based only on the filename, directories are
+        # only for organization, otherwise they are ignored.
+        filename       = self.md_path.name
+        filename_match = FILENAME_RE.match(filename)
+        if filename_match is None:
+            errmsg = f"Invalid filename {filename}, must match {FILENAME_PATTERN_URL}"
+            raise Exception(errmsg)
+
+        raw_namespace        = filename_match.group('namespace')
+        normalized_namespace = raw_namespace.replace("-", "_").replace(" ", "_")
+        return normalized_namespace
 
     @property
     def headlines(self) -> typ.Iterable[Headline]:
@@ -369,6 +444,11 @@ class MarkdownFile:
 
             info_string = info_string.strip()
 
+            is_known_info_string = info_string in KNOWN_INFO_STRINGS
+            if info_string.strip() and not is_known_info_string:
+                err = make_parse_error(f"Unknown language '{info_string}'", elem, logging.WARNING)
+                self.errors.add(err)
+
             is_valid_language = info_string in LANGUAGE_COMMENT_REGEXES
             if not is_valid_language:
                 inner_content = elem.content
@@ -376,7 +456,18 @@ class MarkdownFile:
                 # trim off final fence
                 inner_content = inner_content.rsplit("\n", 1)[0]
 
-                yield Block(self.md_path, elem_index, info_string, [], elem.content, inner_content)
+                yield Block(
+                    self.md_path,
+                    self.block_namespace,
+                    elem.first_line,
+                    elem_index,
+                    info_string,
+                    [],
+                    elem.content,
+                    # TODO (mb 2020-06-02): Why do we .strip() here ?
+                    inner_content.strip(),
+                    inner_content.strip(),
+                )
                 continue
 
             language = info_string
@@ -384,17 +475,21 @@ class MarkdownFile:
 
             directives = [Directive('lp_language', language, info_string)]
 
-            inner_content_chunks = []
-            rest                 = elem.content[start_match.end() :]
+            inner_chunks      = []
+            includable_chunks = []
+
+            rest = elem.content[start_match.end() :]
             while rest:
                 start_match = comment_start_re.search(rest)
                 if start_match is None:
-                    inner_content_chunks.append(rest)
+                    inner_chunks.append(rest)
+                    includable_chunks.append(rest)
                     break
 
                 chunk = rest[: start_match.start()]
                 if chunk:
-                    inner_content_chunks.append(chunk)
+                    inner_chunks.append(chunk)
+                    includable_chunks.append(chunk)
 
                 rest      = rest[start_match.end() :]
                 end_match = comment_end_re.search(rest)
@@ -406,22 +501,42 @@ class MarkdownFile:
                     rest         = rest[end_match.end() :]
 
                 raw_text = start_match.group(0) + comment_text
-                raw_text = raw_text.lstrip("\n")
                 assert raw_text in elem.content
 
                 comment_text = comment_text.strip()
                 if comment_text.startswith("lp_"):
                     directive = _parse_directive(comment_text, raw_text)
                     directives.append(directive)
+                    inner_chunks.append(raw_text)
+                    if directive.name == 'lp_include':
+                        # NOTE (mb 2020-06-03): needed for recursive include
+                        includable_chunks.append(raw_text)
                 else:
-                    inner_content_chunks.append(raw_text)
+                    inner_chunks.append(raw_text)
+                    includable_chunks.append(raw_text)
 
-            inner_content = "".join(inner_content_chunks)
+            inner_content = "".join(inner_chunks)
             # trim off final fence
             inner_content = inner_content.rsplit("\n", 1)[0]
+            inner_content = "\n".join(line for line in inner_content.splitlines() if line.strip())
+
+            includable_content = "".join(includable_chunks)
+            # trim off final fence
+            includable_content = includable_content.rsplit("\n", 1)[0]
+            includable_content = "\n".join(
+                line for line in includable_content.splitlines() if line.strip()
+            )
 
             yield Block(
-                self.md_path, elem_index, info_string, directives, elem.content, inner_content
+                self.md_path,
+                self.block_namespace,
+                elem.first_line,
+                elem_index,
+                info_string,
+                directives,
+                elem.content,
+                inner_content,
+                includable_content,
             )
 
     def __lt__(self, other: 'MarkdownFile') -> bool:
@@ -453,7 +568,7 @@ def _iter_raw_md_elements(content: str) -> typ.Iterable[_RawMarkdownElement]:
         # yield preceding paragraph
         para_content = content[: match.start()]
         if para_content:
-            yield _RawMarkdownElement(MD_PARAGRAPH, para_content, line_no)
+            yield _RawMarkdownElement(MD_PARAGRAPH, line_no, para_content)
 
         line_no += para_content.count("\n")
 
@@ -479,13 +594,13 @@ def _iter_raw_md_elements(content: str) -> typ.Iterable[_RawMarkdownElement]:
                 match_content += rest_content[:end_pos]
                 rest_content = rest_content[end_pos:]
 
-        yield _RawMarkdownElement(md_type, match_content, line_no)
+        yield _RawMarkdownElement(md_type, line_no, match_content)
 
         line_no += match_content.count("\n")
         content = rest_content
 
     if content:
-        yield _RawMarkdownElement(MD_PARAGRAPH, content, line_no)
+        yield _RawMarkdownElement(MD_PARAGRAPH, line_no, content)
 
 
 def _parse_md_elements(md_path: pl.Path) -> typ.List[MarkdownElement]:
@@ -496,7 +611,7 @@ def _parse_md_elements(md_path: pl.Path) -> typ.List[MarkdownElement]:
     elements = []
     for elem_index, raw_elem in enumerate(_iter_raw_md_elements(content)):
         elem = MarkdownElement(
-            md_path, elem_index, raw_elem.md_type, raw_elem.content, raw_elem.first_line, None
+            md_path, raw_elem.first_line, elem_index, raw_elem.md_type, raw_elem.content, None
         )
         elements.append(elem)
 
@@ -510,11 +625,14 @@ def _parse_md_elements(md_path: pl.Path) -> typ.List[MarkdownElement]:
     return elements
 
 
+MarkdownFiles = typ.List[MarkdownFile]
+
+
 class Context:
 
-    files: typ.List[MarkdownFile]
+    files: MarkdownFiles
 
-    def __init__(self, md_path_or_files: typ.Union[FilePaths, typ.List[MarkdownFile]]) -> None:
+    def __init__(self, md_path_or_files: typ.Union[FilePaths, MarkdownFiles]) -> None:
         self.files = []
         for path_or_file in md_path_or_files:
             if isinstance(path_or_file, MarkdownFile):
@@ -551,5 +669,9 @@ def parse_context(md_paths: FilePaths) -> Context:
     assert ctx.copy() == ctx
     list(ctx.headlines)
     list(ctx.blocks)
+
+    for md_file in ctx.files:
+        for err in md_file.errors:
+            log.log(err.level, f"{err.location:<3} : " + err.message)
 
     return ctx
