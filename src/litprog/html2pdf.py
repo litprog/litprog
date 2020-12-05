@@ -5,8 +5,7 @@
 # SPDX-License-Identifier: MIT
 import sys
 import logging
-
-import pathlib2 as pl
+import pathlib as pl
 
 log = logging.getLogger(__name__)
 
