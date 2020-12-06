@@ -26,7 +26,7 @@ class HTMLResult(typ.NamedTuple):
     toc_tokens: TocTokens
 
 
-def md2html(md_text: MarkdownText) -> HTMLResult:
+def init_md_ctx() -> md.Markdown:
     # https://python-markdown.github.io/extensions/
     extensions = [
         "markdown.extensions.toc",
@@ -53,25 +53,27 @@ def md2html(md_text: MarkdownText) -> HTMLResult:
         # "markdown.extensions.smarty",
     ]
 
-    md_ctx = md.Markdown(
-        extensions=extensions,
-        extension_configs={
-            'markdown_svgbob': {
-                'tag_type'      : "img_base64_svg",
-                'bg_color'      : "transparent",
-                'fg_color'      : "black",
-                'min_char_width': 70,
-            },
-            'markdown_katex'                : {'no_inline_svg': True, 'insert_fonts_css': False},
-            "markdown.extensions.codehilite": {
-                # NOTE (mb 2020-06-05): The default guess_lexer=True can detect the
-                #   wrong language for certain blocks and colour everything as an
-                #   error. The explicit language of the blocks appears to override
-                #   this regardless, so this hopefully only affects blocks without
-                #   a language in their info string.
-                'guess_lang': False,
-            },
+    extension_configs: typ.Dict[str, typ.Any] = {
+        'markdown_svgbob': {
+            'tag_type'      : "img_base64_svg",
+            'bg_color'      : "transparent",
+            'fg_color'      : "black",
+            'min_char_width': 70,
         },
-    )
+        'markdown_katex'                : {'no_inline_svg': True, 'insert_fonts_css': False},
+        "markdown.extensions.codehilite": {
+            # NOTE (mb 2020-06-05): The default guess_lexer=True can detect the
+            #   wrong language for certain blocks and colour everything as an
+            #   error. The explicit language of the blocks appears to override
+            #   this regardless, so this hopefully only affects blocks without
+            #   a language in their info string.
+            'guess_lang': False,
+        },
+    }
+    return md.Markdown(extensions=extensions, extension_configs=extension_configs)
+
+
+def md2html(md_text: MarkdownText) -> HTMLResult:
+    md_ctx        = init_md_ctx()
     raw_html_text = md_ctx.convert(md_text)
-    return HTMLResult(raw_html_text, md_ctx.toc, md_ctx.toc_tokens)
+    return HTMLResult(raw_html_text, md_ctx.toc, md_ctx.toc_tokens)  # type: ignore

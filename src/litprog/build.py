@@ -3,36 +3,17 @@
 #
 # Copyright (c) 2018-2020 Manuel Barkhau (mbarkhau@gmail.com) - MIT License
 # SPDX-License-Identifier: MIT
-import io
-import os
 import re
 import sys
-import enum
-import math
 import time
 import typing as typ
 import logging
-import os.path
-import datetime as dt
-import operator as op
-import functools as ft
-import itertools as it
-import collections
-
-import pathlib2 as pl
-
-from litprog.parse import Block
-from litprog.parse import Context
-from litprog.parse import Headline
-from litprog.parse import Directive
-from litprog.parse import ParseError
-from litprog.parse import MarkdownFile
-from litprog.parse import MarkdownElement
+import pathlib as pl
 
 from . import parse
 from . import session
 
-log = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 COLOR_CODE_RE = re.compile(r"\d+(;\d)?")
@@ -50,11 +31,11 @@ TERM_COLORS = {
 }
 
 
-MarkdownFiles = typ.Iterable[MarkdownFile]
+MarkdownFiles = typ.Iterable[parse.MarkdownFile]
 
 # The expanded files are structurally no different, it's just that
 # their elements are expanded.
-ExpandedMarkdownFile  = MarkdownFile
+ExpandedMarkdownFile  = parse.MarkdownFile
 ExpandedMarkdownFiles = typ.Iterable[ExpandedMarkdownFile]
 
 CapturedLine = session.CapturedLine
@@ -69,10 +50,12 @@ class Capture(typ.NamedTuple):
 
 class BlockError(Exception):
 
-    block           : Block
+    block           : parse.Block
     include_contents: typ.List[str]
 
-    def __init__(self, msg: str, block: Block, include_contents: typ.Optional[str] = None) -> None:
+    def __init__(
+        self, msg: str, block: parse.Block, include_contents: typ.Optional[typ.List[str]] = None
+    ) -> None:
         self.block            = block
         self.include_contents = include_contents or []
         loc                   = parse.location(block).strip()
@@ -80,9 +63,9 @@ class BlockError(Exception):
 
 
 def get_directive(
-    block: Block, name: str, missing_ok: bool = True, many_ok: bool = True
-) -> typ.Optional[Directive]:
-    found: typ.List[Directive] = []
+    block: parse.Block, name: str, missing_ok: bool = True, many_ok: bool = True
+) -> typ.Optional[parse.Directive]:
+    found: typ.List[parse.Directive] = []
     for directive in block.directives:
         if directive.name == name:
             if many_ok:
@@ -104,11 +87,11 @@ def get_directive(
     return found[0]
 
 
-def has_directive(block: Block, name: str) -> bool:
+def has_directive(block: parse.Block, name: str) -> bool:
     return get_directive(block, name, missing_ok=True) is not None
 
 
-def iter_directives(block: Block, name: str) -> typ.Iterable[Directive]:
+def iter_directives(block: parse.Block, name: str) -> typ.Iterable[parse.Directive]:
     for directive in block.directives:
         if directive.name == name:
             yield directive
@@ -123,7 +106,7 @@ def iter_directives(block: Block, name: str) -> typ.Iterable[Directive]:
 #     value    : str
 #
 #
-# def _parse_constants(build_ctx: Context) -> typ.List[ConstItem]:
+# def _parse_constants(build_ctx: parse.Context) -> typ.List[ConstItem]:
 #     constants: typ.List[ConstItem] = []
 #     for md_file in build_ctx.files:
 #         decl_path = md_file.md_path
@@ -143,7 +126,7 @@ def iter_directives(block: Block, name: str) -> typ.Iterable[Directive]:
 #     return constants
 #
 #
-# def _expand_constants(build_ctx: Context) -> Context:
+# def _expand_constants(build_ctx: parse.Context) -> parse.Context:
 #     constants = _parse_constants(build_ctx)
 #
 #     done = False
@@ -174,20 +157,20 @@ def iter_directives(block: Block, name: str) -> typ.Iterable[Directive]:
 #                 done = False
 #
 #                 elem = md_file.elements[block.elem_index]
-#                 new_elements[block.elem_index] = MarkdownElement(
+#                 new_elements[block.elem_index] = parse.MarkdownElement(
 #                     elem.md_path, elem.first_line, elem.elem_index, elem.md_type, new_content, None
 #                 )
 #
-#             new_md_file = MarkdownFile(md_file.md_path, new_elements)
+#             new_md_file = parse.MarkdownFile(md_file.md_path, new_elements)
 #             new_md_files.append(new_md_file)
 #
-#         build_ctx = Context(new_md_files)
+#         build_ctx = parse.Context(new_md_files)
 #
 #     return build_ctx
 
 
 # # TODO (mb 2020-06-01): maybe use for lp_include_match
-# def find_include(block_contents: typ.List[str], include_directive: Directive) -> typ.Optional[str]:
+# def find_include(block_contents: typ.List[str], include_directive: parse.Directive) -> typ.Optional[str]:
 #     query = include_directive.value.strip()
 #     for content in block_contents:
 #         if query in content:
@@ -195,7 +178,7 @@ def iter_directives(block: Block, name: str) -> typ.Iterable[Directive]:
 #     return None
 
 
-def _indented_include(content, raw_text, include_val) -> str:
+def _indented_include(content: str, raw_text: str, include_val: str) -> str:
     unindented = raw_text.lstrip()
     indent     = raw_text[: -len(unindented)]
     if indent:
@@ -204,7 +187,7 @@ def _indented_include(content, raw_text, include_val) -> str:
 
 
 # TODO: this should be part of the parsing of all directives
-def _parse_prefix(directive: Directive) -> str:
+def _parse_prefix(directive: parse.Directive) -> str:
     val = directive.value.strip()
     if val.startswith("'") and val.endswith("'"):
         val = val[1:-1]
@@ -214,57 +197,64 @@ def _parse_prefix(directive: Directive) -> str:
 
 
 BlockId     = str
-BlocksById  = typ.Dict[BlockId, typ.List[Block]]
+BlockIds    = typ.List[BlockId]
+BlocksById  = typ.Dict[BlockId, typ.List[parse.Block]]
 ParentsById = typ.Dict[BlockId, typ.Set[BlockId]]
 
 
 def _get_include_loop(
-    lp_id: BlockId, include_parents: ParentsById, root_id: typ.Optional[BlockId] = None, n: int = 0
-) -> typ.Optional[typ.List[str]]:
-    if root_id is None:
-        return _get_include_loop(lp_id, include_parents, lp_id, n + 1)
+    lp_id          : BlockId,
+    include_parents: ParentsById,
+    root_id        : typ.Optional[BlockId] = None,
+    depth          : int = 0,
+) -> typ.List[str]:
+    # TODO (mb 2020-12-11): What was the intention for the depth variable?
 
-    parent_ids = include_parents.get(lp_id, [])
+    if root_id is None:
+        return _get_include_loop(lp_id, include_parents, lp_id, depth + 1)
+
+    parent_ids: BlockIds = list(include_parents.get(lp_id, []))
     for parent_id in parent_ids:
         if parent_id == root_id:
             return [parent_id]  # found loop
 
     for parent_id in parent_ids:
-        loop = _get_include_loop(parent_id, include_parents, root_id, n + 1)
+        loop = _get_include_loop(parent_id, include_parents, root_id, depth + 1)
         if loop:
             return [parent_id] + loop
-    return None
+
+    return []
 
 
 def _err_on_include_loop(
-    block          : Block,
+    block          : parse.Block,
     lp_id          : BlockId,
     blocks_by_id   : BlocksById,
     include_parents: ParentsById,
     root_id        : typ.Optional[BlockId] = None,
 ) -> None:
     loop_ids = _get_include_loop(lp_id, include_parents, root_id=root_id)
-    if not loop_ids or len(loop_ids) < 2:
+    if len(loop_ids) < 2:
         return
 
     for loop_id in loop_ids:
         loop_block = blocks_by_id[loop_id][0]
         loc        = parse.location(loop_block).strip()
-        log.warning(f"{loc} - {loop_id} (trace for include loop)")
+        logger.warning(f"{loc} - {loop_id} (trace for include loop)")
 
     path   = " -> ".join(f"'{loop_id}'" for loop_id in loop_ids)
     errmsg = f"Include loop {path}"
     raise BlockError(errmsg, block)
 
 
-def _namespaced_lp_id(block: Block, lp_id: BlockId) -> BlockId:
+def _namespaced_lp_id(block: parse.Block, lp_id: BlockId) -> BlockId:
     if "." in lp_id:
         return lp_id.strip()
     else:
         return block.namespace + "." + lp_id.strip()
 
 
-def _expand_directives(blocks_by_id: BlocksById, md_file: MarkdownFile) -> MarkdownFile:
+def _expand_directives(blocks_by_id: BlocksById, md_file: parse.MarkdownFile) -> parse.MarkdownFile:
     new_md_file = md_file.copy()
     include_parents: ParentsById = {}
 
@@ -277,7 +267,7 @@ def _expand_directives(blocks_by_id: BlocksById, md_file: MarkdownFile) -> Markd
             if lp_def is None:
                 lp_def_id = None
             else:
-                lp_def_id = _namespaced_lp_id(block, lp_def.value) if lp_def else None
+                lp_def_id = _namespaced_lp_id(block, lp_def.value)
 
             new_content = block.content
             for lp_include in iter_directives(block, 'lp_include'):
@@ -312,7 +302,7 @@ def _expand_directives(blocks_by_id: BlocksById, md_file: MarkdownFile) -> Markd
                 is_done = False  # may need more recursive includes
 
                 elem = new_md_file.elements[block.elem_index]
-                new_md_file.elements[block.elem_index] = MarkdownElement(
+                new_md_file.elements[block.elem_index] = parse.MarkdownElement(
                     elem.md_path, elem.first_line, elem.elem_index, elem.md_type, new_content, None
                 )
 
@@ -364,7 +354,7 @@ def _iter_expanded_files(md_files: MarkdownFiles) -> ExpandedMarkdownFiles:
         yield _expand_directives(blocks_by_id, md_file)
 
 
-def _iter_block_errors(orig_ctx: Context, build_ctx: Context) -> typ.Iterable[str]:
+def _iter_block_errors(orig_ctx: parse.Context, build_ctx: parse.Context) -> typ.Iterable[str]:
     """Validate that expansion worked correctly."""
     # NOTE: the main purpose of the orig_ctx is to produce
     #   better error messages. It allows us to point at the
@@ -385,15 +375,15 @@ def _iter_block_errors(orig_ctx: Context, build_ctx: Context) -> typ.Iterable[st
                 for line in orig_elem.content.splitlines():
                     if directive.raw_text in line:
                         break
-                    else:
-                        rel_line_no += 1
+
+                    rel_line_no += 1
 
                 line_no = elem.first_line + rel_line_no
                 yield f"Error processing {md_file.md_path}"
                 yield f"Could not expend '{directive.raw_text}' on line {line_no}"
 
 
-def _dump_files(build_ctx: Context) -> None:
+def _dump_files(build_ctx: parse.Context) -> None:
     for md_file in build_ctx.files:
         for block in md_file.blocks:
             file_directive = get_directive(block, 'lp_file')
@@ -402,8 +392,8 @@ def _dump_files(build_ctx: Context) -> None:
 
             path = pl.Path(file_directive.value)
             path.parent.mkdir(parents=True, exist_ok=True)
-            with path.open(mode="w", encoding="utf-8") as fh:
-                fh.write(block.includable_content)
+            with path.open(mode="w", encoding="utf-8") as fobj:
+                fobj.write(block.includable_content)
 
 
 class SessionBlockOptions(typ.NamedTuple):
@@ -433,7 +423,29 @@ class SessionBlockOptions(typ.NamedTuple):
     err_prefix: str
 
 
-def _parse_session_block_options(block: Block) -> typ.Optional[SessionBlockOptions]:
+def _parse_out_fmt(block: parse.Block, directive_name: str, default_fmt: str) -> str:
+    color_directive = get_directive(block, directive_name)
+    if color_directive is None:
+        return default_fmt
+
+    color_val = color_directive.value.strip()
+    if color_val == 'none':
+        return default_fmt
+    elif color_val in TERM_COLORS:
+        color_code = TERM_COLORS[color_val]
+        return "\u001b[" + color_code + "m{0}\u001b[0m"
+    elif COLOR_CODE_RE.match(color_val):
+        return "\u001b[" + color_val + "m{0}\u001b[0m"
+    else:
+        valid_codes = ", ".join(sorted(TERM_COLORS.keys()))
+        err_msg     = (
+            f"Invalid {color_directive.name}: {color_val}. "
+            f"Must be 'none', {valid_codes} or a valid color code."
+        )
+        raise Exception(err_msg)
+
+
+def _parse_session_block_options(block: parse.Block) -> typ.Optional[SessionBlockOptions]:
     exec_directive = get_directive(block, 'lp_exec')
     run_directive  = get_directive(block, 'lp_run')
     out_directive  = get_directive(block, 'lp_out')
@@ -478,29 +490,10 @@ def _parse_session_block_options(block: Block) -> typ.Optional[SessionBlockOptio
 
     keepends = True
 
-    # TODO: parse out_color
-    out_color = get_directive(block, 'lp_out_color')
-    err_color = get_directive(block, 'lp_err_color')
+    default_err_fmt = "\u001b[" + TERM_COLORS['red'] + "m{0}\u001b[0m"
 
-    if err_color is None:
-        color_code = TERM_COLORS['red']
-        err_fmt    = "\u001b[" + color_code + "m{0}\u001b[0m"
-    else:
-        color_val = err_color.value.strip()
-        if color_val == 'none':
-            err_fmt = "{0}"
-        elif color_val in TERM_COLORS:
-            color_code = TERM_COLORS[color_val]
-            err_fmt    = "\u001b[" + color_code + "m{0}\u001b[0m"
-        elif COLOR_CODE_RE.match(color_val):
-            err_fmt = "\u001b[" + color_val + "m{0}\u001b[0m"
-        else:
-            valid_codes = ", ".join(sorted(TERM_COLORS.keys()))
-            err_msg     = (
-                f"Invalid lp_err_color: {color_val}. "
-                f"Must be 'none', {valid_codes} or a valid color code."
-            )
-            raise Exception(err_msg)
+    out_fmt = _parse_out_fmt(block, 'lp_out_color', "{0}")
+    err_fmt = _parse_out_fmt(block, 'lp_err_color', default_err_fmt)
 
     out_prefix = get_directive(block, 'lp_out_prefix')
     err_prefix = get_directive(block, 'lp_err_prefix')
@@ -511,7 +504,8 @@ def _parse_session_block_options(block: Block) -> typ.Optional[SessionBlockOptio
     else:
         info_fmt = info_directive.value
 
-    expect               = get_directive(block, 'lp_expect')
+    expect = get_directive(block, 'lp_expect')
+
     expected_exit_status = 0 if expect is None else int(expect.value)
 
     return SessionBlockOptions(
@@ -524,7 +518,7 @@ def _parse_session_block_options(block: Block) -> typ.Optional[SessionBlockOptio
         input_delay=input_delay_val,
         debug_prefix=debug_prefix,
         expected_exit_status=expected_exit_status,
-        out_fmt="{0}",
+        out_fmt=out_fmt,
         err_fmt=err_fmt,
         info_fmt=info_fmt,
         out_prefix=_parse_prefix(out_prefix) if out_prefix else "",
@@ -540,17 +534,17 @@ def _parse_capture_output(capture: Capture, opts: SessionBlockOptions) -> str:
     #     stderr = opts.err_fmt.format(capture.stderr)
 
     output_lines = []
-    for cl in capture.lines:
-        if cl.is_err:
+    for captured_line in capture.lines:
+        if captured_line.is_err:
             if opts.err_prefix:
-                line_val = opts.err_prefix + cl.line
+                line_val = opts.err_prefix + captured_line.line
             else:
-                line_val = cl.line
+                line_val = captured_line.line
         else:
             if opts.out_prefix:
-                line_val = opts.out_prefix + cl.line
+                line_val = opts.out_prefix + captured_line.line
             else:
-                line_val = cl.line
+                line_val = captured_line.line
         output_lines.append(line_val.rstrip())
 
     output = "\n".join(output_lines)
@@ -576,9 +570,120 @@ def _parse_capture_output(capture: Capture, opts: SessionBlockOptions) -> str:
     return output
 
 
-def build(orig_ctx: Context, exitfirst: bool = False, in_place_update: bool = False) -> Context:
+def _process_command_block(
+    block: parse.Block, opts: SessionBlockOptions, exitfirst: bool = False
+) -> Capture:
+    command = opts.command
+    if command is None:
+        raise TypeError(f"Must be str, not {type(command)}")
+
+    logger.info(f"  {opts.directive} {command}")
+
+    isession = session.InteractiveSession(command)
+
+    if opts.is_stdin_writable:
+        stdin_lines = block.inner_content.splitlines(opts.keepends)
+    else:
+        stdin_lines = []
+
+    if opts.is_debug:
+        for i, line in enumerate(stdin_lines):
+            prefix = opts.debug_prefix.format(lineno=i + 1)
+            sys.stderr.write(prefix + line.rstrip() + "\n")
+
+    try:
+        for line in stdin_lines:
+            isession.send(line, delay=opts.input_delay)
+        exit_status = isession.wait(timeout=opts.timeout)
+    except Exception as ex:
+        logger.error(f"Error processing '{command}': {ex}")
+        sys.stdout.write("".join(isession.iter_stdout()))
+        sys.stderr.write("".join(isession.iter_stderr()))
+        raise
+
+    runtime_ms = isession.runtime * 1000
+
+    if exit_status == opts.expected_exit_status:
+        exit_info = f"{exit_status:>3}       "
+    else:
+        exit_info = f"{exit_status:>3} != {opts.expected_exit_status:<3}"
+
+    lines   = list(isession.iter_lines())
+    capture = Capture(command, exit_status, isession.runtime, lines)
+
+    logger.info(f"  {opts.directive}  exit: {exit_info}  time: {runtime_ms:9.3f}ms")
+    if exitfirst and exit_status != opts.expected_exit_status:
+        output = _parse_capture_output(capture, opts)
+        sys.stderr.write(output)
+        logger.error(f"Line {block.first_line} of {block.md_path} - Error executing block")
+        raise SystemExit(1)
+    else:
+        # TODO: limit output using lp_max_bytes and lp_max_lines
+        # TODO: output escaping/fence style change and errors
+        return capture
+
+
+def _process_blocks(
+    md_file: parse.MarkdownFile, exitfirst: bool = False
+) -> typ.Iterable[parse.MarkdownElement]:
+    captures_by_elem_index: typ.Dict[int, Capture] = {}
+
+    old_capture_index = -1
+
+    for block in md_file.blocks:
+        opts = _parse_session_block_options(block)
+        if opts is None:
+            continue
+
+        if opts.command:
+            capture           = _process_command_block(block, opts, exitfirst=exitfirst)
+            old_capture_index = block.elem_index
+            captures_by_elem_index[old_capture_index] = capture
+
+        if opts.directive in ('lp_out', 'lp_run'):
+            if opts.directive == 'lp_out':
+                capture_index = old_capture_index
+            else:
+                capture_index = block.elem_index
+
+            if capture_index < 0:
+                output = "<invalid no output captured>\n"
+            else:
+                # NOTE: The capture may be the same as the elem_index
+                #   of the current block.
+                capture       = captures_by_elem_index[capture_index]
+                capture_index = -1
+                output        = _parse_capture_output(capture, opts)
+
+            elem = md_file.elements[block.elem_index]
+            assert elem.md_type == 'block'
+
+            header_lines = [
+                line
+                for line in elem.content.splitlines(opts.keepends)
+                if line.startswith("```") or line.startswith("# lp_")
+            ]
+
+            last_line   = header_lines.pop()
+            new_content = "".join(header_lines) + output + last_line
+
+            if elem.content != new_content:
+                updated_elem = parse.MarkdownElement(
+                    elem.md_path,
+                    elem.first_line,
+                    elem.elem_index,
+                    elem.md_type,
+                    new_content,
+                    None,
+                )
+                yield updated_elem
+
+
+def build(
+    orig_ctx: parse.Context, exitfirst: bool = False, in_place_update: bool = False
+) -> parse.Context:
     # TODO: Immutable datastructures
-    #   Context, MarkdownFile
+    #   parse.Context, parse.MarkdownFile
     build_ctx = orig_ctx.copy()
 
     # TODO: mark build as running
@@ -600,15 +705,15 @@ def build(orig_ctx: Context, exitfirst: bool = False, in_place_update: bool = Fa
                     sys.stderr.write("E " + line.rstrip() + "\n")
         raise
 
-    build_ctx = Context(expanded_files)
+    build_ctx = parse.Context(expanded_files)
 
     # phase 3. validate blocks
     error_messages = list(_iter_block_errors(orig_ctx, build_ctx))
     for error_msg in error_messages:
-        log.error(error_msg)
+        logger.error(error_msg)
 
     if error_messages:
-        sys.exit(1)
+        raise SystemExit(1)
 
     # phase 4. write files with expanded blocks
     #   This has to happen before sub-processes, as those
@@ -621,121 +726,26 @@ def build(orig_ctx: Context, exitfirst: bool = False, in_place_update: bool = Fa
 
     # phase 5. run sub-processes
     for file_idx, (orig_md_file, md_file) in enumerate(zip(orig_ctx.files, build_ctx.files)):
-        captures_by_elem_index: typ.Dict[int, Capture] = {}
-        updated_elements      : typ.List[MarkdownElement] = []
-
-        old_capture_index = -1
-
-        for block in md_file.blocks:
-            opts = _parse_session_block_options(block)
-            if opts is None:
-                continue
-
-            if opts.command:
-                log.info(f"  {opts.directive} {opts.command}")
-
-                isession = session.InteractiveSession(opts.command)
-
-                if opts.is_stdin_writable:
-                    stdin_lines = block.inner_content.splitlines(opts.keepends)
-                else:
-                    stdin_lines = []
-
-                if opts.is_debug:
-                    for i, line in enumerate(stdin_lines):
-                        prefix = opts.debug_prefix.format(lineno=i + 1)
-                        sys.stderr.write(prefix + line.rstrip() + "\n")
-
-                try:
-                    for i, line in enumerate(stdin_lines):
-                        isession.send(line, delay=opts.input_delay)
-                    exit_status = isession.wait(timeout=opts.timeout)
-                except Exception as ex:
-                    log.error(f"Error processing '{opts.command}': {ex}")
-                    sys.stdout.write("".join(isession.iter_stdout()))
-                    sys.stderr.write("".join(isession.iter_stderr()))
-                    raise
-
-                runtime_ms = isession.runtime * 1000
-
-                if exit_status == opts.expected_exit_status:
-                    exit_info = f"{exit_status:>3}       "
-                else:
-                    exit_info = f"{exit_status:>3} != {opts.expected_exit_status:<3}"
-
-                lines   = list(isession.iter_lines())
-                capture = Capture(opts.command, exit_status, isession.runtime, lines)
-
-                log.info(f"  {opts.directive}  exit: {exit_info}  time: {runtime_ms:9.3f}ms")
-                if exitfirst and exit_status != opts.expected_exit_status:
-                    output = _parse_capture_output(capture, opts)
-                    sys.stderr.write(output)
-                    log.error(f"Line {block.first_line} of {block.md_path} - Error executing block")
-                    sys.exit(1)
-
-                # TODO: limit output using lp_max_bytes and lp_max_lines
-                # TODO: output escaping/fence style change and errors
-
-                old_capture_index = block.elem_index
-                captures_by_elem_index[old_capture_index] = capture
-
-            if opts.directive in ('lp_out', 'lp_run'):
-                if opts.directive == 'lp_out':
-                    capture_index = old_capture_index
-                else:
-                    capture_index = block.elem_index
-
-                if capture_index < 0:
-                    output = "<invalid no output captured>\n"
-                else:
-                    # NOTE: The capture may be the same as the elem_index
-                    #   of the current block.
-                    capture       = captures_by_elem_index[capture_index]
-                    capture_index = -1
-                    output        = _parse_capture_output(capture, opts)
-
-                elem = md_file.elements[block.elem_index]
-                assert elem.md_type == 'block'
-
-                header_lines = [
-                    line
-                    for line in elem.content.splitlines(opts.keepends)
-                    if line.startswith("```") or line.startswith("# lp_")
-                ]
-
-                last_line   = header_lines.pop()
-                new_content = "".join(header_lines) + output + last_line
-
-                if elem.content != new_content:
-                    updated_elem = MarkdownElement(
-                        elem.md_path,
-                        elem.first_line,
-                        elem.elem_index,
-                        elem.md_type,
-                        new_content,
-                        None,
-                    )
-                    updated_elements.append(updated_elem)
+        updated_elements = list(_process_blocks(md_file, exitfirst=exitfirst))
 
         # phase 6. rewrite output blocks
-        if not any(updated_elements):
-            continue
+        if any(updated_elements):
+            new_elements = list(orig_md_file.elements)
+            for elem in updated_elements:
+                orig_elem = orig_md_file.elements[elem.elem_index]
+                assert 'lp_out' in orig_elem.content or 'lp_run' in orig_elem.content
+                new_elements[elem.elem_index] = elem
 
-        new_elements = list(orig_md_file.elements)
-        for elem in updated_elements:
-            orig_elem = orig_md_file.elements[elem.elem_index]
-            assert 'lp_out' in orig_elem.content or 'lp_run' in orig_elem.content
-            new_elements[elem.elem_index] = elem
+            new_md_file = parse.MarkdownFile(md_file.md_path, new_elements)
+            if in_place_update:
+                new_file_content = str(new_md_file)
+                with new_md_file.md_path.open(mode="w", encoding="utf-8") as fobj:
+                    fobj.write(new_file_content)
 
-        new_md_file = MarkdownFile(md_file.md_path, new_elements)
-        if in_place_update:
-            new_file_content = str(new_md_file)
-            with new_md_file.md_path.open(mode="w", encoding="utf-8") as fh:
-                fh.write(new_file_content)
-        log.info(f"Updated {new_md_file.md_path}")
-        doc_ctx.files[file_idx] = new_md_file
+            logger.info(f"Updated {new_md_file.md_path}")
+            doc_ctx.files[file_idx] = new_md_file
 
     duration = time.time() - build_start
-    log.info(f"Build finished after {duration:9.3f}sec")
+    logger.info(f"Build finished after {duration:9.3f}sec")
 
     return doc_ctx

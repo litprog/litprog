@@ -12,7 +12,7 @@ import pathlib as pl
 
 import PyPDF2 as pdf
 
-log = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 MAX_BOOKLET_SHEETS = 13
@@ -85,9 +85,7 @@ def calc_booklet_page_counts(
 # Half-Sheet: One face of a sheet with two pages
 # Page: One half of one side of a sheet
 
-# https://mbarkhau.keybase.pub/asciigrid/#vvO;EOAOA;AAAAADiBlApFBcgDLMCCCCCJLMgKVapFBhCAMAgSAhEAAkKVYiMBhCgMiRibrDBADAbizDAZiDgGVZjLVXgdMKizlAmAjCgdAKLiSkBqEhbAglhKjCqEh6VhGgFXiDkGgBVgWi6nJibAdnHBAAKhHAWkBYjLAVUkBWggAKAMICClAuAhfAKMCCCCCJKMhKqEibADkRlAnH
-
-_booklet_page_numbering_illustration = r"""
+_BOOKLET_PAGE_NUMBERING_ILLUSTRATION = r"""
 
          Booklet 1        Booklet 2
 
@@ -137,20 +135,133 @@ def booklet_page_layout(
     return booklet_page_index_by_page, booklet_index_by_page
 
 
-def get_format_id(page_width_pt: int, page_height_pt: int) -> typ.Optional[str]:
+def get_format_id(
+    page_width_pt : float,
+    page_height_pt: float,
+    epsilon_pt    : float = 2.0,
+) -> typ.Optional[str]:
     for format_id, (fmt_width_pt, fmt_height_pt) in PAPER_FORMATS_PT.items():
         delta = abs(fmt_width_pt - page_width_pt) + abs(fmt_height_pt - page_height_pt)
-        if delta < 2:
+        if delta < epsilon_pt:
             return format_id
 
     return None
 
 
+PDFPage = typ.Any
+
+MediaBox = typ.Any
+
+PageIndexMapping = typ.List[typ.Tuple[int, int]]
+
+
+class OutputParameters(typ.NamedTuple):
+
+    scale : float
+    width : float
+    height: float
+    trim_x: float
+    trim_y: float
+
+    page_order    : str
+    center_spacing: float
+
+
+def _init_output_parameters(media_box: MediaBox, rescale: float) -> OutputParameters:
+    in_page_width  = float(media_box.getWidth())
+    in_page_height = float(media_box.getHeight())
+    in_format_id   = get_format_id(in_page_width, in_page_height)
+    if in_format_id is None:
+        in_page_width_mm  = round(in_page_width  / PT_PER_MM)
+        in_page_height_mm = round(in_page_height / PT_PER_MM)
+
+        err_msg = f"Unknown page format: {in_page_width_mm}mm x {in_page_height_mm}mm"
+        raise ValueError(err_msg)
+
+    (out_format_id, page_order, center_margin) = BOOKLET_FORMAT_MAPPING[in_format_id]
+    logger.info(f"Converting 2x{in_format_id} -> {out_format_id}")
+
+    out_width, out_height = PAPER_FORMATS_PT[out_format_id]
+
+    scale_w = round((out_width / 2) / in_page_width, 2)
+    scale_h = round(out_height / in_page_height, 2)
+    scale   = min(scale_h, scale_w)
+    logger.info(f"{scale=} {scale_w=} {scale_h=}")
+    scale = scale_h
+    if scale < 1:
+        logger.info(f"scaling down by {1/scale:5.2f}x")
+    elif scale > 1:
+        logger.info(f"scaling up by {scale}x")
+
+    rescale_pct = 100 * (1 - rescale)
+    if rescale < 1:
+        logger.info(f"adding padding of {abs(rescale_pct):3.2f}%")
+    elif rescale > 1:
+        logger.info(f"trimming by {abs(rescale_pct):5.2f}%")
+
+    scale = scale * rescale
+
+    trim_factor = (rescale - 1) / 2
+    trim_x      = 0.5 * out_width  * trim_factor
+    trim_y      = 0.6 * out_height * trim_factor
+    # TODO: option for center spacing
+    center_spacing = out_width * 0.005
+    center_spacing = center_margin
+
+    return OutputParameters(
+        scale, out_width, out_height, trim_x, trim_y, page_order, center_spacing
+    )
+
+
+def _create_sheets(
+    in_pages            : typ.List[PDFPage],
+    output              : pdf.PdfFileWriter,
+    out_coords          : OutputParameters,
+    half_page_to_in_page: PageIndexMapping,
+) -> typ.List[PDFPage]:
+    sheet_indexes = {
+        half_page_index // 2 for in_page_index, half_page_index in half_page_to_in_page
+    }
+    out_sheets = [
+        output.addBlankPage(width=out_coords.width, height=out_coords.height) for _ in sheet_indexes
+    ]
+
+    for half_page_index, in_page_index in half_page_to_in_page:
+        if len(in_pages) - 1 < in_page_index:
+            continue
+
+        in_page = in_pages[in_page_index]
+
+        out_sheet = out_sheets[half_page_index // 2]
+        if half_page_index % 2 == 0:
+            x_offset = 0 - out_coords.center_spacing
+        else:
+            x_offset = (out_coords.width / 2) + out_coords.center_spacing
+
+        translate_x = x_offset - out_coords.trim_x
+        translate_y = 0        - out_coords.trim_y
+
+        tzero = time.time()
+
+        if out_coords.scale == 1:
+            out_sheet.mergeTranslatedPage(in_page, tx=translate_x, ty=translate_y, expand=False)
+        else:
+            out_sheet.mergeScaledTranslatedPage(
+                in_page, scale=out_coords.scale, tx=translate_x, ty=translate_y, expand=False
+            )
+
+        duration = int((time.time() - tzero) * 1000)
+
+        sheet_index = half_page_index % 2
+        logger.debug(f"booklet page: {half_page_index:>2} sheet: {sheet_index:>2} {duration:>5}ms")
+
+    return out_sheets
+
+
 def create(in_path: pl.Path, out_path: typ.Optional[pl.Path] = None) -> pl.Path:
     # TODO: option for page scale
     # rescale = 1.33
-    rescale     = 1.00
-    rescale_pct = 100 * (1 - rescale)
+    rescale = 1.00
 
     max_sheets = MAX_BOOKLET_SHEETS
 
@@ -163,100 +274,32 @@ def create(in_path: pl.Path, out_path: typ.Optional[pl.Path] = None) -> pl.Path:
 
     output = pdf.PdfFileWriter()
 
-    with in_path.open(mode="rb") as in_fh:
-        reader    = pdf.PdfFileReader(in_fh)
+    with in_path.open(mode="rb") as in_fobj:
+        reader    = pdf.PdfFileReader(in_fobj)
         media_box = reader.getPage(0).mediaBox
 
-        in_page_width  = float(media_box.getWidth())
-        in_page_height = float(media_box.getHeight())
-        in_format_id   = get_format_id(in_page_width, in_page_height)
-        if in_format_id is None:
-            in_page_width_mm  = round(in_page_width  / PT_PER_MM)
-            in_page_height_mm = round(in_page_height / PT_PER_MM)
-
-            err_msg = f"Unknown page format: {in_page_width_mm}mm x {in_page_height_mm}mm"
-            raise Exception(err_msg)
-
-        (out_format_id, page_order, center_margin) = BOOKLET_FORMAT_MAPPING[in_format_id]
-        log.info(f"Converting 2x{in_format_id} -> {out_format_id}")
-
-        out_width, out_height = PAPER_FORMATS_PT[out_format_id]
-
-        scale_w = round((out_width / 2) / in_page_width, 2)
-        scale_h = round(out_height / in_page_height, 2)
-        scale   = min(scale_h, scale_w)
-        log.info(f"{scale=} {scale_w=} {scale_h=}")
-        scale = scale_h
-        if scale < 1:
-            log.info(f"scaling down by {1/scale:5.2f}x")
-        elif scale > 1:
-            log.info(f"scaling up by {scale}x")
-
-        if rescale < 1:
-            log.info(f"adding padding of {abs(rescale_pct):3.2f}%")
-        elif rescale > 1:
-            log.info(f"trimming by {abs(rescale_pct):5.2f}%")
-
-        scale = scale * rescale
-
-        trim_factor = (rescale - 1) / 2
-        trim_x      = 0.5 * out_width  * trim_factor
-        trim_y      = 0.6 * out_height * trim_factor
-        # TODO: option for center spacing
-        center_spacing = out_width * 0.005
-        center_spacing = center_margin
+        output_params = _init_output_parameters(media_box, rescale)
 
         in_pages = list(reader.pages)
 
-        if page_order == 'booklet':
+        if output_params.page_order == 'booklet':
             layout = booklet_page_layout(len(in_pages), max_sheets=max_sheets)
-            booklet_page_indexes, booklet_index_by_page = layout
+            booklet_page_indexes, _booklet_index_by_page = layout
             half_page_to_in_page = list(enumerate(booklet_page_indexes))
         else:
             half_page_to_in_page = [
                 (half_page_index, half_page_index) for half_page_index in range(len(in_pages))
             ]
 
-        sheet_indexes = set(
-            half_page_index // 2 for in_page_index, half_page_index in half_page_to_in_page
-        )
-        out_sheets = [
-            output.addBlankPage(width=out_width, height=out_height) for _ in sheet_indexes
-        ]
-
-        for half_page_index, in_page_index in half_page_to_in_page:
-            if len(in_pages) - 1 < in_page_index:
-                continue
-
-            in_page = in_pages[in_page_index]
-
-            out_sheet = out_sheets[half_page_index // 2]
-            if half_page_index % 2 == 0:
-                x_offset = 0 - center_spacing
-            else:
-                x_offset = (out_width / 2) + center_spacing
-
-            tx    = x_offset - trim_x
-            ty    = 0        - trim_y
-            tzero = time.time()
-            if scale == 1:
-                out_sheet.mergeTranslatedPage(in_page, tx=tx, ty=ty, expand=False)
-            else:
-                out_sheet.mergeScaledTranslatedPage(
-                    in_page, scale=scale, tx=tx, ty=ty, expand=False
-                )
-            log.debug(
-                f"booklet page {half_page_index:>2}", half_page_index % 2, time.time() - tzero
-            )
-
-        tzero = time.time()
+        out_sheets = _create_sheets(in_pages, output, output_params, half_page_to_in_page)
+        tzero      = time.time()
         for out_sheet in out_sheets:
             out_sheet.compressContentStreams()
         compression_time = time.time() - tzero
-        log.debug(f"compression time: {compression_time}")
+        logger.debug(f"compression time: {compression_time}")
 
-        with _out_path.open(mode="wb") as out_fh:
-            output.write(out_fh)
+        with _out_path.open(mode="wb") as out_fobj:
+            output.write(out_fobj)
 
     return _out_path
 

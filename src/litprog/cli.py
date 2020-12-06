@@ -7,10 +7,10 @@ import sys
 import shutil
 import typing as typ
 import logging
+import pathlib as pl
 import tempfile
 
 import click
-import pathlib2 as pl
 
 import litprog.build as lp_build
 import litprog.parse as lp_parse
@@ -57,6 +57,7 @@ _PREV_VERBOSITY: int = -1
 
 
 def _configure_logging(verbosity: int = 0) -> None:
+    # pylint: disable=global-statement
     global _PREV_VERBOSITY
 
     if verbosity <= _PREV_VERBOSITY:
@@ -76,7 +77,7 @@ def _configure_logging(verbosity: int = 0) -> None:
 @click.version_option(version="2020.1001-alpha")
 @verbosity_option
 def cli(verbose: int = 0) -> None:
-    """litprog cli."""
+    """CLI for litprog."""
     _configure_logging(verbose)
 
 
@@ -138,7 +139,7 @@ def build(
 
     html_dir = pl.Path(html)
 
-    # lazy import since we don't always need it
+    # pylint: disable=import-outside-toplevel ; lazy import since we don't always need it
     import litprog.gen_docs as lp_gen_docs
 
     lp_gen_docs.gen_html(built_ctx, html_dir)

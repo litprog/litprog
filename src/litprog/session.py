@@ -14,7 +14,7 @@ import pathlib as pl
 import threading
 import subprocess as sp
 
-log = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 InputPaths = typ.Sequence[str]
 FilePaths  = typ.Iterable[pl.Path]
@@ -51,7 +51,7 @@ def _gen_captured_lines(
         ts = time.time()
 
         line_value = raw_line.decode(encoding)
-        log.debug(f"read {len(raw_line)} bytes")
+        logger.debug(f"read {len(raw_line)} bytes")
         yield RawCapturedLine(ts, line_value)
 
 
@@ -61,9 +61,8 @@ def _read_loop(
     encoding      : str = "utf-8",
 ) -> None:
     raw_lines = iter(sp_output_pipe.readline, b'')
-    cl_gen    = _gen_captured_lines(raw_lines, encoding=encoding)
-    for cl in cl_gen:
-        captured_lines.append(cl)
+    for captured_line in _gen_captured_lines(raw_lines, encoding=encoding):
+        captured_lines.append(captured_line)
 
 
 class CapturingThread(typ.NamedTuple):
@@ -101,6 +100,9 @@ class InteractiveSession:
 
     _retcode: typ.Optional[int]
     _proc   : sp.Popen
+    _stdin  : typ.IO[bytes]
+    _stdout : typ.IO[bytes]
+    _stderr : typ.IO[bytes]
 
     _in_cl : typ.List[RawCapturedLine]
     _out_ct: CapturingThread
@@ -121,64 +123,70 @@ class InteractiveSession:
         self._retcode = None
 
         cmd_parts = _normalize_command(cmd)
-        log.debug(f"popen {cmd_parts}")
+        logger.debug(f"popen {cmd_parts}")
         self._proc = sp.Popen(cmd_parts, stdin=sp.PIPE, stdout=sp.PIPE, stderr=sp.PIPE, env=_env)
+
+        assert self._proc.stdin  is not None
+        assert self._proc.stdout is not None
+        assert self._proc.stderr is not None
+        self._stdin  = self._proc.stdin
+        self._stdout = self._proc.stdout
+        self._stderr = self._proc.stderr
 
         _enc = encoding
 
         self._in_cl  = []
-        self._out_ct = _start_reader(self._proc.stdout, _enc)
-        self._err_ct = _start_reader(self._proc.stderr, _enc)
+        self._out_ct = _start_reader(self._stdout, _enc)
+        self._err_ct = _start_reader(self._stderr, _enc)
 
     def send(self, input_str: str, delay: float = 0) -> None:
         self._in_cl.append(RawCapturedLine(time.time(), input_str))
         input_data = input_str.encode(self.encoding)
-        log.debug(f"sending {len(input_data)} bytes")
-        self._proc.stdin.write(input_data)
+        logger.debug(f"sending {len(input_data)} bytes")
+        self._stdin.write(input_data)
         if delay:
-            self._proc.stdin.flush()
+            self._stdin.flush()
             time.sleep(delay)
 
     @property
     def retcode(self) -> int:
-        self._proc.stdin.flush()
+        self._stdin.flush()
         return self.wait()
 
     def _assert_retcode(self) -> None:
         if self._retcode is None:
-            raise AssertionError(
-                "'InteractiveSession.wait()' must be called " + " before accessing captured output."
-            )
+            msg = "'InteractiveSession.wait()' must be called before accessing captured output."
+            raise RuntimeError(msg)
 
     def wait(self, timeout=1) -> int:
         if self._retcode is not None:
             return self._retcode
 
-        log.debug(f"wait with timeout={timeout}")
+        logger.debug(f"wait with timeout={timeout}")
         returncode: typ.Optional[int] = None
         try:
-            self._proc.stdin.close()
+            self._stdin.close()
         except BrokenPipeError:
             # NOTE (mb 2020-06-05): Some subprocesses exit so fast that the pipe
             #   may already be closed.
-            log.debug("stdin already closed")
+            logger.debug("stdin already closed")
 
         try:
             max_time = self.start + timeout
             while True:
                 time_left = max_time - time.time()
-                log.debug(f"poll {time_left}")
+                logger.debug(f"poll {time_left}")
                 time.sleep(min(0.01, max(0, time_left)))
                 returncode = self._proc.poll()
                 if returncode is not None:
-                    log.debug(f"poll() returned {returncode}")
+                    logger.debug(f"poll() returned {returncode}")
                     break
                 if time.time() > max_time:
-                    log.debug("timeout")
+                    logger.debug("timeout")
                     break
         finally:
-            if self._proc.returncode is None:
-                log.debug("sending SIGTERM")
+            if returncode is None:
+                logger.debug("sending SIGTERM")
                 self._proc.terminate()
                 returncode = self._proc.wait()
 
@@ -200,32 +208,32 @@ class InteractiveSession:
     def iter_lines(self) -> typ.Iterable[CapturedLine]:
         out_lines = iter(self.out_lines)
         err_lines = iter(self.err_lines)
-        ol        = next(out_lines, None)
-        el        = next(err_lines, None)
+        out_line  = next(out_lines, None)
+        err_line  = next(err_lines, None)
 
         while True:
-            if ol and el:
-                if ol.ts <= el.ts:
-                    yield CapturedLine(ol.ts, ol.line, False)
-                    ol = next(out_lines, None)
+            if out_line and err_line:
+                if out_line.ts <= err_line.ts:
+                    yield CapturedLine(out_line.ts, out_line.line, False)
+                    out_line = next(out_lines, None)
                 else:
-                    yield CapturedLine(el.ts, el.line, True)
-                    el = next(err_lines, None)
-            elif el:
-                yield CapturedLine(el.ts, el.line, True)
-                el = next(err_lines, None)
-            elif ol:
-                yield CapturedLine(ol.ts, ol.line, False)
-                ol = next(out_lines, None)
+                    yield CapturedLine(err_line.ts, err_line.line, True)
+                    err_line = next(err_lines, None)
+            elif err_line:
+                yield CapturedLine(err_line.ts, err_line.line, True)
+                err_line = next(err_lines, None)
+            elif out_line:
+                yield CapturedLine(out_line.ts, out_line.line, False)
+                out_line = next(out_lines, None)
             else:
                 break
 
     def iter_stdout(self) -> typ.Iterable[str]:
-        for ts, line in self._out_ct.lines:
+        for _ts, line in self._out_ct.lines:
             yield line
 
     def iter_stderr(self) -> typ.Iterable[str]:
-        for ts, line in self._err_ct.lines:
+        for _ts, line in self._err_ct.lines:
             yield line
 
     def __iter__(self) -> typ.Iterable[str]:

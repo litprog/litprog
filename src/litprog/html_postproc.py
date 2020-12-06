@@ -37,6 +37,41 @@ def _part_len(part: str) -> int:
         return len(part)
 
 
+def _iter_new_parts(remaining_part: str, max_len: int) -> typ.Iterable[str]:
+    while remaining_part:
+        if "://" in remaining_part:
+            new_part, remaining_part = remaining_part.split("://", 1)
+            new_part += "://"
+        elif "?" in remaining_part:
+            new_part, remaining_part = remaining_part.split("?", 1)
+            new_part += "?"
+        elif "/" in remaining_part:
+            new_part, remaining_part = remaining_part.split("/", 1)
+            new_part += "/"
+        elif "#" in remaining_part:
+            new_part, remaining_part = remaining_part.split("#", 1)
+            new_part += "#"
+        elif "." in remaining_part:
+            new_part, remaining_part = remaining_part.split(".", 1)
+            new_part += "."
+        else:
+            new_part       = remaining_part[:max_len]
+            remaining_part = remaining_part[max_len:]
+
+        # If a line is wrapped, it should never have
+        #   trailing whitespace. This gives readers the
+        #   best chance of knowing that whitespace exists,
+        #   namely by the fact that the wrapped portion of
+        #   the line has some indentation
+        new_part_rstrip    = new_part.rstrip()
+        traling_whitespace = len(new_part) - len(new_part_rstrip)
+        if new_part_rstrip and traling_whitespace:
+            remaining_part = new_part[-traling_whitespace:] + remaining_part
+            new_part       = new_part_rstrip
+
+        yield new_part
+
+
 def _iter_wrapped_line_parts(line: str, max_len: int) -> typ.Iterable[str]:
     if max_len == 0 or len(line) < max_len:
         yield line
@@ -60,46 +95,9 @@ def _iter_wrapped_line_parts(line: str, max_len: int) -> typ.Iterable[str]:
     #   - everything else simply by part[:max_len] part[max_len:]
 
     for i, part in enumerate(list(parts)):
-        if _part_len(part) <= max_len:
-            continue
-
-        split_parts = []
-
-        remaining_part = part
-        while remaining_part:
-            if "://" in remaining_part:
-                new_part, remaining_part = remaining_part.split("://", 1)
-                new_part += "://"
-            elif "?" in remaining_part:
-                new_part, remaining_part = remaining_part.split("?", 1)
-                new_part += "?"
-            elif "/" in remaining_part:
-                new_part, remaining_part = remaining_part.split("/", 1)
-                new_part += "/"
-            elif "#" in remaining_part:
-                new_part, remaining_part = remaining_part.split("#", 1)
-                new_part += "#"
-            elif "." in remaining_part:
-                new_part, remaining_part = remaining_part.split(".", 1)
-                new_part += "."
-            else:
-                new_part       = remaining_part[:max_len]
-                remaining_part = remaining_part[max_len:]
-
-            # If a line is wrapped, it should never have
-            #   trailing whitespace. This gives readers the
-            #   best chance of knowing that whitespace exists,
-            #   namely by the fact that the wrapped portion of
-            #   the line has some indentation
-            new_part_rstrip    = new_part.rstrip()
-            traling_whitespace = len(new_part) - len(new_part_rstrip)
-            if new_part_rstrip and traling_whitespace:
-                remaining_part = new_part[-traling_whitespace:] + remaining_part
-                new_part       = new_part_rstrip
-
-            split_parts.append(new_part)
-
-        parts[i : i + 1] = split_parts
+        if _part_len(part) > max_len:
+            split_parts = list(_iter_new_parts(remaining_part=part, max_len=max_len))
+            parts[i : i + 1] = split_parts
 
     if len(parts) == 1:
         yield parts[0]
@@ -121,7 +119,9 @@ def _iter_wrapped_line_parts(line: str, max_len: int) -> typ.Iterable[str]:
 
 
 def iter_wrapped_lines(
-    pre_content_text: str, max_line_len: int = 80, add_line_numbers: bool = True
+    pre_content_text: str,
+    max_line_len    : int  = 80,
+    add_line_numbers: bool = True,
 ) -> typ.Iterable[str]:
     pre_content_text  = pre_content_text.replace("<span></span>", "")
     pre_content_lines = pre_content_text.splitlines()
@@ -134,9 +134,9 @@ def iter_wrapped_lines(
         for part_idx, line_part in enumerate(parts):
             if add_line_numbers:
                 if part_idx == 0:
-                    lineno_span = f'<span class="lineno">{lineno}</span>'
+                    lineno_span = f"<span class=\"lineno\">{lineno}</span>"
                 else:
-                    lineno_span = f'<span class="lineno">\u21AA</span>'
+                    lineno_span = "<span class=\"lineno\">\u21AA</span>"
 
                 if line_part.startswith("<code"):
                     tag_end_idx = line_part.index(">")
@@ -164,7 +164,7 @@ def iter_wrapped_lines(
 PRE_CODE_BLOCK = """
 PYCALVER_REGEX = re.compile(PYCALVER_PATTERN, flags=re.VERBOSE)
 INFO    - git tag --annotate v201812.0006-beta --message v201812.0006-beta
-INFO    - fetching tags from remote <span class="o">(</span>to turn off use: -n / --no-fetch<span class="o">)</span>
+INFO    - fetching tags from remote (to turn off use: -n / --no-fetch)
 INFO    - git push origin v201812.0006-beta
 mypkg  v201812.0665    # last stable release
 mypkg  v201812.0666-rc # pre release for testers
@@ -199,7 +199,7 @@ def _iter_postproc_html(html_text: HTMLText, max_line_len: int) -> typ.Iterable[
     last_end_idx = 0
 
     for match in pre_begin_re.finditer(html_text):
-        begin_lidx, begin_ridx = match.span()
+        _begin_lidx, begin_ridx = match.span()
         yield html_text[last_end_idx:begin_ridx]
 
         end_match = pre_end_re.search(html_text, begin_ridx + 1)
@@ -464,9 +464,9 @@ def _add_footer_links(soup: bs4.BeautifulSoup, fmt: str) -> None:
         link['href'] = href
         link.append(linktext)
 
-        li = soup.new_tag('li')
-        li.append(link)
-        linklist.append(li)
+        li_tag = soup.new_tag('li')
+        li_tag.append(link)
+        linklist.append(li_tag)
 
 
 def _add_heading_links(soup: bs4.BeautifulSoup) -> None:
@@ -533,13 +533,13 @@ def _add_figure_numbers(soup: bs4.BeautifulSoup) -> None:
             fig_num += 1
 
 
-def _add_nav_numbers(ul: bs4.BeautifulSoup, heading_prefix: str = "") -> None:
-    li_children = [child for child in ul.children if child.name == "li"]
-    for i, li in enumerate(li_children):
+def _add_nav_numbers(ul_tag: bs4.BeautifulSoup, heading_prefix: str = "") -> None:
+    li_children = [child for child in ul_tag.children if child.name == "li"]
+    for i, li_tag in enumerate(li_children):
         heading_number = heading_prefix + str(i + 1)
         if heading_prefix:
-            li.a.string = heading_number + " " + li.a.string
-        sub_uls = [child for child in li.children if child.name == "ul"]
+            li_tag.a.string = heading_number + " " + li_tag.a.string
+        sub_uls = [child for child in li_tag.children if child.name == "ul"]
         for sub_ul in sub_uls:
             _add_nav_numbers(sub_ul, heading_number + ".")
 

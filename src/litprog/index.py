@@ -37,20 +37,22 @@ import socket
 import typing as typ
 import hashlib
 import logging
+import pathlib as pl
 
-import pathlib2 as pl
-
-log = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
-def machine_id() -> str:
-    """The index is only valid if it was written by the same machine
-    that we're running on.
+def _machine_id() -> str:
+    """Generate machine specific id.
 
-    This might happen if multiple buils run over an NFS file system.
-    Raise an error if this is detected and include the path to the
-    index file in the error message, so the user can decide if they
-    want to delete it and rebuild from scratch.
+    The index is only valid if it was written by the same machine
+    that it was generated on.
+
+    An index might be shared if multiple builds run over an
+    NFS file system. Raise an error if this is detected and
+    include the path to the index file in the error message,
+    so the user can decide if they want to delete it and
+    rebuild from scratch.
     """
     node = uuid.getnode()
     if node & 0b10000000 > 0:
@@ -72,35 +74,24 @@ except ValueError as ex:
     IS_BLAKE2_AVAILABLE = False
 
 
-def new_digest() -> hashlib._Hash:
+HexDigest = str
+
+
+def _file_digest(path: pl.Path) -> HexDigest:
     # https://blake2.net/
     if IS_BLAKE2_AVAILABLE:
-        return hashlib.new('blake2b')
+        id_sum = hashlib.new('blake2b')
     else:
-        return hashlib.new('sha1')
+        id_sum = hashlib.new('sha1')
 
-
-def file_digest(path: pl.Path) -> str:
-    id_sum = new_digest()
-    with path.open(mode="rb") as fh:
+    with path.open(mode="rb") as fobj:
         while True:
-            chunk = fh.read(65536)
+            chunk = fobj.read(65536)
             if chunk:
                 id_sum.update(chunk)
             else:
                 break
     return id_sum.hexdigest()
-
-
-def file_id(path: pl.Path) -> str:
-    st     = mk_stat(path)
-    st_str = f"{st.ino}_{st.size}_{st.mtime}"
-    id_sum = new_digest()
-    id_sum.update(st_str.encode("ascii"))
-    return id_sum.hexdigest()
-
-
-HexDigest = str
 
 
 class CheckResult(typ.NamedTuple):
@@ -118,7 +109,7 @@ EntryKey = str
 Target   = str
 
 
-def key(path: pl.Path) -> EntryKey:
+def entry_key(path: pl.Path) -> EntryKey:
     return str(path.absolute())
 
 
@@ -141,22 +132,22 @@ class Stat(typ.NamedTuple):
 
 
 def mk_stat(path: pl.Path) -> Stat:
-    s = path.stat()
+    stat_result = path.stat()
 
-    # NOTE: getmtime is more precise than s.st_mtime
+    # NOTE: getmtime is more precise than stat_result.st_mtime
     mtime: float = os.path.getmtime(str(path))
 
     return Stat(
-        s.st_mode,
-        s.st_ino,
-        s.st_dev,
-        s.st_nlink,
-        s.st_uid,
-        s.st_gid,
-        s.st_size,
-        s.st_atime,
+        stat_result.st_mode,
+        stat_result.st_ino,
+        stat_result.st_dev,
+        stat_result.st_nlink,
+        stat_result.st_uid,
+        stat_result.st_gid,
+        stat_result.st_size,
+        stat_result.st_atime,
         mtime,
-        s.st_ctime,
+        stat_result.st_ctime,
     )
 
 
@@ -173,12 +164,11 @@ EntryKeysByTarget = typ.Dict[Target  , typ.Set[EntryKey]]
 
 
 def make_entry(path: pl.Path, check: CheckResult) -> MaybeEntry:
-    if not path.exists():
+    if path.exists():
+        digest_val = check.digest or _file_digest(path)
+        return IndexEntry(path=path, stat=mk_stat(path), digest=digest_val)
+    else:
         return None
-
-    digest_val = check.digest or file_digest(path)
-
-    return IndexEntry(path=path, stat=mk_stat(path), digest=digest_val)
 
 
 class Index:
@@ -196,23 +186,23 @@ class Index:
 
     def __init__(self, index_file: pl.Path) -> None:
         self.index_file = index_file
-        self.machine_id = machine_id()
+        self.machine_id = _machine_id()
         self.entries    = {}
         self.targets    = {}
 
         try:
             if self.index_file.exists():
                 self.load_index()
-        except Exception:
+        except (IOError, ValueError, KeyError):
             warn_msg = f"Ignoring invalid/corrupted index file " f"'{self.index_file}'"
-            log.warning(warn_msg, exc_info=True)
+            logger.warning(warn_msg, exc_info=True)
 
         self.index_file.touch()
         self.index_stat = mk_stat(self.index_file)
 
     def load_index(self) -> None:
-        with self.index_file.open(mode="rb") as fh:
-            data = json.loads(fh.read().decode('utf-8'))
+        with self.index_file.open(mode="rb") as fobj:
+            data = json.loads(fobj.read().decode('utf-8'))
 
         if data['machine_id'] != self.machine_id:
             err_msg = (
@@ -222,7 +212,7 @@ class Index:
                 "If you know this is not an issue, delete "
                 "the file and try again."
             )
-            raise Exception(err_msg)
+            raise ValueError(err_msg)
 
         entries: EntryByKey = {}
         for key, entry in data['entries'].items():
@@ -260,9 +250,9 @@ class Index:
         nonce    = time.time()
         tmp_name = self.index_file.name + f".{nonce}.tmp"
         tmp_file = self.index_file.parent / tmp_name
-        with tmp_file.open(mode="wb") as fh:
+        with tmp_file.open(mode="wb") as fobj:
             text = json.dumps(data, indent=2)
-            fh.write(text.encode("utf-8"))
+            fobj.write(text.encode("utf-8"))
 
         if self.has_index_changed():
             tmp_file.unlink()
@@ -294,17 +284,17 @@ class Index:
             return
 
         entry = make_entry(path, check)
-        self.entries[key(path)] = entry
+        self.entries[entry_key(path)] = entry
 
     def check_path(self, path: pl.Path) -> CheckResult:
         # NOTE: There could be different levels of
         #   dirtyness.
         #   strict: hash and mtime must be unchanged
         #   hash: hash must be unchanged
-        if key(path) not in self.entries:
+        if entry_key(path) not in self.entries:
             return CheckResult(False, "")
 
-        entry = self.entries[key(path)]
+        entry = self.entries[entry_key(path)]
         if entry is None:
             return CheckResult(False, "")
 
@@ -319,9 +309,9 @@ class Index:
             return CheckResult(True, entry.digest)
 
         # fallback to digest check
-        new_digest = file_digest(path)
-        ok         = new_digest == entry.digest
-        return CheckResult(ok, new_digest)
+        new_digest = _file_digest(path)
+        check_ok   = new_digest == entry.digest
+        return CheckResult(check_ok, new_digest)
 
     def is_target_done(self, target: Target, deps: typ.Set[pl.Path]) -> bool:
         for dep in deps:
@@ -329,7 +319,7 @@ class Index:
             if not digest.ok:
                 return False
 
-        new_deps  = {key(dep) for dep in deps}
+        new_deps  = {entry_key(dep) for dep in deps}
         prev_deps = self.targets.get(target)
         return new_deps == prev_deps
 
@@ -337,11 +327,11 @@ class Index:
         for dep in deps:
             self.add_file(dep)
 
-        self.targets[target] = {key(dep) for dep in deps}
+        self.targets[target] = {entry_key(dep) for dep in deps}
 
 
 def _iter_paths(dirpath: pl.Path) -> typ.Iterable[pl.Path]:
-    for root, dirnames, filenames in os.walk(dirpath):
+    for root, _dirnames, filenames in os.walk(dirpath):
         for filename in filenames:
             yield pl.Path(root) / filename
 

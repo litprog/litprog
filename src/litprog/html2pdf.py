@@ -13,7 +13,7 @@ logging.getLogger('weasyprint').setLevel(logging.ERROR)
 
 
 def html2pdf(html_text: str, out_path: pl.Path, html_dir: pl.Path) -> None:
-    # lazy import since we don't always need it
+    # pylint: disable=import-outside-toplevel ; lazy import since we don't always need it
     import weasyprint
 
     wp_ctx = weasyprint.HTML(string=html_text, base_url=str(html_dir))

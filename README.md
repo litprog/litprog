@@ -1,4 +1,4 @@
-# [litprog][repo_ref]
+# [LitProg][repo_ref]
 
 Project/Repo:
 

@@ -3,23 +3,10 @@
 #
 # Copyright (c) 2018-2020 Manuel Barkhau (mbarkhau@gmail.com) - MIT License
 # SPDX-License-Identifier: MIT
-import io
-import os
 import re
-import sys
-import enum
-import math
-import time
 import typing as typ
 import logging
-import os.path
-import datetime as dt
-import operator as op
-import functools as ft
-import itertools as it
-import collections
-
-import pathlib2 as pl
+import pathlib as pl
 
 log = logging.getLogger(__name__)
 
@@ -106,7 +93,6 @@ LANGUAGE_COMMENT_PATTERNS = {
     'make'         : (r"^\s*[#]" , r"$"),
     'nim'          : (r"^\s*[#]" , r"$"),
     'perl'         : (r"^\s*[#]" , r"$"),
-    'php'          : (r"^\s*[#]" , r"$"),
     'yaml'         : (r"^\s*[#]" , r"$"),
     'prolog'       : (r"^\s*%"   , r"$"),
     'scheme'       : (r"^\s*;"   , r"$"),
@@ -150,7 +136,6 @@ LANGUAGE_COMMENT_TEMPLATES = {
     'make'         : "# {}",
     'nim'          : "# {}",
     'perl'         : "# {}",
-    'php'          : "# {}",
     'yaml'         : "# {}",
     'prolog'       : "% {}",
     'scheme'       : "; {}",
@@ -428,116 +413,127 @@ class MarkdownFile:
                 level  = 1 if "-" in marker else 2
             else:
                 err_msg = "Invalid headline: {elem.content}"
-                assert False, err_msg
+                raise ValueError(err_msg)
 
             yield Headline(self.md_path, elem_index, text.strip(), level)
+
+    def _init_plain_block(self, elem_index: int, elem: MarkdownElement, info_string: str) -> Block:
+        inner_content = elem.content
+        inner_content = inner_content.split("\n", 1)[-1]
+        # trim off final fence
+        inner_content = inner_content.rsplit("\n", 1)[0]
+
+        return Block(
+            self.md_path,
+            self.block_namespace,
+            elem.first_line,
+            elem_index,
+            info_string,
+            [],
+            elem.content,
+            # TODO (mb 2020-06-02): Why do we .strip() here ?
+            inner_content.strip(),
+            inner_content.strip(),
+        )
+
+    def _init_code_block(
+        self, elem_index: int, elem: MarkdownElement, info_string: str, rest_content: str
+    ) -> Block:
+        language = info_string
+        comment_start_re, comment_end_re = LANGUAGE_COMMENT_REGEXES[language]
+
+        directives = [Directive('lp_language', language, language)]
+
+        inner_chunks      = []
+        includable_chunks = []
+
+        rest = rest_content
+        while rest:
+            start_match = comment_start_re.search(rest)
+            if start_match is None:
+                inner_chunks.append(rest)
+                includable_chunks.append(rest)
+                break
+
+            chunk = rest[: start_match.start()]
+            if chunk:
+                inner_chunks.append(chunk)
+                includable_chunks.append(chunk)
+
+            rest      = rest[start_match.end() :]
+            end_match = comment_end_re.search(rest)
+            if end_match is None:
+                comment_text = rest
+                rest         = ""
+            else:
+                comment_text = rest[: end_match.start()]
+                rest         = rest[end_match.end() :]
+
+            raw_text = start_match.group(0) + comment_text
+            assert raw_text in elem.content
+
+            comment_text = comment_text.strip()
+            if comment_text.startswith("lp_"):
+                directive = _parse_directive(comment_text, raw_text)
+                directives.append(directive)
+                inner_chunks.append(raw_text)
+                if directive.name == 'lp_include':
+                    # NOTE (mb 2020-06-03): needed for recursive include
+                    includable_chunks.append(raw_text)
+            else:
+                inner_chunks.append(raw_text)
+                includable_chunks.append(raw_text)
+
+        inner_content = "".join(inner_chunks)
+        # trim off final fence
+        inner_content = inner_content.rsplit("\n", 1)[0]
+        inner_content = "\n".join(line for line in inner_content.splitlines() if line.strip())
+
+        includable_content = "".join(includable_chunks)
+        # trim off final fence
+        includable_content = includable_content.rsplit("\n", 1)[0]
+        includable_content = "\n".join(
+            line for line in includable_content.splitlines() if line.strip()
+        )
+
+        return Block(
+            self.md_path,
+            self.block_namespace,
+            elem.first_line,
+            elem_index,
+            info_string,
+            directives,
+            elem.content,
+            inner_content,
+            includable_content,
+        )
 
     @property
     def blocks(self) -> typ.Iterable[Block]:
         for elem_index, elem in enumerate(self.elements):
-            if elem.md_type != 'block':
-                continue
+            if elem.md_type == 'block':
+                start_match = BLOCK_START_RE.match(elem.content)
+                assert start_match is not None
+                info_string = start_match.group('info_string') or ""
+                info_string = info_string.strip()
 
-            start_match = BLOCK_START_RE.match(elem.content)
-            assert start_match is not None
-            info_string = start_match.group('info_string') or ""
+                is_known_info_string = info_string in KNOWN_INFO_STRINGS
+                if info_string.strip() and not is_known_info_string:
+                    err = make_parse_error(
+                        f"Unknown language '{info_string}'", elem, logging.WARNING
+                    )
+                    self.errors.add(err)
 
-            info_string = info_string.strip()
-
-            is_known_info_string = info_string in KNOWN_INFO_STRINGS
-            if info_string.strip() and not is_known_info_string:
-                err = make_parse_error(f"Unknown language '{info_string}'", elem, logging.WARNING)
-                self.errors.add(err)
-
-            is_valid_language = info_string in LANGUAGE_COMMENT_REGEXES
-            if not is_valid_language:
-                inner_content = elem.content
-                inner_content = inner_content.split("\n", 1)[-1]
-                # trim off final fence
-                inner_content = inner_content.rsplit("\n", 1)[0]
-
-                yield Block(
-                    self.md_path,
-                    self.block_namespace,
-                    elem.first_line,
-                    elem_index,
-                    info_string,
-                    [],
-                    elem.content,
-                    # TODO (mb 2020-06-02): Why do we .strip() here ?
-                    inner_content.strip(),
-                    inner_content.strip(),
-                )
-                continue
-
-            language = info_string
-            comment_start_re, comment_end_re = LANGUAGE_COMMENT_REGEXES[language]
-
-            directives = [Directive('lp_language', language, info_string)]
-
-            inner_chunks      = []
-            includable_chunks = []
-
-            rest = elem.content[start_match.end() :]
-            while rest:
-                start_match = comment_start_re.search(rest)
-                if start_match is None:
-                    inner_chunks.append(rest)
-                    includable_chunks.append(rest)
-                    break
-
-                chunk = rest[: start_match.start()]
-                if chunk:
-                    inner_chunks.append(chunk)
-                    includable_chunks.append(chunk)
-
-                rest      = rest[start_match.end() :]
-                end_match = comment_end_re.search(rest)
-                if end_match is None:
-                    comment_text = rest
-                    rest         = ""
+                is_valid_language = info_string in LANGUAGE_COMMENT_REGEXES
+                if is_valid_language:
+                    yield self._init_code_block(
+                        elem_index,
+                        elem,
+                        info_string,
+                        rest_content=elem.content[start_match.end() :],
+                    )
                 else:
-                    comment_text = rest[: end_match.start()]
-                    rest         = rest[end_match.end() :]
-
-                raw_text = start_match.group(0) + comment_text
-                assert raw_text in elem.content
-
-                comment_text = comment_text.strip()
-                if comment_text.startswith("lp_"):
-                    directive = _parse_directive(comment_text, raw_text)
-                    directives.append(directive)
-                    inner_chunks.append(raw_text)
-                    if directive.name == 'lp_include':
-                        # NOTE (mb 2020-06-03): needed for recursive include
-                        includable_chunks.append(raw_text)
-                else:
-                    inner_chunks.append(raw_text)
-                    includable_chunks.append(raw_text)
-
-            inner_content = "".join(inner_chunks)
-            # trim off final fence
-            inner_content = inner_content.rsplit("\n", 1)[0]
-            inner_content = "\n".join(line for line in inner_content.splitlines() if line.strip())
-
-            includable_content = "".join(includable_chunks)
-            # trim off final fence
-            includable_content = includable_content.rsplit("\n", 1)[0]
-            includable_content = "\n".join(
-                line for line in includable_content.splitlines() if line.strip()
-            )
-
-            yield Block(
-                self.md_path,
-                self.block_namespace,
-                elem.first_line,
-                elem_index,
-                info_string,
-                directives,
-                elem.content,
-                inner_content,
-                includable_content,
-            )
+                    yield self._init_plain_block(elem_index, elem, info_string)
 
     def __lt__(self, other: 'MarkdownFile') -> bool:
         return self.md_path < other.md_path
@@ -545,11 +541,12 @@ class MarkdownFile:
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, MarkdownFile):
             return False
-        if not self.md_path == other.md_path:
+        elif not self.md_path == other.md_path:
             return False
-        if not self.elements == other.elements:
+        elif not self.elements == other.elements:
             return False
-        return True
+        else:
+            return True
 
     def __str__(self) -> str:
         return "".join(elem.content for elem in self.elements)
@@ -605,8 +602,8 @@ def _iter_raw_md_elements(content: str) -> typ.Iterable[_RawMarkdownElement]:
 
 def _parse_md_elements(md_path: pl.Path) -> typ.List[MarkdownElement]:
     # TODO: encoding from config
-    with md_path.open(mode='r', encoding="utf-8") as fh:
-        content = fh.read()
+    with md_path.open(mode='r', encoding="utf-8") as fobj:
+        content = fobj.read()
 
     elements = []
     for elem_index, raw_elem in enumerate(_iter_raw_md_elements(content)):

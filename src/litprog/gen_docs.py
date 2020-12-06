@@ -18,7 +18,7 @@ from . import html2pdf
 from . import pdf_booklet
 from . import html_postproc
 
-log = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 MarkdownText = str
 
@@ -31,7 +31,7 @@ class Replacement(typ.NamedTuple):
     filename: str
 
 
-PRINT_FORMATS = [
+PRINT_FORMATS = (
     'print_ereader',
     'print_a5',
     'print_booklet_a4',
@@ -41,7 +41,7 @@ PRINT_FORMATS = [
     'print_tallcol_letter',
     'print_twocol_a4',
     'print_twocol_letter',
-]
+)
 
 MULTIPAGE_FORMATS = {
     'print_booklet_a4'    : "print_a5",
@@ -260,7 +260,7 @@ def _init_meta() -> typ.Dict[str, str]:
 
 
 def gen_html(ctx: parse.Context, html_dir: pl.Path) -> None:
-    log.info(f"Writing html to '{html_dir}'")
+    logger.info(f"Writing html to '{html_dir}'")
     if not html_dir.exists():
         html_dir.mkdir(parents=True)
 
@@ -276,7 +276,7 @@ def gen_html(ctx: parse.Context, html_dir: pl.Path) -> None:
     html_results: typ.List[md2html.HTMLResult] = []
 
     for md_file in ctx.files:
-        log.info(f"processing '{md_file.md_path}'")
+        logger.info(f"processing '{md_file.md_path}'")
         md_text: MarkdownText = str(md_file)
         new_meta, md_text = parse_front_matter(md_text)
         cur_meta = cur_meta.copy()
@@ -293,7 +293,7 @@ def gen_html(ctx: parse.Context, html_dir: pl.Path) -> None:
     for md_path, meta, toc, html_res in zip(md_paths, metas, full_toc, html_results):
         html_fname = md_path.stem + ".html"
         html_fpath = html_dir / html_fname
-        log.info(f"writing '{md_path}' -> '{html_fpath}'")
+        logger.info(f"writing '{md_path}' -> '{html_fpath}'")
         content_html = html_postproc.postproc4screen(html_res)
         wrapped_html = wrap_content_html(content_html, 'screen', meta, toc)
         with html_fpath.open(mode="w") as fobj:
@@ -311,7 +311,7 @@ def gen_html(ctx: parse.Context, html_dir: pl.Path) -> None:
             not out_fpath.exists() or out_fpath.stat().st_mtime <= in_fpath.stat().st_mtime
         )
         if is_out_older:
-            # log.info(f"copy {in_fpath} -> {out_fpath}")
+            # logger.info(f"copy {in_fpath} -> {out_fpath}")
             shutil.copy(str(in_fpath), str(out_fpath))
 
 
@@ -350,12 +350,12 @@ def gen_pdf(
         with html_fpath.open(mode="w") as fobj:
             fobj.write(wrapped_html)
 
-        log.info(f"converting '{html_fpath}' -> '{pdf_fpath}'")
+        logger.info(f"converting '{html_fpath}' -> '{pdf_fpath}'")
         html2pdf.html2pdf(wrapped_html, pdf_fpath, html_dir)
 
     for fmt in multipage_formats:
         part_page_fmt       = MULTIPAGE_FORMATS[fmt]
         part_page_pdf_fpath = pdf_dir / (part_page_fmt + ".pdf")
         booklet_pdf_fpath   = pdf_dir / (fmt           + ".pdf")
-        log.info(f"creating booklet '{part_page_pdf_fpath}' -> '{booklet_pdf_fpath}'")
+        logger.info(f"creating booklet '{part_page_pdf_fpath}' -> '{booklet_pdf_fpath}'")
         pdf_booklet.create(in_path=part_page_pdf_fpath, out_path=booklet_pdf_fpath)
