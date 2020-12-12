@@ -196,55 +196,10 @@ def _parse_prefix(directive: parse.Directive) -> str:
     return val
 
 
-BlockId     = str
-BlockIds    = typ.List[BlockId]
-BlocksById  = typ.Dict[BlockId, typ.List[parse.Block]]
-ParentsById = typ.Dict[BlockId, typ.Set[BlockId]]
-
-
-def _get_include_loop(
-    lp_id          : BlockId,
-    include_parents: ParentsById,
-    root_id        : typ.Optional[BlockId] = None,
-    depth          : int = 0,
-) -> typ.List[str]:
-    # TODO (mb 2020-12-11): What was the intention for the depth variable?
-
-    if root_id is None:
-        return _get_include_loop(lp_id, include_parents, lp_id, depth + 1)
-
-    parent_ids: BlockIds = list(include_parents.get(lp_id, []))
-    for parent_id in parent_ids:
-        if parent_id == root_id:
-            return [parent_id]  # found loop
-
-    for parent_id in parent_ids:
-        loop = _get_include_loop(parent_id, include_parents, root_id, depth + 1)
-        if loop:
-            return [parent_id] + loop
-
-    return []
-
-
-def _err_on_include_loop(
-    block          : parse.Block,
-    lp_id          : BlockId,
-    blocks_by_id   : BlocksById,
-    include_parents: ParentsById,
-    root_id        : typ.Optional[BlockId] = None,
-) -> None:
-    loop_ids = _get_include_loop(lp_id, include_parents, root_id=root_id)
-    if len(loop_ids) < 2:
-        return
-
-    for loop_id in loop_ids:
-        loop_block = blocks_by_id[loop_id][0]
-        loc        = parse.location(loop_block).strip()
-        logger.warning(f"{loc} - {loop_id} (trace for include loop)")
-
-    path   = " -> ".join(f"'{loop_id}'" for loop_id in loop_ids)
-    errmsg = f"Include loop {path}"
-    raise BlockError(errmsg, block)
+BlockId    = str
+BlockIds   = typ.List[BlockId]
+BlocksById = typ.Dict[BlockId, typ.List[parse.Block]]
+IncludeMap = typ.Dict[BlockId, typ.Set[BlockId]]
 
 
 def _namespaced_lp_id(block: parse.Block, lp_id: BlockId) -> BlockId:
@@ -254,9 +209,74 @@ def _namespaced_lp_id(block: parse.Block, lp_id: BlockId) -> BlockId:
         return block.namespace + "." + lp_id.strip()
 
 
+def _build_include_map(blocks_by_id: BlocksById) -> IncludeMap:
+    include_map: IncludeMap = {}
+    for lp_def_id, blocks in blocks_by_id.items():
+        for block in blocks:
+            for lp_include in iter_directives(block, 'lp_include'):
+                lp_included_ids = [
+                    _namespaced_lp_id(block, _lp_id) for _lp_id in lp_include.value.split(",")
+                ]
+                for included_id in lp_included_ids:
+                    if included_id not in blocks_by_id:
+                        errmsg = f"Unknown block id: {included_id}"
+                        raise BlockError(errmsg, block)
+                    elif lp_def_id in include_map:
+                        include_map[lp_def_id].add(included_id)
+                    else:
+                        include_map[lp_def_id] = {included_id}
+
+    logger.debug("include map")
+    for lp_id, including_ids in sorted(include_map.items()):
+        logger.debug("   {lp_id} -> {including_ids}")
+
+    return include_map
+
+
+def _get_include_cycle(
+    lp_id      : BlockId,
+    include_map: IncludeMap,
+    root_id    : BlockId,
+    depth      : int = 0,
+) -> typ.List[str]:
+    if lp_id in include_map:
+        include_ids = include_map[lp_id]
+        if root_id in include_ids:
+            return [lp_id]
+
+        for _include_id in include_ids:
+            cycle_ids = _get_include_cycle(_include_id, include_map, root_id, depth + 1)
+            if cycle_ids:
+                return [lp_id] + cycle_ids
+
+    return []
+
+
+def _err_on_include_cycle(
+    block       : parse.Block,
+    lp_id       : BlockId,
+    blocks_by_id: BlocksById,
+    include_map : IncludeMap,
+    root_id     : BlockId,
+) -> None:
+    cycle_ids = _get_include_cycle(lp_id, include_map, root_id=root_id)
+    if not cycle_ids:
+        return
+
+    cycle_ids = [root_id] + cycle_ids
+    for cycle_id in cycle_ids:
+        cycle_block = blocks_by_id[cycle_id][0]
+        loc         = parse.location(cycle_block).strip()
+        logger.warning(f"{loc} - {cycle_id} (trace for include cycle)")
+
+    path   = " -> ".join(f"'{cycle_id}'" for cycle_id in cycle_ids)
+    errmsg = f"Include cycle {path}"
+    raise BlockError(errmsg, block)
+
+
 def _expand_directives(blocks_by_id: BlocksById, md_file: parse.MarkdownFile) -> parse.MarkdownFile:
     new_md_file = md_file.copy()
-    include_parents: ParentsById = {}
+    include_map = _build_include_map(blocks_by_id)
 
     is_done = False
     while not is_done:
@@ -277,18 +297,8 @@ def _expand_directives(blocks_by_id: BlocksById, md_file: parse.MarkdownFile) ->
                 ]
 
                 for lp_id in lp_include_ids:
-                    if lp_id not in blocks_by_id:
-                        errmsg = f"Unknown block id: {lp_id}"
-                        raise BlockError(errmsg, block, content_chunks)
-
-                    if lp_id not in include_parents:
-                        include_parents[lp_id] = set()
-
-                    if lp_def_id:
-                        include_parents[lp_id].add(lp_def_id)
-
-                    _err_on_include_loop(
-                        block, lp_id, blocks_by_id, include_parents, root_id=lp_def_id
+                    _err_on_include_cycle(
+                        block, lp_id, blocks_by_id, include_map, root_id=lp_def_id
                     )
 
                     content_chunks.extend(
@@ -346,7 +356,7 @@ def _iter_expanded_files(md_files: MarkdownFiles) -> ExpandedMarkdownFiles:
     #   build a graph so that we can resolve blocks for each include.
 
     # pass 1. collect all blocks (globally) with lp_def directives
-    # NOTE (mb 2020-05-31): block ids are always absolute
+    # NOTE (mb 2020-05-31): block ids are always absulute/fully qualified
     blocks_by_id = _get_blocks_by_id(md_files)
 
     # pass 2. expand lp_include directives in file
