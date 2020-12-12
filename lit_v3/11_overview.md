@@ -586,45 +586,6 @@ fast     0.008 ms
 ```
 
 
-### Macro Directives
-
-This feature was dropped. If anything is needed it will have to be much better than textual replacements. The final nail in the coffin was trying to have namespaces that work across languages.
-
-The simplest macro supported by LitProg is the `lp_const` directive. These can be defined inline or for example inside of a markdown listing.
-
- - The largest Fibonacci number to calculate: `lp_const: MAX_FIB=20`
- - How many numbers to print per line `lp_const: FIBS_PER_LINE=5`
-
-```python
-# lp_exec: python3
-# lp_include: imports, slow_fib, fast_fib
-MAX_FIB = 20
-FIBS_PER_LINE = 5
-
-print(f"fib(2..{MAX_FIB}):", end="")
-for n in range(MAX_FIB):
-    if n % FIBS_PER_LINE == 0:
-        print()
-        print(f"  {n:>3}", end=": ")
-    print(f"{fast_fib(n):>5}", end=" ")
-```
-
-```shell
-# lp_out
-fib(2..20):
-    0:     0     1     1     2     3
-    5:     5     8    13    21    34
-   10:    55    89   144   233   377
-   15:   610   987  1597  2584  4181
-# exit: 0
-```
-
-The choice of names for such a constant may be influenced by the language being used. If you want make it possible for code formatters to reformat a code block, then the code block must be syntactically valid even if it includes non-expanded macros.
-
-The preceding example prin
-LitProg has support for macros using the `lp_def` directive. These are non-hygenic, can be parameterized and are recursively expanded.
-
-
 ### Writing Code to Disk
 
 Up to here our code has been floating around in memory, but eventually we want to produce something that is useful. A program that our users might like to run. In other words, we want to write our code to disk so that it can either be used directly, or further processed by a compiler.
