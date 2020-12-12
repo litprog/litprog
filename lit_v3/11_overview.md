@@ -29,7 +29,7 @@ You can use LitProg with practically any programming language, such as Python, J
  2. write source code files as output,
  3. write HTML and PDF files as documentation.
 
-While this is what LitProg does in essence, it doesn't show the key reason to use LitProg rather than other literate programming tools. LitProg is inspired by the interactive nature of Jupyter notebooks: You can mix documentation, code and critically also *execution*. This makes it possible to *demonstrate* to your readers, that your literate program works as advertised, by executing subprocesses and capturing their output. So a more complete picture of how LitProg works looks like this:
+While this *is* in essence what LitProg does, it doesn't show the key reason to use LitProg rather than other literate programming tools. LitProg is inspired by the interactive nature of Jupyter notebooks: You can mix documentation, code and critically also *execution*. This makes it possible to *demonstrate* to your readers, that your literate program works as advertised, by executing subprocesses and capturing their output. So a more complete picture of how LitProg is this:
 
 ```bob
  +----------+                        +----------+
@@ -61,38 +61,18 @@ While this is what LitProg does in essence, it doesn't show the key reason to us
 
 A critical goal of LitProg is to maintain programmer flow. You should be able to stay in your code editor most of the time. You should be able to focus on your ideas, your code and your writing, rather than on document layout and typesetting.
 
-With LitProg, you can spend most of your time on You can
-devote more time to crafting a narrative to help your readers understand
-your program, and less time on formatting and styling of documentation.
-You might even treat the documentation artifacts almost as an
-afterthought. The correspondance between the markdown you write and the
-generated documentation is so close, that your less casual readers may
-find the markdown more convenient to read and work with than the HTML or
-PDF documentation.
+With LitProg, you can spend most of your time on a narrative and structure that will help your readers understand your program, and less time on formatting and styling of documentation. The goal is that you can treat the documentation artifacts as an afterthought, but since the correspondance between the markdown you write and the generated documentation is so close, you will never feel the desire to look at it.
 
 
 ### Pragmatism vs Dogmatism
 
-Now I know what you're thinking: "I already don't spend any time on
-document layout, formatting, styling and whatever else kinda useless
-garbage nobody is going to read anyway. I just don't write any
-documentation, agile baby whooooh 🤘". Fair enough, and let me also say, if
-you don't write your program as a Literate Program, that doesn't make you
-a bad person. If your program is a one-off script, maybe you don't need to
-use LitProg. If your program is trivial and nobody other than you will
-ever work on it, then maybe you don't need to use LitProg. Not all
-software needs to satisfy lofty goals of being understandable and correct.
+Now I know what you're thinking: "I *already* don't spend any time on document layout, formatting, styling and whatever else kinda useless garbage nobody is going to read anyway. I just don't write any documentation, agile freedom baby whooooh 🤘". Fair enough, and let me also say, if you don't write your program as a Literate Program, that doesn't make you a bad person. If your program is a one-off script, almost certainly LitProg isn't the right choice. If your program is trivial and nobody other than you will ever work on it, then any effort you make to document its structure will be wasted. Not all software needs to satisfy lofty goals of being understandable and correct.
 
 > Writing is nature's way of letting you know how sloppy your thinking is.
 >
 > – Dick Guindon
 
-If on the other hand, the lifetime of the software you're writing is
-measured in years, if you don't even know all the people who may carry
-forward the torch you are lighting, if you can't get away with code that
-is so obtuse that others might get the idea that it's primary function is
-to provide job security for its author, then LitProg is perhaps worth your
-consideration.
+If on the other hand, the lifetime of the software you're writing is measured in years, if you don't even know all the people who may carry forward the torch you are lighting, if you can't get away with code that is so obtuse that others might get the idea that it's primary function is to provide job security, then LitProg is perhaps worth your consideration.
 
 > Linus's Law: Given enough eyeballs, all bugs are shallow.
 >
@@ -147,8 +127,6 @@ execute a code block. A typical use case for such executable code blocks
 is to validate (and demonstrate to your readers) that your program is
 correct.
 
-
-
 LitProg is simple and flexible. You can use it with any language, on any
 platform, with any build system. With Markdown, the barrier to entry is
 very low and you won't have to constantly check if the generated
@@ -182,8 +160,7 @@ The example file is written in Markdown, which is familiar to many programmers a
 
 When programming you will usually run `litprog build lit/` or `litprog watch lit/`. This will generate source code files and execute any sub-commands that are part of your program. Such commands typically relate to testing and validating your program, or they might illustrate its behaviour.
 
-Generating the full documentation can take some time, so it introduces a friction that you will want to avoid during regular programming. It can be a part of a build process or [CI][href_wiki_ci] pipeline and you will only occasionally you may want to generate documentation during development, but usually you shouldn't have to. You can pass the `--html <directory>` and `--pdf <directory>` parameters to generate the static HTML and PDF files.
-
+You can pass the `--html <directory>` and `--pdf <directory>` parameters to generate the static HTML and PDF files. Generating these documentation artifacts (as opposed to just executing the code blocks) can take some time, so it introduces a friction that you will want to avoid during regular programming. It can be a part of a build process or [CI][href_wiki_ci] pipeline and you will only occasionally you may want to generate documentation during development, but usually you shouldn't have to.
 
 ```bash
 $ litprog build --verbose 11_intro.md --html doc/ --pdf doc/
@@ -195,9 +172,8 @@ doc/styles.css
 doc/11_intro.html
 ```
 
-### LitProg by Example
 
-LitProg works by parsing your markdown for fenced code blocks and parsing these code blocks for directives. These make it possible to compose programs in a flexible way, without being distracted by typesetting and page layout. LitProg allows programmers to focus on their code, their ideas and a coherent narrative to explain their programs.
+### LitProg by Example
 
 I will use the familiar [Fibonacci function][href_wiki_fib] and Python for this example. I hope you will learn nothing about the particular example and can instead focus on the mechanics of LitProg itself. I will later give a more extensive example, to give a better impression of Literate Programming, without being distracted by the mechanics of LitProg.
 
@@ -235,17 +211,13 @@ In case you weren't aware, this naive recursive implementation is
 well known to have a complexity of $`O(2^n)`$ (in other words: it's
 pretty bad).
 
+
 ### The `lp_def` Directive
 
-The previous[^fnote_avoid_relative] code block is not treated
-specially by LitProg. It is not written to any file, not converted by
-any compiler, nor executed by any interpreter. It will end up in the
-documentation, just as you would expect from any Markdown renderer,
-but that's about it.
+LitProg works by parsing your markdown for fenced code blocks and parsing these code blocks for directives. The previous[^fnote_avoid_relative] code block has no directive, so it is not treated specially by LitProg in any way. It is not written to any file and neither compiled or executed. It will end up in the documentation, just as you would expect from any Markdown renderer, but that's about it.
 
 To make a code block usable, it must be assigned to a namespace using
-the `lp_def` directive. It can then referenced in a later code block
-using the `lp_include` directive.
+the `lp_def` directive. The block can then be referenced in a later code block using other directives.
 
 ```python
 # lp_def: slow_fib
@@ -256,17 +228,11 @@ def fib(n: int) -> int:
         return fib(n - 1) + fib(n - 2)
 ```
 
-LitProg directives are written using the comment syntax of the
-programming language declared for the block. In this case, the syntax
-of the block is `python`, so all lines which start with a `#`
-character are parsed in search of LitProg directives. In this case
-there is only one such line: `# lp_def: slow_fib`. The text
-after[^fnote_whitespace_in_directives] the `:` (`slow_fib`) is an
-identifier, which places the block in the namespace of this file. It
-can be referenced within this file as `slow_fib` and from outside this
-file as `overview.slow_fib`, as this file is named `11_overview.md`, from
-which the file extension and any leading digits are stripped, which
-produces the namespace identifier `overview`.
+LitProg directives are written using the comment syntax of the programming language declared for the block. In this case, the syntax of the block is `python`, so all lines which start with a `#` character are parsed in search of LitProg directives. In this case there is only one such line: `# lp_def: slow_fib`. The text after[^fnote_whitespace_in_directives] the `:` (`slow_fib`) is an identifier, which places the block in the namespace of this file.
+
+The previous block can be referenced either as `slow_fib` or `overview.slow_fib`. The namespace `overview` is derived from the filename `11_overview.md`, from which the file extension and any leading digits are stripped. Outside of the file, only the fully qualified name `overview.slow_fib` can be used.
+
+The most simple way to refrence a code block is with the `lp_include` directive. We can use this for example, to add an assertion in a new block.
 
 ~~~
 ```python
@@ -275,8 +241,7 @@ assert fib(8) == 21
 ```
 ~~~
 
-In other words, once the preceding block is expanded, it will be
-equivalent to the following:
+Once the preceding block is expanded, it is equivalent to the following literal markdown:
 
 ~~~
 ```python
@@ -332,12 +297,10 @@ assert fib(8) == 21
 While the `fib` function is quite simple to understand, you as a
 reader are either left to validate if it is correct for yourself, or
 to trust the claims of the author that the implementation is correct.
-The previous assertion `assert fib(8) == 21` is not actually executed
-anywhere, so who is to say if it will pass?
 
 Instead of manual validation or trust, we can instead provide some
 code which will actually execute the `fib` function, and which would
-cause an error if any of our assertions were not to hold.
+cause an error if any of our assertions were false.
 
 ```python
 # lp_def: test_fib
@@ -347,11 +310,12 @@ assert fib(12) == 144
 assert fib(20) == fib(19) + fib(18)
 ```
 
-I will use these assertions again later, so I've declared them in a separate block first, before now proceeding to run them.
+I will use these assertions again later, so I've declared them in a separate block first, before now proceeding to execute them.
 
 ```python
 # lp_exec: python3
-# lp_include: slow_fib, test_fib
+# lp_include: slow_fib
+# lp_include: test_fib
 ```
 
 The `lp_exec` directive invokes a command (in this case `python3`), which receives the expanded block (after substitution of all `lp_include` directives) via its [stdin][href_wiki_std_streams].
@@ -399,12 +363,18 @@ The captured output gives the reader some assurance that the document they are r
 
 The exit status and the captured output are demonstrations that at least on one machine and at some point in the past, the program was in some sense "correct", or at least that the generated documentation is consistent with the program that was used to generate it[^fnote_max_hedging]. This approach to including program output in generated documentation gives readers a chance to see if the author is trying to hide how the sausage is made. While it may be appropriate to relegate certain logic to an appendix, for example to avoid distraction from a desired narrative, the entire program can in principle be made accessible to inquisitive readers. They may still have to trust that the author is acting in good faith, but at least the issues of outdated documentation and casual errors due to forgetfulness of the author is greatly mitigated.
 
-By this point I hope you can see, that LitProg allows you to write 1. documentation, 2. source code and 3. automated testing, all combined in a way that allows you to create a narrative that makes the most sense to understand your program.
+By this point I hope you can see, that LitProg allows you to write:
+
+1. documentation,
+2. source code
+3. automated tests
+
+These can all be combined in a way that allows you to create a narrative that makes the most sense to understand your program.
 
 
 ### In-Place Updates of Fenced Blocks
 
-Validating that a program is correct, is not only important to communicate to readers, it is also part and parcel of the programming workflow. Most programmers are the first that want to know if their program is working. Generating HTML/PDF documentation takes a bit of time and switching back and forth between a browser window and a code editor would introduce a lot of friction into the programming workflow. To avoid this friction, LitProg instead does in-place updates to the original markdown files. The output that is captured during a build is inserted into the markdown text. This works well for editors that detect and automatically reload files that have changed. When using `litprog watch` programmers can simply hit save and see how the output of their program appears directly in their text editor.
+Validating that a program is correct, is not only important to communicate to readers, it is also part and parcel of the programming workflow. Most programmers are the first that want to know if their program is working or broken. Generating HTML/PDF documentation takes a bit of time and switching back and forth between a browser window and a code editor would introduce a lot of friction into the programming workflow. To avoid this friction, LitProg can instead do in-place updates to the original markdown files. The output that is captured during a build is inserted into the markdown text. This works well for editors that detect and automatically reload files that have changed. When using `'litprog watch'` programmers can simply hit save and see the updated output of their program appear directly in their text editor.
 
 This approach also has the advantage that output of the most recent execution and viewing the Markdown files on github/gitlab/bitbucket can give a good idea of what the generated documentation will look like. Reviewing the diff of a commit can also demonstrate the behavioural change that a change in the source code caused.
 
@@ -438,7 +408,7 @@ This approach also has the advantage that output of the most recent execution an
 
 ## Creating Files
 
-It might be enough for academics if LitProg were only to produce documentation, but most other people want to have artifacts that are actually useful. In the most simple case you can use the `lp_file: <filename>` directive to generate files.
+It might be enough for academics if LitProg were only to produce documentation, but most other people want to have artifacts that are actually useful, such as an actual program. In the most simple case you can use the `lp_file: <filename>` directive to generate files.
 
 ```python
 # lp_file: examples/fib.py
@@ -452,7 +422,7 @@ for i in range(10):
     Paths in LitProg always use the `/` (forward slash) character, even if you are running on a Windows machine. Avoid using absolute paths, so that your program can be built on machines with different directory layouts.
 
 
-The `lp_run: <command>` directive  combines `lp_exec` and `lp_out`, except that unlike `lp_exec`, the process will not receive anything via stdin. This is not too limiting however, as commands are only run after all `lp_file` directives have been written, so you can execute your program via a previously written file, instead of feeding in the program via stdin. Let's try this for the `examples/fib.py` created by the previous block.
+The `lp_run: <command>` directive  combines `lp_exec` and `lp_out`, except that unlike `lp_exec`, the process will not receive anything via stdin. This is not too limiting however, as commands are only run after all `lp_file` directives have been written, so you can execute your program via a previously written file (instead of feeding in the program via stdin, as is the case for `lp_exec`). Let's try this for the `examples/fib.py` created by the previous block.
 
 ```bash
 # lp_run: python3 examples/fib.py
@@ -488,7 +458,7 @@ creating. Usage examples of `lp_addto: imports` follow shortly.
 
 ### Porcelain vs. Plumbing
 
-The `pretty_print_fibs` function prints a formatted string of the Fibonacci numbers in the given range given by `ns`.
+The `pretty_print_fibs` function prints a formatted string of the Fibonacci numbers in the given range given by the parameter `ns: Sequence[int]`.
 
 ```python
 # lp_def: pretty_print_fibs
@@ -507,21 +477,22 @@ rather than with the full implementation.
 ```python
 # lp_exec: python3
 # lp_include: imports, slow_fib, pretty_print_fibs
-pretty_print_fibs(range(18))
+pretty_print_fibs(range(15))
 ```
 
 ```shell
 # lp_out
-fib( 0) =>    0  fib( 1) =>    1  fib( 2) =>    1
-fib( 3) =>    2  fib( 4) =>    3  fib( 5) =>    5
-fib( 6) =>    8  fib( 7) =>   13  fib( 8) =>   21
-fib( 9) =>   34  fib(10) =>   55  fib(11) =>   89
-fib(12) =>  144  fib(13) =>  233  fib(14) =>  377
-fib(15) =>  610  fib(16) =>  987  fib(17) => 1597
+fib( 0) =>   0  fib( 1) =>   1  fib( 2) =>   1
+fib( 3) =>   2  fib( 4) =>   3  fib( 5) =>   5
+fib( 6) =>   8  fib( 7) =>  13  fib( 8) =>  21
+fib( 9) =>  34  fib(10) =>  55  fib(11) =>  89
+fib(12) => 144  fib(13) => 233  fib(14) => 377
 # exit: 0
 ```
 
 This also illustrates the use of forward references in LitProg. LitProg does multiple passes over the blocks of your program. It first collects all `lp_def` directives and then recursively resolves all `lp_include` directives and finally it evaluates any `lp_exec` or `lp_run` directives. In other words, it is fine to define parts of your program in an order that suits your narrative rather than linearly the way your compiler/interpreter requires them to be defined.
+
+Finally the actual implementation (which most people will and should just skip).
 
 ```python
 # lp_def: pretty_print_fibs_impl
@@ -605,12 +576,12 @@ with timeit("fast"): fast_fib(20)
 
 ```shell
 # lp_out
-slow     0.062 ms
-slow     0.380 ms
-slow     2.622 ms
-fast     0.012 ms
-fast     0.003 ms
-fast     0.003 ms
+slow     0.201 ms
+slow     1.067 ms
+slow     7.132 ms
+fast     0.025 ms
+fast     0.009 ms
+fast     0.008 ms
 # exit: 0
 ```
 
@@ -809,7 +780,7 @@ chmod +x examples/fib_cli_compat.py
 
 ```bash
 # lp_run: python2 --version
-! Python 2.7.18rc1
+! Python 2.7.18
 # exit: 0
 ```
 
@@ -825,7 +796,7 @@ chmod +x examples/fib_cli_compat.py
 
 ```bash
 # lp_run: python3 --version
-Python 3.8.2
+Python 3.8.6
 # exit: 0
 ```
 

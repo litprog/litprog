@@ -7,12 +7,17 @@ import io
 import re
 import string
 import typing as typ
+import logging
 import itertools as it
 
 import bs4
 import pyphen
 
 from . import md2html
+
+
+logger = logging.getLogger(__name__)
+
 
 HTML_PART_PATTERN = re.compile(r"(&[#\w]+?;|<.*?>|\s+\w+)")
 
@@ -433,7 +438,11 @@ def _add_footnotes_header(soup: bs4.BeautifulSoup) -> None:
     refs_h['id'] = ['references']
 
     footnotes = soup.find('div', {'class': 'footnote'})
-    footnotes.insert(2, refs_h)
+    if footnotes is None:
+        # TODO (mb 2020-12-12): figure out where this went
+        logger.warning("Could not find div.footnote")
+    else:
+        footnotes.insert(2, refs_h)
 
 
 def _add_footer_links(soup: bs4.BeautifulSoup, fmt: str) -> None:

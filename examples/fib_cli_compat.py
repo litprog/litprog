@@ -4,36 +4,38 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
+from typing import Tuple, List, Dict, Set, Sequence
 try:
     import builtins
 except ImportError:
     import __builtin__ as builtins
 import itertools
+import sys
 str = getattr(builtins, 'unicode', str)
 zip = getattr(itertools, 'izip', zip)
 __doc__ = 'Usage: python {0} [--help] [--pretty] <n>...'.format(__file__)
-import sys
-from typing import List, Set, Tuple
-from typing import Dict
-_fib_cache = {}
+
+
+def fib(n):
+    if n < 2:
+        return n
+    else:
+        return fib(n - 1) + fib(n - 2)
+
+
+_cache = {}
 
 
 def fast_fib(n):
-    if n <= 1:
+    if n < 2:
         return n
-    if n in _fib_cache:
-        return _fib_cache[n]
-    _fib_cache[n - 2] = fast_fib(n - 2)
-    _fib_cache[n - 1] = fast_fib(n - 1)
-    assert n - 1 in _fib_cache, n
-    return _fib_cache[n - 1] + _fib_cache[n - 2]
-
-
-fib = fast_fib
-from typing import Sequence
+    if n not in _cache:
+        _cache[n] = fast_fib(n - 1) + fast_fib(n - 2)
+    return _cache[n]
 
 
 def pretty_print_fibs(ns):
+    """Calculate Fibbonacci numbers and print them to stdout."""
     fibs = [fib(n) for n in ns]
     pad_n = len(str(max(ns)))
     pad_fib_n = len(str(max(fibs)))
@@ -68,7 +70,7 @@ def main(args=sys.argv[1:]):
         pretty_print_fibs(ns)
     else:
         for n in ns:
-            print(fib(n))
+            print(fast_fib(n))
     return 0
 
 
