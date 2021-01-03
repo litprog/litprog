@@ -1,0 +1,71 @@
+
+### The `lp_require` Directive
+
+So far every process was independent of every other. In principle the process could have been executed in any order, or indeed concurrently. If an `lp_exec` or `lp_run` has a dependency on another, then they must be declared with the `lp_require: <filename>` directive.
+
+!!! note "Why, oh why, does every tool need a new build system?!"
+
+    In my defense, I don't feel that I'm reinventing the wheel, rather I'm reimplementing an existing and vernerable wheel called `make`. If you are familiar with make, you should have no problem learning the build system of LitProg.
+
+    Even if this were reinventing the wheel, since output generated earlier phases of a LitProg build can be used by later phases (for example test results can be shown in output documents), it makes sense to have the build system be integrated and not separate.
+
+    Many large programs use a build system to produce the final artifacts, such as binaries or packages. Documenting how to produce these artifacts should at least be possible, otherwise there is a thick curtain behind which the author can hide all kinds of magic.
+
+!!! note "redo: mtime dependencies done right"
+
+    @apenwarr has written enough about the [pitfalls of detecting changes using mtime comparison][href_apenwarr_mtime]. LitProg takes the reccomended apporoach of keeping a database/index of files and falling back on content hashing only as an optimization when file system metadata cannot be relied upon to determine if a dependency has changed.
+
+
+For illustration, I'll introduce a build script which processes the `examples/fib_cli.py` file (which is an output generated in phase 2 of `litprog build`) and writes `examples/fib_cli_compat.py`. This new file can be run on even with a Python 2 interpreter.
+
+```bash
+# lp_file: examples/build_cli_compat.sh
+python3 -m lib3to6 examples/fib_cli.py \
+    > examples/fib_cli_compat.py
+chmod +x examples/fib_cli_compat.py
+```
+
+```bash
+# lp_exec: bash examples/build_cli_compat.sh
+```
+
+
+```bash
+# lp_run: python2 --version
+! Python 2.7.18
+# exit: 0
+```
+
+```bash
+# lp_run: python2 examples/fib_cli_compat.py 22
+# lp_require: examples/fib_cli_compat.py
+! Traceback (most recent call last):
+!   File "examples/fib_cli_compat.py", line 7, in <module>
+!     from typing import Tuple, List, Dict, Set, Sequence
+! ImportError: No module named typing
+# exit: 1
+```
+
+```bash
+# lp_run: python3 --version
+Python 3.8.6
+# exit: 0
+```
+
+```bash
+# lp_run: python3 examples/fib_cli_compat.py 22
+# lp_require: examples/fib_cli_compat.py
+17711
+# exit: 0
+```
+
+```bash
+# lp_run: python3 examples/fib_cli_compat.py --pretty 2 5 8 12 19 20
+fib( 2) =>    1  fib( 5) =>    5  fib( 8) =>   21
+fib(12) =>  144  fib(19) => 4181  fib(20) => 6765
+# exit: 0
+```
+
+These examples are intended as a quick overview, but there is much more to be said about the how each of these primitives can be used and misused.
+
+
