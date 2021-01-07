@@ -25,4 +25,5 @@ toml
 PyYAML
 # ujson
 
-watchdog
+pandas
+matplotlib

@@ -7,14 +7,13 @@ import sys
 import logging
 import pathlib as pl
 
-log = logging.getLogger(__name__)
-
-logging.getLogger('weasyprint').setLevel(logging.ERROR)
-
 
 def html2pdf(html_text: str, out_path: pl.Path, html_dir: pl.Path) -> None:
     # pylint: disable=import-outside-toplevel ; lazy import since we don't always need it
+    #   the lazy import makes for a better cli experience
     import weasyprint
+
+    logging.getLogger('weasyprint').setLevel(logging.ERROR)
 
     wp_ctx = weasyprint.HTML(string=html_text, base_url=str(html_dir))
     with out_path.open(mode="wb") as fobj:

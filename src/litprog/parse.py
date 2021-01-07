@@ -36,6 +36,8 @@ VALID_ELEMENT_TYPES = {
     MD_BLOCK,
 }
 
+NON_CODE_BLOCKS = ('bob', 'math')
+
 MarkdownElementType = str
 
 
@@ -66,6 +68,16 @@ ELEMENT_PATTERN = f"""
     | (?:{BLOCK_START_PATTERN})
 """
 
+# https://regex101.com/r/cSbfvF/35
+IMAGE_URL_PATTERN = r"""
+!\[
+  (?P<alt>[^\]]*)
+\]
+\(
+  (?P<url>.*?)(?=\"|\))
+  (?P<title>\".*\")?
+\)
+"""
 
 LANGUAGE_COMMENT_PATTERNS = {
     "c++"          : (r"^\s*//"  , r"$"),
@@ -180,6 +192,14 @@ BLOCK_START_RE = _re(BLOCK_START_PATTERN)
 
 BLOCK_END_RE = {"```": _re(r"^```"), "~~~": _re(r"^~~~")}
 
+IMAGE_URL_RE = _re(IMAGE_URL_PATTERN)
+
+
+class ImageTag(typ.NamedTuple):
+    alt  : str
+    url  : str
+    title: str
+
 
 class _RawMarkdownElement(typ.NamedTuple):
 
@@ -227,6 +247,17 @@ class MarkdownElement:
         self.md_type    = md_type
         self.content    = content
         self._successor = successor
+
+    def __repr__(self) -> str:
+        addr = hex(id(self))
+        return (
+            f"MarkdownElement("
+            + f"'{self.md_path}', "
+            + f"{self.first_line}, "
+            + f"{self.elem_index}, "
+            + f"'{self.md_type}', "
+            + f"...) at {addr}"
+        )
 
     def clone(self) -> 'MarkdownElement':
         return MarkdownElement(
@@ -276,6 +307,7 @@ VALID_DIRECTIVE_NAMES = {
     # block composition
     'lp_def',
     'lp_addto',
+    'lp_dep',
     'lp_include',
     # session/subprocess
     'lp_exec',
@@ -288,7 +320,7 @@ VALID_DIRECTIVE_NAMES = {
     # NOTE: lp_input_delay might allow the accurate
     #   association of input/output as long as output
     #   is always captured by the time the delay passes.
-    # 'lp_input_delay',
+    'lp_input_delay',
     'lp_hide',
     'lp_proc_info',
     'lp_out_prefix',
@@ -297,7 +329,7 @@ VALID_DIRECTIVE_NAMES = {
     'lp_err_color',
     # file generation
     'lp_file',
-    'lp_deps',
+    'lp_require',
     'lp_make',
     # 'lp_const'
     # 'lp_use_macro',
@@ -314,10 +346,11 @@ def _parse_directive(directive_text: str, raw_text: str) -> Directive:
         name  = directive_text.strip()
         value = ""
 
-    if name not in VALID_DIRECTIVE_NAMES:
+    if name in VALID_DIRECTIVE_NAMES:
+        return Directive(name, value, raw_text)
+    else:
         errmsg = f"Invalid directive '{name}'"
         raise Exception(errmsg)
-    return Directive(name, value, raw_text)
 
 
 # NOTE (mb 2020-05-22): Since we do multiple passes over the file, we
@@ -390,10 +423,10 @@ class MarkdownFile:
         if filename_match is None:
             errmsg = f"Invalid filename {filename}, must match {FILENAME_PATTERN_URL}"
             raise Exception(errmsg)
-
-        raw_namespace        = filename_match.group('namespace')
-        normalized_namespace = raw_namespace.replace("-", "_").replace(" ", "_")
-        return normalized_namespace
+        else:
+            raw_namespace        = filename_match.group('namespace')
+            normalized_namespace = raw_namespace.replace("-", "_").replace(" ", "_")
+            return normalized_namespace
 
     @property
     def headlines(self) -> typ.Iterable[Headline]:
@@ -417,7 +450,15 @@ class MarkdownFile:
 
             yield Headline(self.md_path, elem_index, text.strip(), level)
 
-    def _init_plain_block(self, elem_index: int, elem: MarkdownElement, info_string: str) -> Block:
+    @property
+    def image_tags(self) -> typ.Iterable[ImageTag]:
+        for elem_index, elem in enumerate(self.elements):
+            if elem.md_type in (MD_HEADLINE, MD_BLOCK):
+                continue
+            for image_match in IMAGE_URL_RE.finditer(elem.content):
+                yield ImageTag(*image_match.groups())
+
+    def _init_plain_block(self, elem: MarkdownElement, info_string: str) -> Block:
         inner_content = elem.content
         inner_content = inner_content.split("\n", 1)[-1]
         # trim off final fence
@@ -427,7 +468,7 @@ class MarkdownFile:
             self.md_path,
             self.block_namespace,
             elem.first_line,
-            elem_index,
+            elem.elem_index,
             info_string,
             [],
             elem.content,
@@ -436,9 +477,7 @@ class MarkdownFile:
             inner_content.strip(),
         )
 
-    def _init_code_block(
-        self, elem_index: int, elem: MarkdownElement, info_string: str, rest_content: str
-    ) -> Block:
+    def _init_code_block(self, elem: MarkdownElement, info_string: str, rest_content: str) -> Block:
         language = info_string
         comment_start_re, comment_end_re = LANGUAGE_COMMENT_REGEXES[language]
 
@@ -477,7 +516,7 @@ class MarkdownFile:
                 directive = _parse_directive(comment_text, raw_text)
                 directives.append(directive)
                 inner_chunks.append(raw_text)
-                if directive.name == 'lp_include':
+                if directive.name in ('lp_dep', 'lp_include'):
                     # NOTE (mb 2020-06-03): needed for recursive include
                     includable_chunks.append(raw_text)
             else:
@@ -500,7 +539,7 @@ class MarkdownFile:
             self.md_path,
             self.block_namespace,
             elem.first_line,
-            elem_index,
+            elem.elem_index,
             info_string,
             directives,
             elem.content,
@@ -508,32 +547,35 @@ class MarkdownFile:
             includable_content,
         )
 
-    @property
-    def blocks(self) -> typ.Iterable[Block]:
-        for elem_index, elem in enumerate(self.elements):
+    def _iter_block_elements(self) -> typ.Iterable[MarkdownElement]:
+        for elem in self.elements:
             if elem.md_type == 'block':
                 start_match = BLOCK_START_RE.match(elem.content)
                 assert start_match is not None
-                info_string = start_match.group('info_string') or ""
-                info_string = info_string.strip()
+                info_string   = start_match.group('info_string') or ""
+                info_string   = info_string.strip()
+                content_start = start_match.end()
+                content = elem.content[content_start:]
+                yield (elem, info_string, content)
 
-                is_known_info_string = info_string in KNOWN_INFO_STRINGS
-                if info_string.strip() and not is_known_info_string:
-                    err = make_parse_error(
-                        f"Unknown language '{info_string}'", elem, logging.WARNING
-                    )
-                    self.errors.add(err)
+    def iter_blocks(self) -> typ.Iterable[Block]:
+        for elem, info_string, content in self._iter_block_elements():
+            is_known_info_string = info_string in KNOWN_INFO_STRINGS
+            if info_string.strip() and not is_known_info_string:
+                err = make_parse_error(f"Unknown language '{info_string}'", elem, logging.WARNING)
+                self.errors.add(err)
 
-                is_valid_language = info_string in LANGUAGE_COMMENT_REGEXES
-                if is_valid_language:
-                    yield self._init_code_block(
-                        elem_index,
-                        elem,
-                        info_string,
-                        rest_content=elem.content[start_match.end() :],
-                    )
-                else:
-                    yield self._init_plain_block(elem_index, elem, info_string)
+            is_valid_language = info_string in LANGUAGE_COMMENT_REGEXES
+            if is_valid_language:
+                yield self._init_code_block(elem, info_string, rest_content=content)
+            else:
+                yield self._init_plain_block(elem, info_string)
+
+    def iter_block_linenos(self) -> typ.Iterable[typ.Tuple[int, int]]:
+        for elem, info_string, content in self._iter_block_elements():
+            if info_string not in NON_CODE_BLOCKS:
+                num_lines = content.strip().count("\n")
+                yield elem.first_line, num_lines
 
     def __lt__(self, other: 'MarkdownFile') -> bool:
         return self.md_path < other.md_path
@@ -644,10 +686,9 @@ class Context:
             for headline in md_file.headlines:
                 yield headline
 
-    @property
-    def blocks(self) -> typ.Iterable[Block]:
+    def iter_blocks(self) -> typ.Iterable[Block]:
         for md_file in self.files:
-            for block in md_file.blocks:
+            for block in md_file.iter_blocks():
                 yield block
 
     def copy(self) -> 'Context':
@@ -665,7 +706,7 @@ def parse_context(md_paths: FilePaths) -> Context:
 
     assert ctx.copy() == ctx
     list(ctx.headlines)
-    list(ctx.blocks)
+    list(ctx.iter_blocks())
 
     for md_file in ctx.files:
         for err in md_file.errors:

@@ -3,12 +3,14 @@
 #
 # Copyright (c) 2018-2020 Manuel Barkhau (mbarkhau@gmail.com) - MIT License
 # SPDX-License-Identifier: MIT
+import os
 import re
 import sys
 import time
 import typing as typ
 import logging
 import pathlib as pl
+import tempfile
 
 from . import parse
 from . import session
@@ -29,6 +31,8 @@ TERM_COLORS = {
     'cyan'   : "36",
     'white'  : "37",
 }
+
+DEFUALT_TIMEOUT = 9.0
 
 
 MarkdownFiles = typ.Iterable[parse.MarkdownFile]
@@ -79,12 +83,11 @@ def get_directive(
         else:
             errmsg = f"Could not find block with expected '{name}'"
             raise BlockError(errmsg, block)
-
-    if len(found) > 1 and not many_ok:
+    elif len(found) > 1 and not many_ok:
         errmsg = f"Block with multiple '{name}'"
         raise BlockError(errmsg, block)
-
-    return found[0]
+    else:
+        return found[0]
 
 
 def has_directive(block: parse.Block, name: str) -> bool:
@@ -138,7 +141,7 @@ def iter_directives(block: parse.Block, name: str) -> typ.Iterable[parse.Directi
 #
 #             new_elements = list(md_file.elements)
 #
-#             for block in md_file.blocks:
+#             for block in md_file.iter_blocks():
 #                 new_content = block.content
 #                 for decl_path, name, const_val in constants:
 #                     namespace   = decl_path.name[: -len(decl_path.suffix)]
@@ -178,12 +181,26 @@ def iter_directives(block: parse.Block, name: str) -> typ.Iterable[parse.Directi
 #     return None
 
 
-def _indented_include(content: str, raw_text: str, include_val: str) -> str:
-    unindented = raw_text.lstrip()
-    indent     = raw_text[: -len(unindented)]
+def _match_indent(directive_text: str, include_val: str) -> str:
+    unindented = directive_text.lstrip()
+    indent     = directive_text[: -len(unindented)].strip("\n")
     if indent:
-        include_val = "\n".join(indent + line for line in include_val.splitlines())
-    return content.replace(raw_text, include_val)
+        return "\n".join(indent + line for line in include_val.splitlines())
+    else:
+        return include_val
+
+
+def _indented_include(
+    content       : str,
+    directive_text: str,
+    include_val   : str,
+    is_dep        : bool = True,
+) -> str:
+    if is_dep:
+        # dependencies are only included once (at the first occurance of a lp_dep directive)
+        return content.replace(directive_text, include_val, 1).replace(directive_text, "")
+    else:
+        return content.replace(directive_text, include_val)
 
 
 # TODO: this should be part of the parsing of all directives
@@ -196,56 +213,62 @@ def _parse_prefix(directive: parse.Directive) -> str:
     return val
 
 
-BlockId    = str
-BlockIds   = typ.List[BlockId]
-BlocksById = typ.Dict[BlockId, typ.List[parse.Block]]
-IncludeMap = typ.Dict[BlockId, typ.Set[BlockId]]
+BlockId       = str
+ScopedBlockId = str
+
+BlockIds       = typ.List[BlockId]
+BlockListBySid = typ.Dict[ScopedBlockId, typ.List[parse.Block  ]]
+DependencyMap  = typ.Dict[ScopedBlockId, typ.List[ScopedBlockId]]
 
 
-def _namespaced_lp_id(block: parse.Block, lp_id: BlockId) -> BlockId:
+def _namespaced_lp_id(block: parse.Block, lp_id: BlockId) -> ScopedBlockId:
     if "." in lp_id:
         return lp_id.strip()
     else:
         return block.namespace + "." + lp_id.strip()
 
 
-def _build_include_map(blocks_by_id: BlocksById) -> IncludeMap:
-    include_map: IncludeMap = {}
-    for lp_def_id, blocks in blocks_by_id.items():
+def _build_dep_map(blocks_by_sid: BlockListBySid) -> DependencyMap:
+    """Build a mapping of block_ids to the Blocks they depend on.
+
+    The mapped block_ids (keys) are only the direct (non-recursive) dependencies.
+    """
+    dep_map: DependencyMap = {}
+    for lp_def_id, blocks in blocks_by_sid.items():
         for block in blocks:
-            for lp_include in iter_directives(block, 'lp_include'):
-                lp_included_ids = [
-                    _namespaced_lp_id(block, _lp_id) for _lp_id in lp_include.value.split(",")
-                ]
-                for included_id in lp_included_ids:
-                    if included_id not in blocks_by_id:
-                        errmsg = f"Unknown block id: {included_id}"
-                        raise BlockError(errmsg, block)
-                    elif lp_def_id in include_map:
-                        include_map[lp_def_id].add(included_id)
+            for lp_dep in iter_directives(block, 'lp_dep'):
+                for dep_id in lp_dep.value.split(","):
+                    dep_sid = _namespaced_lp_id(block, dep_id)
+                    if dep_sid in blocks_by_sid:
+                        if lp_def_id in dep_map:
+                            dep_map[lp_def_id].append(dep_sid)
+                        else:
+                            dep_map[lp_def_id] = [dep_sid]
                     else:
-                        include_map[lp_def_id] = {included_id}
+                        raise BlockError(f"Unknown block id: {dep_sid}", block)
 
-    logger.debug("include map")
-    for lp_id, including_ids in sorted(include_map.items()):
-        logger.debug("   {lp_id} -> {including_ids}")
+    if logger.isEnabledFor(logging.DEBUG):
+        logger.debug("include map")
+        for lp_id, dep_ids in sorted(dep_map.items()):
+            dep_ids_str = ", ".join(sorted(dep_ids))
+            logger.debug(f" lp_deps  {lp_id:<20}: {dep_ids_str}")
 
-    return include_map
+    return dep_map
 
 
-def _get_include_cycle(
-    lp_id      : BlockId,
-    include_map: IncludeMap,
-    root_id    : BlockId,
-    depth      : int = 0,
+def _get_dep_cycle(
+    lp_id  : BlockId,
+    dep_map: DependencyMap,
+    root_id: BlockId,
+    depth  : int = 0,
 ) -> typ.List[str]:
-    if lp_id in include_map:
-        include_ids = include_map[lp_id]
-        if root_id in include_ids:
+    if lp_id in dep_map:
+        dep_sids = dep_map[lp_id]
+        if root_id in dep_sids:
             return [lp_id]
 
-        for _include_id in include_ids:
-            cycle_ids = _get_include_cycle(_include_id, include_map, root_id, depth + 1)
+        for _dep_sid in dep_sids:
+            cycle_ids = _get_dep_cycle(_dep_sid, dep_map, root_id, depth + 1)
             if cycle_ids:
                 return [lp_id] + cycle_ids
 
@@ -253,115 +276,143 @@ def _get_include_cycle(
 
 
 def _err_on_include_cycle(
-    block       : parse.Block,
-    lp_id       : BlockId,
-    blocks_by_id: BlocksById,
-    include_map : IncludeMap,
-    root_id     : BlockId,
+    block        : parse.Block,
+    lp_id        : BlockId,
+    blocks_by_sid: BlockListBySid,
+    dep_map      : DependencyMap,
+    root_id      : BlockId,
 ) -> None:
-    cycle_ids = _get_include_cycle(lp_id, include_map, root_id=root_id)
+    cycle_ids = _get_dep_cycle(lp_id, dep_map, root_id=root_id)
     if not cycle_ids:
         return
 
     cycle_ids = [root_id] + cycle_ids
     for cycle_id in cycle_ids:
-        cycle_block = blocks_by_id[cycle_id][0]
+        cycle_block = blocks_by_sid[cycle_id][0]
         loc         = parse.location(cycle_block).strip()
         logger.warning(f"{loc} - {cycle_id} (trace for include cycle)")
 
     path   = " -> ".join(f"'{cycle_id}'" for cycle_id in cycle_ids)
-    errmsg = f"Include cycle {path}"
+    errmsg = f"lp_dep/lp_include cycle {path}"
     raise BlockError(errmsg, block)
 
 
-def _expand_directives(blocks_by_id: BlocksById, md_file: parse.MarkdownFile) -> parse.MarkdownFile:
-    new_md_file = md_file.copy()
-    include_map = _build_include_map(blocks_by_id)
+def _expand_block_content(
+    blocks_by_sid: BlockListBySid,
+    block        : parse.Block,
+    added_deps   : typ.Set[str],
+    dep_map      : DependencyMap,
+    keep_fence   : bool,
+    lvl          : int = 1,
+) -> str:
+    # NOTE (mb 2020-12-20): Depth first expansion of content.
+    #   This ensures that the first occurance of an lp_dep
+    #   directive is expanded at the earliest possible point
+    #   even if it is a recursive lp_dep.
+    lp_def = get_directive(block, 'lp_def', missing_ok=True, many_ok=False)
 
-    is_done = False
-    while not is_done:
-        is_done = True
-        blocks  = list(new_md_file.blocks)
-        for block in blocks:
-            lp_def = get_directive(block, 'lp_def', missing_ok=True, many_ok=False)
-            if lp_def is None:
-                lp_def_id = None
-            else:
+    if keep_fence:
+        new_content = block.content
+    else:
+        new_content = block.includable_content + "\n"
+
+    for directive in block.directives:
+        if directive.name not in ('lp_dep', 'lp_include'):
+            continue
+
+        is_dep = directive.name == 'lp_dep'
+
+        lp_dep_contents: typ.List[str] = []
+        for lp_dep_id in directive.value.split(","):
+            lp_dep_sid = _namespaced_lp_id(block, lp_dep_id)
+            if lp_def:
                 lp_def_id = _namespaced_lp_id(block, lp_def.value)
+                _err_on_include_cycle(block, lp_dep_sid, blocks_by_sid, dep_map, root_id=lp_def_id)
 
-            new_content = block.content
-            for lp_include in iter_directives(block, 'lp_include'):
-                content_chunks: typ.List[str] = []
-                lp_include_ids = [
-                    _namespaced_lp_id(block, lp_id) for lp_id in lp_include.value.split(",")
-                ]
+            if is_dep:
+                if lp_dep_sid in added_deps:
+                    # skip already included dependencies
+                    continue
+                else:
+                    added_deps.add(lp_dep_sid)
 
-                for lp_id in lp_include_ids:
-                    _err_on_include_cycle(
-                        block, lp_id, blocks_by_id, include_map, root_id=lp_def_id
-                    )
-
-                    content_chunks.extend(
-                        [b.includable_content + "\n" for b in blocks_by_id[lp_id]]
-                    )
-
-                include_content = "".join(content_chunks)
-                new_content     = _indented_include(new_content, lp_include.raw_text, include_content)
-
-            if new_content != block.content:
-                is_done = False  # may need more recursive includes
-
-                elem = new_md_file.elements[block.elem_index]
-                new_md_file.elements[block.elem_index] = parse.MarkdownElement(
-                    elem.md_path, elem.first_line, elem.elem_index, elem.md_type, new_content, None
+            for dep_block in blocks_by_sid[lp_dep_sid]:
+                dep_content = _expand_block_content(
+                    blocks_by_sid, dep_block, added_deps, dep_map, keep_fence=False, lvl=lvl + 1
                 )
+                dep_content = _match_indent(directive.raw_text, dep_content)
+                lp_dep_contents.append(dep_content)
+
+        include_content = "\n" + "\n".join(lp_dep_contents)
+        dep_text        = directive.raw_text.lstrip("\n")
+        new_content     = _indented_include(new_content, dep_text, include_content, is_dep=is_dep)
+
+    return new_content
+
+
+def _expand_directives(
+    blocks_by_sid: BlockListBySid, md_file: parse.MarkdownFile
+) -> parse.MarkdownFile:
+    new_md_file = md_file.copy()
+    dep_map     = _build_dep_map(blocks_by_sid)
+
+    for block in list(new_md_file.iter_blocks()):
+        added_deps: typ.Set[str] = set()
+        new_content = _expand_block_content(
+            blocks_by_sid, block, added_deps, dep_map, keep_fence=True
+        )
+        if new_content != block.content:
+            elem = new_md_file.elements[block.elem_index]
+            new_md_file.elements[block.elem_index] = parse.MarkdownElement(
+                elem.md_path, elem.first_line, elem.elem_index, elem.md_type, new_content, None
+            )
 
     return new_md_file
 
 
-def _get_blocks_by_id(md_files: MarkdownFiles) -> BlocksById:
-    blocks_by_id: BlocksById = {}
+def _get_blocks_by_id(md_files: MarkdownFiles) -> BlockListBySid:
+    blocks_by_sid: BlockListBySid = {}
 
     for md_file in md_files:
-        for block in md_file.blocks:
+        for block in md_file.iter_blocks():
             lp_def = get_directive(block, 'lp_def', missing_ok=True, many_ok=False)
             if lp_def:
                 lp_def_id = lp_def.value
-                if "." in lp_def_id:
-                    errmsg = f"Invalid block id: {lp_def_id}"
+                if "." in lp_def_id and not lp_def_id.startswith(block.namespace + "."):
+                    errmsg = f"Invalid block id: {lp_def_id} for namespace {block.namespace}"
                     raise BlockError(errmsg, block)
 
-                block_id = _namespaced_lp_id(block, lp_def_id)
-                if block_id in blocks_by_id:
-                    prev_block = blocks_by_id[block_id][0]
+                block_sid = _namespaced_lp_id(block, lp_def_id)
+                if block_sid in blocks_by_sid:
+                    prev_block = blocks_by_sid[block_sid][0]
                     prev_loc   = parse.location(prev_block).strip()
                     errmsg     = f"Block already defined: {lp_def_id} at {prev_loc}"
                     raise BlockError(errmsg, block)
 
-                blocks_by_id[block_id] = [block]
+                blocks_by_sid[block_sid] = [block]
 
             for lp_addto in iter_directives(block, 'lp_addto'):
                 lp_addto_id = _namespaced_lp_id(block, lp_addto.value)
-                if lp_addto_id not in blocks_by_id:
+                if lp_addto_id in blocks_by_sid:
+                    blocks_by_sid[lp_addto_id].append(block)
+                else:
                     errmsg = f"Unknown block id: {lp_addto_id}"
                     raise BlockError(errmsg, block)
 
-                blocks_by_id[lp_addto_id].append(block)
-
-    return blocks_by_id
+    return blocks_by_sid
 
 
 def _iter_expanded_files(md_files: MarkdownFiles) -> ExpandedMarkdownFiles:
     # NOTE (mb 2020-05-24): To do the expansion, we have to first
-    #   build a graph so that we can resolve blocks for each include.
+    #   build a graph so that we can resolve blocks for each dep/include.
 
     # pass 1. collect all blocks (globally) with lp_def directives
     # NOTE (mb 2020-05-31): block ids are always absulute/fully qualified
-    blocks_by_id = _get_blocks_by_id(md_files)
+    blocks_by_sid = _get_blocks_by_id(md_files)
 
-    # pass 2. expand lp_include directives in file
+    # pass 2. expand lp_dep directives in markdown files
     for md_file in md_files:
-        yield _expand_directives(blocks_by_id, md_file)
+        yield _expand_directives(blocks_by_sid, md_file)
 
 
 def _iter_block_errors(orig_ctx: parse.Context, build_ctx: parse.Context) -> typ.Iterable[str]:
@@ -376,9 +427,12 @@ def _iter_block_errors(orig_ctx: parse.Context, build_ctx: parse.Context) -> typ
         assert orig_md_file.md_path == md_file.md_path
         assert len(orig_md_file.elements) == len(md_file.elements)
 
-        for block in md_file.blocks:
+        for block in md_file.iter_blocks():
             orig_elem = orig_md_file.elements[block.elem_index]
-            for directive in iter_directives(block, 'lp_include'):
+            for directive in block.directives:
+                if directive.name not in ('lp_dep', 'lp_include'):
+                    continue
+
                 elem = md_file.elements[block.elem_index]
 
                 rel_line_no = 0
@@ -388,14 +442,19 @@ def _iter_block_errors(orig_ctx: parse.Context, build_ctx: parse.Context) -> typ
 
                     rel_line_no += 1
 
-                line_no = elem.first_line + rel_line_no
-                yield f"Error processing {md_file.md_path}"
-                yield f"Could not expend '{directive.raw_text}' on line {line_no}"
+                # TODO (mb 2020-12-30): These line numbers appear to be wrong,
+                #   I think for recursive lp_dep directives in particular.
+                line_no       = elem.first_line + rel_line_no
+                raw_text_repr = repr(directive.raw_text.strip("\n"))
+                yield (
+                    f"Error processing {md_file.md_path} on line {line_no}: "
+                    + f"Could not expand {raw_text_repr}"
+                )
 
 
 def _dump_files(build_ctx: parse.Context) -> None:
     for md_file in build_ctx.files:
-        for block in md_file.blocks:
+        for block in md_file.iter_blocks():
             file_directive = get_directive(block, 'lp_file')
             if file_directive is None:
                 continue
@@ -455,6 +514,20 @@ def _parse_out_fmt(block: parse.Block, directive_name: str, default_fmt: str) ->
         raise Exception(err_msg)
 
 
+def _get_default_command(block: parse.Block) -> typ.Optional[str]:
+    # TODO (mb 2020-12-17): Allow override/configuration
+    lang = block.info_string.strip()
+    if lang == 'python':
+        # TODO (mb 2020-12-18): sys.executable to work with pypy?
+        return "python3"
+    elif lang in ("bash", "shell"):
+        return "bash"
+    elif lang == 'sh':
+        return "sh"
+    else:
+        return None
+
+
 def _parse_session_block_options(block: parse.Block) -> typ.Optional[SessionBlockOptions]:
     exec_directive = get_directive(block, 'lp_exec')
     run_directive  = get_directive(block, 'lp_run')
@@ -465,7 +538,7 @@ def _parse_session_block_options(block: parse.Block) -> typ.Optional[SessionBloc
 
     if exec_directive:
         directive         = 'lp_exec'
-        command           = exec_directive.value
+        command           = exec_directive.value or _get_default_command(block)
         is_stdin_writable = True
     elif run_directive:
         directive         = 'lp_run'
@@ -488,7 +561,7 @@ def _parse_session_block_options(block: parse.Block) -> typ.Optional[SessionBloc
 
     timeout = get_directive(block, 'lp_timeout')
     if timeout is None:
-        timeout_val = 1.0
+        timeout_val = DEFUALT_TIMEOUT
     else:
         timeout_val = float(timeout.value)
 
@@ -570,7 +643,7 @@ def _parse_capture_output(capture: Capture, opts: SessionBlockOptions) -> str:
                 'time_ms': capture.runtime * 1000,
             }
         )
-        output = output.strip()
+        output = output.strip("\r\n")
 
         # make sure the block closing backticks are
         # on their own line
@@ -580,16 +653,34 @@ def _parse_capture_output(capture: Capture, opts: SessionBlockOptions) -> str:
     return output
 
 
+class BlockExecutionError(Exception):
+    pass
+
+
+TEMPFILE_PATTERN = r"<TEMPFILE([\.\w]+)>"
+
+TEMPFILE_RE = re.compile(TEMPFILE_PATTERN)
+
+
 def _process_command_block(
-    block: parse.Block, opts: SessionBlockOptions, exitfirst: bool = False
+    block    : parse.Block,
+    opts     : SessionBlockOptions,
+    exitfirst: bool = False,
 ) -> Capture:
     command = opts.command
     if command is None:
-        raise TypeError(f"Must be str, not {type(command)}")
+        raise TypeError(f"Must be str but was None")
 
-    logger.info(f"  {opts.directive} {command}")
+    tempfile_placeholder = TEMPFILE_RE.search(command)
+    if tempfile_placeholder:
+        placeholder = tempfile_placeholder.group(0)
+        suffix      = tempfile_placeholder.group(1).split(".", 1)[-1]
+        tmp         = tempfile.NamedTemporaryFile(suffix=suffix, delete=False)
+        command     = command.replace(placeholder, tmp.name)
+    else:
+        tmp = None
 
-    isession = session.InteractiveSession(command)
+    logger.debug(f"  {opts.directive} {command}")
 
     if opts.is_stdin_writable:
         stdin_lines = block.inner_content.splitlines(opts.keepends)
@@ -597,36 +688,58 @@ def _process_command_block(
         stdin_lines = []
 
     if opts.is_debug:
-        for i, line in enumerate(stdin_lines):
-            prefix = opts.debug_prefix.format(lineno=i + 1)
-            sys.stderr.write(prefix + line.rstrip() + "\n")
+        isession = session.DebugInteractiveSession(command)
+    else:
+        isession = session.InteractiveSession(command)
+
+    if tmp:
+        tmp_text = "".join(stdin_lines)
+        tmp_data = tmp_text.encode("utf-8")
+        tmp.file.write(tmp_data)
 
     try:
-        for line in stdin_lines:
-            isession.send(line, delay=opts.input_delay)
+        if tmp is None and opts.directive == 'lp_exec':
+            for line in stdin_lines:
+                isession.send(line, delay=opts.input_delay)
+
         exit_status = isession.wait(timeout=opts.timeout)
     except Exception as ex:
         logger.error(f"Error processing '{command}': {ex}")
         sys.stdout.write("".join(isession.iter_stdout()))
         sys.stderr.write("".join(isession.iter_stderr()))
         raise
+    finally:
+        if tmp:
+            os.unlink(tmp.name)
 
-    runtime_ms = isession.runtime * 1000
+    runtime_ms = round(isession.runtime * 1000)
 
     if exit_status == opts.expected_exit_status:
-        exit_info = f"{exit_status:>3}       "
+        exit_info = f"{exit_status}"
     else:
-        exit_info = f"{exit_status:>3} != {opts.expected_exit_status:<3}"
+        exit_info = f"{exit_status} != {opts.expected_exit_status}"
 
-    lines   = list(isession.iter_lines())
+    lines   = isession.output_lines()
     capture = Capture(command, exit_status, isession.runtime, lines)
 
-    logger.info(f"  {opts.directive}  exit: {exit_info}  time: {runtime_ms:9.3f}ms")
+    logger.info(f"  {opts.directive:<7}  {command:<65}  time: {runtime_ms:>6}ms  exit: {exit_info}")
     if exitfirst and exit_status != opts.expected_exit_status:
-        output = _parse_capture_output(capture, opts)
-        sys.stderr.write(output)
+        rjust     = len(str(len(stdin_lines)))
+        err_lines = []
+        for i, line in enumerate(stdin_lines):
+            prefix = f"In [{i+1:>{rjust}}]: "
+            err_lines.append(prefix + line)
+        sys.stderr.write("".join(err_lines) + "\n")
+        sys.stderr.flush()
+
+        output       = _parse_capture_output(capture, opts)
+        output_lines = output.splitlines()
+        rjust        = len(str(len(output_lines)))
+        for i, line in enumerate(output_lines):
+            prefix = f"Out [{i+1:>{rjust}}]: "
+            sys.stderr.write(prefix + line + "\n")
         logger.error(f"Line {block.first_line} of {block.md_path} - Error executing block")
-        raise SystemExit(1)
+        raise BlockExecutionError()
     else:
         # TODO: limit output using lp_max_bytes and lp_max_lines
         # TODO: output escaping/fence style change and errors
@@ -640,13 +753,17 @@ def _process_blocks(
 
     old_capture_index = -1
 
-    for block in md_file.blocks:
+    for block in md_file.iter_blocks():
         opts = _parse_session_block_options(block)
         if opts is None:
             continue
 
         if opts.command:
-            capture           = _process_command_block(block, opts, exitfirst=exitfirst)
+            capture = _process_command_block(
+                block,
+                opts,
+                exitfirst=exitfirst,
+            )
             old_capture_index = block.elem_index
             captures_by_elem_index[old_capture_index] = capture
 
@@ -690,7 +807,9 @@ def _process_blocks(
 
 
 def build(
-    orig_ctx: parse.Context, exitfirst: bool = False, in_place_update: bool = False
+    orig_ctx       : parse.Context,
+    exitfirst      : bool = False,
+    in_place_update: bool = False,
 ) -> parse.Context:
     # TODO: Immutable datastructures
     #   parse.Context, parse.MarkdownFile
@@ -704,7 +823,7 @@ def build(
         # phase 1: expand constants
         # build_ctx      = _expand_constants(build_ctx)
 
-        # phase 2: expand lp_include directives
+        # phase 2: expand lp_dep directives
         expanded_files = list(_iter_expanded_files(build_ctx.files))
     except BlockError as err:
         # TODO (mb 2020-06-03): print context of block
@@ -730,10 +849,11 @@ def build(
     #   may use the newly created files.
     _dump_files(build_ctx)
 
-    # TODO: Dependency graph of some kind so we can order
-    #   process execution.
     doc_ctx = orig_ctx.copy()
 
+    # TODO (mb 2021-01-02): Atomicity guarantees
+    #   - Write new files to temp directory
+    #   - Only update if original mtimes are still the same
     # phase 5. run sub-processes
     for file_idx, (orig_md_file, md_file) in enumerate(zip(orig_ctx.files, build_ctx.files)):
         updated_elements = list(_process_blocks(md_file, exitfirst=exitfirst))

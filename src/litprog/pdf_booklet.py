@@ -186,7 +186,7 @@ def _init_output_parameters(media_box: MediaBox, rescale: float) -> OutputParame
     scale_w = round((out_width / 2) / in_page_width, 2)
     scale_h = round(out_height / in_page_height, 2)
     scale   = min(scale_h, scale_w)
-    logger.info(f"{scale=} {scale_w=} {scale_h=}")
+    logger.info(f"scale={scale} scale_w={scale_w} scale_h={scale_h}")
     scale = scale_h
     if scale < 1:
         logger.info(f"scaling down by {1/scale:5.2f}x")

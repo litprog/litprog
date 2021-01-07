@@ -7,11 +7,11 @@ body, body .wrapper {
 }
 
 ::selection {
-    background: #DDD;
+    background: #CCC;
 }
 
 body.dark ::selection {
-    background: #555;
+    background: #AAA;
 }
 
 .nav a {
@@ -227,7 +227,9 @@ body {
     background: #555;
 }
 
-.dark img.bob {
+.dark img.bob,
+.dark img
+{
     filter: invert(1);
 }
 
@@ -362,14 +364,6 @@ body {
     margin-bottom: 60px;
 }
 
-/* These cause fragment links (for headers and footnote links) to be scrolled into view. */
-h1[id]:before, h2[id]:before, h3[id]:before, h4[id]:before, h5[id]:before {
-    content: '';
-    display: block;
-    height: 120px;
-    margin-top: -120px;
-    visibility: hidden;
-}
 h1, h2, h3, h4, h5 {
     position: relative;
 }

@@ -4,6 +4,7 @@
 # Copyright (c) 2018-2020 Manuel Barkhau (mbarkhau@gmail.com) - MIT License
 # SPDX-License-Identifier: MIT
 import sys
+import glob
 import shutil
 import typing as typ
 import logging
@@ -14,6 +15,7 @@ import click
 
 import litprog.build as lp_build
 import litprog.parse as lp_parse
+import litprog.watch as lp_watch
 
 try:
     import pretty_traceback
@@ -27,13 +29,8 @@ logger = logging.getLogger(__name__)
 
 
 InputPaths = typ.Sequence[str]
-FilePaths  = typ.Iterable[pl.Path]
 
 click.disable_unicode_literals_warning = True
-
-verbosity_option = click.option(
-    '-v', '--verbose', count=True, help="Control log level. -vv for debug level."
-)
 
 
 class LogConfig(typ.NamedTuple):
@@ -61,6 +58,7 @@ def _configure_logging(verbosity: int = 0) -> None:
     global _PREV_VERBOSITY
 
     if verbosity <= _PREV_VERBOSITY:
+        # allow function to be called multiple times
         return
 
     _PREV_VERBOSITY = verbosity
@@ -73,43 +71,28 @@ def _configure_logging(verbosity: int = 0) -> None:
     logging.basicConfig(level=log_cfg.lvl, format=log_cfg.fmt, datefmt="%Y-%m-%dT%H:%M:%S")
 
 
-@click.group()
-@click.version_option(version="2020.1001-alpha")
-@verbosity_option
-def cli(verbose: int = 0) -> None:
-    """CLI for litprog."""
-    _configure_logging(verbose)
+def _iter_markdown_filepaths(input_paths: InputPaths) -> typ.List[pl.Path]:
+    for path_str in input_paths:
+        path = pl.Path(path_str)
+        if path.is_file():
+            yield path
+        elif path.is_dir():
+            for ext in MARKDOWN_FILE_EXTENSIONS:
+                for fpath in path.glob(f"**/*.{ext}"):
+                    yield fpath
+        else:
+            glob_path_strs = glob.glob(path_str)
+            if glob_path_strs:
+                for glob_path_str in glob_path_strs:
+                    glob_path = pl.Path(glob_path_str)
+                    if glob_path.is_file():
+                        yield glob_path
+                # TODO (mb 2021-01-01): support globs
+            else:
+                logger.warning(f"Invalid path: '{path_str}'")
 
 
-_in_path_arg = click.Path(readable=True)
-_out_dir_arg = click.Path(file_okay=False, writable=True)
-
-
-@cli.command()
-@click.argument('input_paths', nargs=-1, type=_in_path_arg)
-@click.option('--html', nargs=1, type=_out_dir_arg)
-@click.option('--pdf' , nargs=1, type=_out_dir_arg)
-@click.option(
-    '-e', "--exitfirst/--no-exitfirst", default=False, help="Exit instantly on first error."
-)
-@click.option(
-    '-i',
-    "--in-place-update",
-    is_flag=True,
-    default=False,
-    help="In place update of lp_out and lp_run blocks in markdown files.",
-)
-@verbosity_option
-def build(
-    input_paths    : InputPaths,
-    html           : typ.Optional[str],
-    pdf            : typ.Optional[str],
-    exitfirst      : bool = False,
-    in_place_update: bool = False,
-    verbose        : int  = 0,
-) -> None:
-    _configure_logging(verbose)
-
+def _get_md_paths(input_paths: InputPaths) -> typ.List[pl.Path]:
     if len(input_paths) == 0:
         click.secho("No markdown files given.", fg='red')
         sys.exit(1)
@@ -121,8 +104,22 @@ def build(
         click.secho(msg, fg='red')
         sys.exit(1)
 
+    return md_paths
+
+
+def _build(
+    input_paths    : InputPaths,
+    html           : typ.Optional[str],
+    pdf            : typ.Optional[str],
+    exitfirst      : bool,
+    in_place_update: bool,
+) -> None:
+    md_paths = _get_md_paths(input_paths)
+
     ctx       = lp_parse.parse_context(md_paths)
     built_ctx = lp_build.build(ctx, exitfirst=exitfirst, in_place_update=in_place_update)
+
+    logger.info("build completed")
 
     if pdf is None and html is None:
         return
@@ -140,6 +137,7 @@ def build(
     html_dir = pl.Path(html)
 
     # pylint: disable=import-outside-toplevel ; lazy import since we don't always need it
+    #   if we wor to eagerly import this, then it would slow down every cli invokation
     import litprog.gen_docs as lp_gen_docs
 
     lp_gen_docs.gen_html(built_ctx, html_dir)
@@ -153,7 +151,7 @@ def build(
             # 'print_twocol_letter',
             # 'print_a4',
             'print_a5',
-            # 'print_booklet_a4',
+            'print_booklet_a4',
             # 'print_twocol_a4',
             # 'print_ereader',
         ]
@@ -161,6 +159,102 @@ def build(
 
     if is_html_tmp_dir:
         shutil.rmtree(html_dir)
+
+
+_in_path_arg = click.Path(readable=True)
+_out_dir_arg = click.Path(file_okay=False, writable=True)
+
+_arg_input_paths = click.argument('input_paths', nargs=-1, type=_in_path_arg)
+
+_opt_html = click.option('--html', nargs=1, type=_out_dir_arg)
+_opt_pdf  = click.option('--pdf' , nargs=1, type=_out_dir_arg)
+
+_opt_existfirst = click.option(
+    '-e',
+    "--exitfirst/--no-exitfirst",
+    default=False,
+    help="Exit instantly on first error.",
+)
+
+_opt_in_place = click.option(
+    '-i',
+    "--in-place-update",
+    is_flag=True,
+    default=False,
+    help="In place update of lp_out and lp_run blocks in markdown files.",
+)
+
+
+_opt_verbose = click.option(
+    '-v', '--verbose', count=True, help="Control log level. -vv for debug level."
+)
+
+
+@click.group()
+@click.version_option(version="2020.1001-alpha")
+@_opt_verbose
+def cli(verbose: int = 0) -> None:
+    """CLI for litprog."""
+    _configure_logging(verbose)
+
+
+@cli.command()
+@_arg_input_paths
+@_opt_html
+@_opt_pdf
+@_opt_existfirst
+@_opt_in_place
+@_opt_verbose
+def build(
+    input_paths    : InputPaths,
+    html           : typ.Optional[str],
+    pdf            : typ.Optional[str],
+    exitfirst      : bool = False,
+    in_place_update: bool = False,
+    verbose        : int  = 0,
+) -> None:
+    _configure_logging(verbose)
+    _build(input_paths, html, pdf, exitfirst, in_place_update)
+
+
+@cli.command()
+@_arg_input_paths
+@_opt_html
+@_opt_pdf
+@_opt_existfirst
+@_opt_in_place
+@_opt_verbose
+def watch(
+    input_paths    : InputPaths,
+    html           : typ.Optional[str],
+    pdf            : typ.Optional[str],
+    exitfirst      : bool = False,
+    in_place_update: bool = False,
+    verbose        : int  = 0,
+) -> None:
+    _configure_logging(verbose)
+
+    if len(input_paths) == 0:
+        click.secho("No paths given.", fg='red')
+        sys.exit(1)
+
+    # initial build
+    try:
+        _build(input_paths, html, pdf, exitfirst, in_place_update)
+    except lp_build.BlockExecutionError:
+        pass
+
+    watcher = lp_watch.Watcher(input_paths)
+
+    def _build_cb(changes) -> None:
+        try:
+            _build(input_paths, html, pdf, exitfirst, in_place_update)
+        except lp_build.BlockExecutionError:
+            pass
+        # refresh mtimes after build, as they may have changed in the meantime
+        watcher.refresh_mtimes()
+
+    watcher.watch(callback=_build_cb)
 
 
 MARKDOWN_FILE_EXTENSIONS = {
@@ -175,17 +269,6 @@ MARKDOWN_FILE_EXTENSIONS = {
     "text",
     "Rmd",
 }
-
-
-def _iter_markdown_filepaths(input_paths: InputPaths) -> FilePaths:
-    for path_str in input_paths:
-        path = pl.Path(path_str)
-        if path.is_file():
-            yield path
-        else:
-            for ext in MARKDOWN_FILE_EXTENSIONS:
-                for fpath in path.glob(f"**/*.{ext}"):
-                    yield fpath
 
 
 if __name__ == '__main__':

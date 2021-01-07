@@ -12,6 +12,7 @@ import pathlib as pl
 import yaml
 import jinja2
 
+from . import __version__
 from . import parse
 from . import md2html
 from . import html2pdf
@@ -35,12 +36,12 @@ PRINT_FORMATS = (
     'print_ereader',
     'print_a5',
     'print_booklet_a4',
-    'print_halfletter',
-    'print_booklet_letter',
-    'print_tallcol_a4',
-    'print_tallcol_letter',
-    'print_twocol_a4',
-    'print_twocol_letter',
+    # 'print_halfletter',
+    # 'print_booklet_letter',
+    # 'print_tallcol_a4',
+    # 'print_tallcol_letter',
+    # 'print_twocol_a4',
+    # 'print_twocol_letter',
 )
 
 MULTIPAGE_FORMATS = {
@@ -211,6 +212,15 @@ DEBUG_NAVIGATION_OUTLINE = """
 Metadata = typ.Dict[str, str]
 
 
+class FileItem(typ.NamedTuple):
+    md_path : pl.Path
+    meta    : Metadata
+    toc     : md2html.TocHTML
+    html_res: md2html.HTMLResult
+
+    block_linenos: typ.List[typ.Tuple[int, int]]
+
+
 def wrap_content_html(
     content: HTMLText, target: str, meta: Metadata, nav_html: typ.Optional[HTMLText] = None
 ) -> HTMLText:
@@ -253,9 +263,9 @@ def parse_front_matter(md_text: MarkdownText) -> typ.Tuple[Metadata, MarkdownTex
 def _init_meta() -> typ.Dict[str, str]:
     build_tt = time.localtime()
     return {
-        'litprog_version': "2020.1001-alpha",
+        'litprog_version': __version__,
         'git_revision'   : "0123_TODO_4567",
-        'build_timestamp': time.strftime("%a %Y-%m-%d %H:%M %Z", build_tt),
+        'build_timestamp': time.strftime("%a %Y-%m-%d %H:%M:%S %Z", build_tt),
     }
 
 
@@ -270,10 +280,10 @@ def gen_html(ctx: parse.Context, html_dir: pl.Path) -> None:
     #   the full toc. This is why there are two passes.
 
     cur_meta = _init_meta()
-    metas    = []
-    md_paths    : typ.List[pl.Path           ] = []
-    full_toc    : typ.List[md2html.TocHTML   ] = []
-    html_results: typ.List[md2html.HTMLResult] = []
+
+    file_items: typ.List[FileItem] = []
+
+    static_paths: typ.Set[typ.Tuple[str, str]] = set()
 
     for md_file in ctx.files:
         logger.info(f"processing '{md_file.md_path}'")
@@ -282,24 +292,39 @@ def gen_html(ctx: parse.Context, html_dir: pl.Path) -> None:
         cur_meta = cur_meta.copy()
         cur_meta.update(new_meta)
 
+        for img_tag in md_file.image_tags:
+            src_path = md_file.md_path.parent / img_tag.url
+            if src_path.exists():
+                tgt_path = html_dir / img_tag.url
+                static_paths.add((src_path, tgt_path))
+
         html_res: md2html.HTMLResult = md2html.md2html(md_text)
 
         if html_res.raw_html:
-            metas.append(cur_meta)
-            md_paths.append(md_file.md_path)
-            full_toc.append(html_res.toc)
-            html_results.append(html_res)
+            block_linenos = list(md_file.iter_block_linenos())
+            file_item = FileItem(
+                md_file.md_path,
+                cur_meta,
+                html_res.toc,
+                html_res,
+                block_linenos,
+            )
+            file_items.append(file_item)
 
-    for md_path, meta, toc, html_res in zip(md_paths, metas, full_toc, html_results):
+    for md_path, meta, toc, html_res, block_linenos in file_items:
         html_fname = md_path.stem + ".html"
         html_fpath = html_dir / html_fname
         logger.info(f"writing '{md_path}' -> '{html_fpath}'")
-        content_html = html_postproc.postproc4screen(html_res)
+        content_html = html_postproc.postproc4screen(html_res, block_linenos)
         wrapped_html = wrap_content_html(content_html, 'screen', meta, toc)
         with html_fpath.open(mode="w") as fobj:
             fobj.write(wrapped_html)
 
     # copy/update static dependencies
+    for src_path, tgt_path in sorted(static_paths):
+        # logger.info(f"copy {src_path} -> {tgt_path}")
+        shutil.copy(str(src_path), str(tgt_path))
+
     # TODO: copy only ttf for print target
     #       copy only woff for screen target
     out_static_dir = html_dir / "static"
@@ -324,14 +349,18 @@ def gen_pdf(
     if not pdf_dir.exists():
         pdf_dir.mkdir(parents=True)
 
-    meta = _init_meta()
+    # TODO (mb 2021-01-06): This should probably
+    #   be more unified with gen_html.
+    cur_meta = _init_meta()
 
     all_md_texts = []
+    block_linenos = []
     for md_file in ctx.files:
         md_text: MarkdownText = str(md_file)
         new_meta, md_text = parse_front_matter(md_text)
-        meta.update(new_meta)
+        cur_meta.update(new_meta)
         all_md_texts.append(md_text)
+        block_linenos.extend(md_file.iter_block_linenos())
 
     full_md_text = "\n\n".join(all_md_texts)
 
@@ -343,8 +372,8 @@ def gen_pdf(
         onepage_formats.add(part_page_fmt)
 
     for fmt in onepage_formats:
-        print_html   = html_postproc.postproc4print(html_res, fmt)
-        wrapped_html = wrap_content_html(print_html, fmt, meta)
+        print_html   = html_postproc.postproc4print(html_res, fmt, block_linenos)
+        wrapped_html = wrap_content_html(print_html, fmt, cur_meta)
         html_fpath   = pdf_dir / (fmt + ".html")
         pdf_fpath    = pdf_dir / (fmt + ".pdf")
         with html_fpath.open(mode="w") as fobj:

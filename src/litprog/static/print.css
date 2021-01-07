@@ -16,7 +16,7 @@
         margin: 1em auto;
     }
 
-    code {
+    p > code, li > code {
         padding: 0.07em 0.20em 0.14em 0.20em;
     }
 
@@ -24,6 +24,7 @@
         margin-left: -1em;
         border-right: 0;
         letter-spacing: -0.02em;
+        padding: 0;
     }
 
     .content ol, .content ul {
@@ -119,13 +120,13 @@
 
     @page {
         @top-left {
-            font-family: lp-enriqueta, Enriqueta, Bitter, serif;
+            font-family: lp-bitter, Bitter, serif;
             font-size: 8.5pt;
             margin: 0;
             white-space: pre;
         }
         @top-right {
-            font-family: lp-enriqueta, Enriqueta, Bitter, serif;
+            font-family: lp-bitter, Bitter, serif;
             font-size: 8.5pt;
             margin: 0;
             white-space: pre;

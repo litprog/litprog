@@ -142,7 +142,6 @@ class InteractiveSession:
     def send(self, input_str: str, delay: float = 0) -> None:
         self._in_cl.append(RawCapturedLine(time.time(), input_str))
         input_data = input_str.encode(self.encoding)
-        logger.debug(f"sending {len(input_data)} bytes")
         self._stdin.write(input_data)
         if delay:
             self._stdin.flush()
@@ -155,22 +154,11 @@ class InteractiveSession:
 
     def _assert_retcode(self) -> None:
         if self._retcode is None:
-            msg = "'InteractiveSession.wait()' must be called before accessing captured output."
+            cls = type(self)
+            msg = f"'{cls}.wait()' must be called before accessing captured output."
             raise RuntimeError(msg)
 
-    def wait(self, timeout=1) -> int:
-        if self._retcode is not None:
-            return self._retcode
-
-        logger.debug(f"wait with timeout={timeout}")
-        returncode: typ.Optional[int] = None
-        try:
-            self._stdin.close()
-        except BrokenPipeError:
-            # NOTE (mb 2020-06-05): Some subprocesses exit so fast that the pipe
-            #   may already be closed.
-            logger.debug("stdin already closed")
-
+    def _wait(self, timeout) -> int:
         try:
             max_time = self.start + timeout
             while True:
@@ -190,11 +178,27 @@ class InteractiveSession:
                 self._proc.terminate()
                 returncode = self._proc.wait()
 
-        self._out_ct.thread.join()
-        self._err_ct.thread.join()
         assert returncode is not None
         self._retcode = returncode
         self.end      = time.time()
+        return returncode
+
+    def wait(self, timeout=1) -> int:
+        if self._retcode is not None:
+            return self._retcode
+
+        logger.debug(f"wait with timeout={timeout}")
+        returncode: typ.Optional[int] = None
+        try:
+            self._stdin.close()
+        except BrokenPipeError:
+            # NOTE (mb 2020-06-05): Some subprocesses exit so fast that the pipe
+            #   may already be closed.
+            logger.debug("stdin already closed")
+
+        returncode = self._wait(timeout)
+        self._out_ct.thread.join()
+        self._err_ct.thread.join()
         return returncode
 
     @property
@@ -228,6 +232,9 @@ class InteractiveSession:
             else:
                 break
 
+    def output_lines(self) -> typ.List[CapturedLine]:
+        return list(self.iter_lines())
+
     def iter_stdout(self) -> typ.Iterable[str]:
         for _ts, line in self._out_ct.lines:
             yield line
@@ -253,3 +260,45 @@ class InteractiveSession:
     @property
     def stderr(self) -> str:
         return "".join(self.iter_stderr())
+
+
+class DebugInteractiveSession(InteractiveSession):
+
+    start: float
+    end  : float
+
+    _retcode: typ.Optional[int]
+    _proc   : sp.Popen
+    _stdin  : typ.IO[bytes]
+
+    _in_cl: typ.List[RawCapturedLine]
+
+    def __init__(
+        self, cmd: AnyCommand, *, env: typ.Optional[Environ] = None, encoding: str = "utf-8"
+    ) -> None:
+        _env: Environ
+        if env is None:
+            _env = os.environ.copy()
+        else:
+            _env = env
+
+        self.encoding = encoding
+        self.start    = time.time()
+        self.end      = -1.0
+        self._retcode = None
+
+        cmd_parts = _normalize_command(cmd)
+        logger.debug(f"popen {cmd_parts}")
+        self._proc = sp.Popen(cmd_parts, env=_env)
+
+        self._stdin = self._proc.stdin
+        self._in_cl = []
+
+    def wait(self, timeout=1) -> int:
+        if self._retcode is not None:
+            return self._retcode
+
+        return self._wait(timeout)
+
+    def output_lines(self) -> typ.List[CapturedLine]:
+        return []

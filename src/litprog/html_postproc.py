@@ -5,6 +5,7 @@
 # SPDX-License-Identifier: MIT
 import io
 import re
+import math
 import string
 import typing as typ
 import logging
@@ -15,9 +16,10 @@ import pyphen
 
 from . import md2html
 
-
 logger = logging.getLogger(__name__)
 
+
+MAX_CODE_BLOCK_LINE_LEN = 85
 
 HTML_PART_PATTERN = re.compile(r"(&[#\w]+?;|<.*?>|\s+\w+)")
 
@@ -123,10 +125,15 @@ def _iter_wrapped_line_parts(line: str, max_len: int) -> typ.Iterable[str]:
         yield "".join(chunk)
 
 
+BlockLinenos      = typ.List[int]
+MaybeBlockLinenos = typ.Optional[BlockLinenos]
+
+
 def iter_wrapped_lines(
     pre_content_text: str,
     max_line_len    : int  = 80,
     add_line_numbers: bool = True,
+    first_lineno    : int  = 0,
 ) -> typ.Iterable[str]:
     pre_content_text  = pre_content_text.replace("<span></span>", "")
     pre_content_lines = pre_content_text.splitlines()
@@ -134,7 +141,7 @@ def iter_wrapped_lines(
     # NOTE: code blocks are basically hardcoded to a width of two characters
     # line_number_width = len(str(len(pre_content_lines)))
     for line_idx, line in enumerate(pre_content_lines):
-        lineno = line_idx + 1
+        lineno = first_lineno + line_idx + 1
         parts  = list(_iter_wrapped_line_parts(line, max_len=max_line_len))
         for part_idx, line_part in enumerate(parts):
             if add_line_numbers:
@@ -194,7 +201,11 @@ $ pycalver test 'v201811.0051-beta' '{pycalver}' --release final
 # sys.exit(1)
 
 
-def _iter_postproc_html(html_text: HTMLText, max_line_len: int) -> typ.Iterable[str]:
+def _iter_postproc_html(
+    html_text    : HTMLText,
+    max_line_len : int,
+    block_linenos: MaybeBlockLinenos = None,
+) -> typ.Iterable[str]:
     html_text = html_text.replace("<table>" , """<div class="table-wrap"><table>""")
     html_text = html_text.replace("</table>", """</table></div>""")
 
@@ -202,6 +213,7 @@ def _iter_postproc_html(html_text: HTMLText, max_line_len: int) -> typ.Iterable[
     pre_end_re   = re.compile(r"</pre>")
 
     last_end_idx = 0
+    block_index = 0
 
     for match in pre_begin_re.finditer(html_text):
         _begin_lidx, begin_ridx = match.span()
@@ -210,9 +222,22 @@ def _iter_postproc_html(html_text: HTMLText, max_line_len: int) -> typ.Iterable[
         end_match = pre_end_re.search(html_text, begin_ridx + 1)
         assert end_match is not None
         end_lidx, end_ridx = end_match.span()
+        content_text  = html_text[begin_ridx:end_lidx]
 
-        content_text = html_text[begin_ridx:end_lidx]
-        yield "".join(iter_wrapped_lines(content_text, max_line_len=max_line_len))
+        if block_linenos is None:
+            first_lineno = 0
+        else:
+            first_lineno, num_lines = block_linenos[block_index]
+            if num_lines == content_text.strip("\n").count("\n"):
+                block_index += 1
+            else:
+                logger.warning("could not match line numbers to html code block")
+                first_lineno = 0
+
+        wrapped_lines = iter_wrapped_lines(
+            content_text, max_line_len=max_line_len, first_lineno=first_lineno
+        )
+        yield "".join(wrapped_lines)
 
         end_tag = html_text[end_lidx : end_ridx + 1]
         yield end_tag
@@ -222,49 +247,51 @@ def _iter_postproc_html(html_text: HTMLText, max_line_len: int) -> typ.Iterable[
     yield html_text[last_end_idx:]
 
 
-def _wrap_firstpara(html_text: HTMLText) -> typ.Iterable[HTMLText]:
-    # Wrap headlines with their next sibling to avoid
-    #   orphaned headlines at the bottom of a page.
+# TODO (mb 2021-01-05): This can probably be removed
+#
+#   It appears that WeasyPrint avoids orphaned headlines
+#   already, so this isn't needed there. The only case this
+#   might make sense is when printing using the browser,
+#   where an orphaned headline is often a problem.
 
-    # NOTE: It appears that WeasyPrint avoids orphaned
-    #   headlines already, so this isn't needed there. The
-    #   only case this might make sense is when printing
-    #   using the browser, where an orphaned headline is
-    #   often a problem.
 
-    headline_re    = re.compile(r"\<(h\d)[^>]*\>.*?\<\/\1\>")
-    tag_re         = re.compile(r"\<(\w+)[^>]*\>.*\<\/\1\>")
-    remaining_text = html_text
-    while remaining_text:
-        headline_match = headline_re.search(remaining_text)
-        if headline_match is None:
-            yield remaining_text
-            return
+# def _wrap_firstpara(html_text: HTMLText) -> typ.Iterable[HTMLText]:
+#     # Wrap headlines with their next sibling to avoid
+#     #   orphaned headlines at the bottom of a page.
 
-        headline_start, headline_end = headline_match.span()
-        headline_text   = remaining_text[headline_start:headline_end]
-        preceeding_text = remaining_text[:headline_start]
-        remaining_text  = remaining_text[headline_end:]
+#     headline_re    = re.compile(r"\<(h\d)[^>]*\>.*?\<\/\1\>")
+#     tag_re         = re.compile(r"\<(\w+)[^>]*\>.*\<\/\1\>")
+#     remaining_text = html_text
+#     while remaining_text:
+#         headline_match = headline_re.search(remaining_text)
+#         if headline_match is None:
+#             yield remaining_text
+#             return
 
-        yield preceeding_text
+#         headline_start, headline_end = headline_match.span()
+#         headline_text   = remaining_text[headline_start:headline_end]
+#         preceeding_text = remaining_text[:headline_start]
+#         remaining_text  = remaining_text[headline_end:]
 
-        # TODO: Maybe wrap all consecutive headlines ?
-        tag_match = tag_re.search(remaining_text)
-        if tag_match is None:
-            yield headline_text
-            yield remaining_text
-            return
+#         yield preceeding_text
 
-        tag_start, tag_end = tag_match.span()
-        tag_text        = remaining_text[tag_start:tag_end]
-        preceeding_text = remaining_text[:tag_start]
-        remaining_text  = remaining_text[tag_end:]
+#         # TODO: Maybe wrap all consecutive headlines ?
+#         tag_match = tag_re.search(remaining_text)
+#         if tag_match is None:
+#             yield headline_text
+#             yield remaining_text
+#             return
 
-        yield '<div class="firstpara">'
-        yield headline_text
-        yield preceeding_text
-        yield tag_text
-        yield "</div>"
+#         tag_start, tag_end = tag_match.span()
+#         tag_text        = remaining_text[tag_start:tag_end]
+#         preceeding_text = remaining_text[:tag_start]
+#         remaining_text  = remaining_text[tag_end:]
+
+#         yield '<div class="firstpara">'
+#         yield headline_text
+#         yield preceeding_text
+#         yield tag_text
+#         yield "</div>"
 
 
 # TEXT_TAG_BEGIN_RE = re.compile(r"\<(span|b|a|em|i|sub|sup|strong|small|big)( [^\>]*)?\>")
@@ -340,6 +367,15 @@ SOFT_HYPHEN = "\u00AD"
 SOFT_HYPHEN = "&shy;"
 
 
+def _shyphenated(dic: pyphen.Pyphen, word: str) -> str:
+    word = dic.inserted(word, hyphen=SOFT_HYPHEN)
+    if word[2:7] == SOFT_HYPHEN:
+        word = word[:2] + word[7:]
+    if word[-7:-2] == SOFT_HYPHEN:
+        word = word[:-7] + word[-2:]
+    return word
+
+
 WORD_RE = re.compile(r"\w+", flags=re.UNICODE)
 
 
@@ -356,7 +392,7 @@ def _iter_shyphenated(dic: pyphen.Pyphen, text: str) -> typ.Iterable[str]:
         if len(word) < 6:
             yield word
         else:
-            yield dic.inserted(word, hyphen=SOFT_HYPHEN)
+            yield _shyphenated(dic, word)
 
         prev_end = end
 
@@ -429,7 +465,7 @@ def _update_footnote_refs(soup: bs4.BeautifulSoup) -> None:
         elem.string = "[" + elem.string + "]"
 
 
-FNOTES_TEXT = "Footnotes and References"
+FNOTES_TEXT = "Footnotes and Links"
 
 
 def _add_footnotes_header(soup: bs4.BeautifulSoup) -> None:
@@ -438,10 +474,7 @@ def _add_footnotes_header(soup: bs4.BeautifulSoup) -> None:
     refs_h['id'] = ['references']
 
     footnotes = soup.find('div', {'class': 'footnote'})
-    if footnotes is None:
-        # TODO (mb 2020-12-12): figure out where this went
-        logger.warning("Could not find div.footnote")
-    else:
+    if footnotes:
         footnotes.insert(2, refs_h)
 
 
@@ -449,13 +482,14 @@ def _add_footer_links(soup: bs4.BeautifulSoup, fmt: str) -> None:
     hrefs = []
     for a_tag in soup.select('a'):
         href = a_tag.attrs['href']
-        if not href.startswith("http"):
-            continue
-        hrefs.append(href)
+        if href.startswith("http"):
+            hrefs.append(href)
 
     linklist = soup.new_tag('ol')
     linklist.attrs['class'] = ['linklist']
-    soup.find('div', {'class': 'footnote'}).append(linklist)
+    footnotes = soup.find('div', {'class': 'footnote'})
+    if footnotes:
+        footnotes.append(linklist)
 
     if 'tallcol' in fmt:
         stride = 70
@@ -553,6 +587,56 @@ def _add_nav_numbers(ul_tag: bs4.BeautifulSoup, heading_prefix: str = "") -> Non
             _add_nav_numbers(sub_ul, heading_number + ".")
 
 
+CODE_CHUNK_SIZE = 5
+
+
+def _split_code_blocks(soup: bs4.BeautifulSoup) -> None:
+    """Split large code blocks so they can span multiple pdf pages."""
+    for codehilite in soup.select(".codehilite"):
+        code_blocks = codehilite.select("pre > code")
+        assert len(code_blocks) == 1
+        code_block = code_blocks[0]
+        num_lines  = len(code_block.select(".lineno"))
+        num_chunks = num_lines / CODE_CHUNK_SIZE
+        if num_chunks <= 1:
+            continue
+
+        max_chunk_lines = num_lines // math.ceil(num_chunks) + 1
+        chunks          = []
+
+        code_nodes = iter(list(code_block.contents))
+
+        try:
+            chunk_lines = 0
+            chunk       = []
+            while True:
+                code_node = next(code_nodes)
+                is_tag    = isinstance(code_node, bs4.element.Tag)
+                if is_tag and 'lineno' in code_node.attrs.get('class'):
+                    chunk_lines += 1
+
+                if chunk_lines < max_chunk_lines:
+                    chunk.append(code_node)
+                else:
+                    chunks.append(chunk)
+
+                    chunk_lines = 1
+                    chunk       = [code_node]
+        except StopIteration:
+            if chunk:
+                chunks.append(chunk)
+
+        new_pre_nodes = []
+        for chunk in chunks:
+            new_block          = soup.new_tag('code')
+            new_block.contents = chunk
+            code_pre           = soup.new_tag('pre')
+            code_pre.contents  = [new_block]
+            new_pre_nodes.append(code_pre)
+
+        codehilite.contents = new_pre_nodes
+
+
 def postproc_nav_html(nav_html: HTMLText) -> HTMLText:
     soup   = bs4.BeautifulSoup(nav_html, PARSER_MODULE)
     toc_ul = soup.select(".toc > ul")[0]
@@ -569,11 +653,14 @@ def postproc_nav_html(nav_html: HTMLText) -> HTMLText:
     return str(soup)
 
 
-def postproc4screen(html_res: md2html.HTMLResult) -> HTMLText:
+def postproc4screen(html_res: md2html.HTMLResult, block_linenos: typ.List[int]) -> HTMLText:
     html_text = html_res.raw_html
 
     # html_text = "".join(_wrap_firstpara(html_text))
-    html_text = "".join(_iter_postproc_html(html_text, max_line_len=0))
+    html_chunks = _iter_postproc_html(
+        html_text, max_line_len=MAX_CODE_BLOCK_LINE_LEN, block_linenos=block_linenos
+    )
+    html_text = "".join(html_chunks)
 
     soup = bs4.BeautifulSoup(html_text, PARSER_MODULE)
     _add_heading_numbers(soup, html_res.toc_tokens)
@@ -590,19 +677,23 @@ def postproc4screen(html_res: md2html.HTMLResult) -> HTMLText:
     return html_text
 
 
-def postproc4print(html_res: md2html.HTMLResult, fmt: str) -> HTMLText:
+def postproc4print(html_res: md2html.HTMLResult, fmt: str, block_linenos: typ.List[int]) -> HTMLText:
     # TODO: split code blocks
     # - add ids to headlines
     # - collect links and insert superscript (footnote links)
-    max_line_len = 80
-    if "ereader" in fmt:
-        max_line_len = 65
-    if "tallcol" in fmt:
-        max_line_len = 70
     if fmt in ("print_a4", "print_letter"):
-        max_line_len = 95
+        max_line_len = MAX_CODE_BLOCK_LINE_LEN
+    elif "tallcol" in fmt:
+        max_line_len = 70
+    elif "ereader" in fmt:
+        max_line_len = 65
+    else:
+        max_line_len = MAX_CODE_BLOCK_LINE_LEN
 
-    html_text = "".join(_iter_postproc_html(html_res.raw_html, max_line_len=max_line_len))
+    html_chunks = _iter_postproc_html(
+        html_res.raw_html, max_line_len=max_line_len, block_linenos=block_linenos
+    )
+    html_text   = "".join(html_chunks)
 
     soup = bs4.BeautifulSoup(html_text, PARSER_MODULE)
     _add_heading_numbers(soup, html_res.toc_tokens)
@@ -610,6 +701,7 @@ def postproc4print(html_res: md2html.HTMLResult, fmt: str) -> HTMLText:
     _update_footnote_refs(soup)
     _add_footnotes_header(soup)
     _add_footer_links(soup, fmt)
+    _split_code_blocks(soup)
     html_text = str(soup)
 
     return html_text

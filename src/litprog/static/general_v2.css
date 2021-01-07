@@ -44,6 +44,8 @@ div.codehilite {
 div.codehilite pre {
     font-family: lp-iosevka, "Iosevka Term SS05", monospace;
     padding: 0 0.5em 0 0;
+    display: block;
+    page-break-inside: avoid;
 }
 @media print {
     div.codehilite pre {
@@ -90,6 +92,10 @@ h1 {
 h2 {font-size: 1.6em;}
 h3 {font-size: 1.4em;}
 h4 {font-size: 1.2em;}
+
+sub, sup {
+    line-height: 1em;
+}
 
 .footnote hr {
     margin: 0;
@@ -145,6 +151,7 @@ li {
 table {
     border-collapse: collapse;
     text-align: left;
+    margin-bottom: 1em;
 }
 
 .content tbody tr:nth-child(2n + 1) {background: #F6F6F6;}
