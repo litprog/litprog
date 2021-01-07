@@ -1,26 +1,24 @@
-## Introduction to LitProg
+# Introduction to LitProg
 
 LitProg is a [Markdown][href_wiki_markdown] processor for [Literate Programming (LP)][href_wiki_litprog].
 
 
 ```bob
-      Markdown
- +-----------------+
-++ lit/11_intro.md |\       .------------.
-|| lit/12_test.md  +-+  1   |            |
-|| lit/13_impl.md    |----->+   LitProg  |
-|+------------------++      |            |
-+-------------------+       '---+----+---'
-                        3       |    |2
-         .----------------------'    |
-         V                           V
- +-------------------+    +------------------+
-++ doc/program.pdf   |\  ++ src/app.py       |\
-|| doc/11_intro.html +-+ || src/ui.js        +-+
-|| doc/12_test.html    | || src/data.json      |
-|+--------------------++ |+-------------------++
-+---------------------+  +--------------------+
-       HTML/PDF                  Code
+          +-----------------+
+         ++ lit/11_intro.md |\       .------------.
+Markdown || lit/12_test.md  +-+  1   |            |
+         || lit/13_impl.md    |----->+   LitProg  |
+         |+------------------++      |            |
+         +-------------------+       '---+----+---'
+                                2        |    | 3
+                  .----------------------'    |
+                  V                           V
+          +------------------+        +-------------------+
+         ++ src/app.py       |\      ++ doc/program.pdf   |\
+   Code  || src/ui.js        +-+     || doc/11_intro.html +-+ "HTML"
+         || src/data.json      |     || doc/12_test.html    | "/PDF"
+         |+-------------------++     |+--------------------++
+         +--------------------+      +---------------------+
 ```
 
 You can use LitProg with practically any programming language, such as Python, JavaScript, Java, Ruby, Rust etc. LitProg will:
@@ -38,8 +36,7 @@ While this *is* in essence what LitProg does, it doesn't show the key reason to 
 ||            |--->|  LitProg  +--->||            |
 |+-----------++    |           |    |+-----------++
 +------------+     '-+---+---+-'    +------------+
-         ^           !   |  ^!             !
-         !     4     !   |  !!             !
+         ^     4     !   |  ^!             !
          '~~~~~~~~~~~'   |  !!             V
  +----------+            |  !!  3   .------------.
 ++          |\           |  !'~~~~~>|            +.
@@ -57,7 +54,7 @@ While this *is* in essence what LitProg does, it doesn't show the key reason to 
  5. write HTML and PDF artifacts as documentation.
 
 
-### A Narrative for Code
+## A Narrative for Code
 
 The main innovation of Literate Programming is to change your focus as a programmer toward the narrative that your readers will need to understand your program, rather than writing code that is first and foremost read by a compiler or interprerter. With LitProg, your program isn't a loose collection of source files with a structure that is either implicit or only apparent after understanding a build system and following dozens of imports. Instead you can structure your program in a way that makes most sense for your readers to understand it. You can write documentation, diagrams, code and tests in whatever order makes most sense for people who want to understand your program rather than in a structure that is dictated by your build tools.
 
@@ -66,7 +63,7 @@ In practical terms, LitProg makes this possible by allowing you to compose your 
 LitProg is simple and flexible. You can use it with any language, on any platform, with any build system. With Markdown, the barrier to entry is very low and you won't have to constantly check if the generated documentation looks right. You can instead stay focused and productive in your text editor and work with your existing tools. Granted, code completion, jump to definition and other IDE features may not work as well in code blocks of a Markdown file as they do in plain source code files, but since LitProg generates such source files, you can switch to them if there is something more tricky you need to debug.
 
 
-### Minimal Example
+## Minimal Example
 
 With LitProg, code blocks can be referenced by others and used to compose a program.
 
@@ -87,8 +84,9 @@ def prime_sieve(n):
 Such code blocks can be written to files or executed directly by piping them via `stdin` to another process.
 
 ```python
-# lp_exec: python3
+# lp_exec: python3 <TEMPFILE.py>
 # lp_dep: prime_sieve
+# lp_debug
 is_prime = prime_sieve(n=50)
 
 for p, is_p in enumerate(is_prime):
@@ -100,12 +98,11 @@ The output is captured and can be displayed in a separate code block.
 
 ```shell
 # lp_out
-0 1 2 3 5 7 11 13 17 19 23 29 31 37 41 43 47
 # exit: 0
 ```
 
 
-### Getting Started
+## Getting Started
 
 *Literate Programming* is a programming paradigm. *LitProg* is a build tool. Even if you are not on board with LP, you may nonetheless find LitProg to be useful, for example if you want to write a technical article or tutorial. This book is a documentation artifact of the literate program for the `litprog` cli command, which has of course been compiled using itself. To get started you can download one of the software artifacts of LitProg and run `litprog build` with an example file.
 
@@ -240,15 +237,6 @@ assert fib(8) == 21
 
     Languages that are unknown to LitProg can nonetheless be used if it has the same comment syntax as another language. Since LitProg only parses the comments of a code block and doesn't do anything specific to a particular language, you can label the block with the other language (as a stop-gap measure until support is added). If you wanted to use the [Zig Language][href_ziglang] for example, you could label the block with `rust` instead, which also uses `//` for comments and for which the syntax highighting works tolerably well (at least in my editor).
 
-        ```rust
-        // This is actually zig code, but "```zig" doesn't
-        // work yet, so we use "```rust" instead.
-        const std = @import("std");
-
-        pub fn main() void {
-            std.debug.warn("Hello, world!\n");
-        }
-        ```
 
 
 ### Running Commands
@@ -389,7 +377,7 @@ The goal is that you can treat the documentation artifacts almost as an aftertho
 
 ### But Documentation Isn't Agile
 
-Now I know what you're thinking: "I *already* don't spend any time on document layout, formatting, styling and whatever else kinda useless garbage that nobody ever reads anyway. I just don't write *any* documentation, agile freedom baby whooooh 🤘". Fair enough, and let me also say, if you don't write your program as a Literate Program, that doesn't make you a bad person.
+Now I know what you're thinking: "I *already* don't spend any time on document layout, formatting, styling and whatever else kinda useless garbage that nobody ever reads anyway. I just don't write *any* documentation, agile freedom baby whooooh!!". Fair enough, and let me also say, if you don't write your program as a Literate Program, that doesn't make you a bad person.
 
 - If your program is a one-off script, almost certainly LitProg isn't the right choice.
 - If your program is trivial and nobody other than you will ever work on it, then any effort to create a narrative will be wasted.
@@ -609,12 +597,12 @@ with timeit("fast"): fast_fib(20)
 
 ```shell
 # lp_out
-slow     0.036 ms
-slow     0.220 ms
-slow     1.448 ms
+slow     0.038 ms
+slow     0.226 ms
+slow     1.470 ms
 fast     0.005 ms
 fast     0.002 ms
-fast     0.001 ms
+fast     0.002 ms
 # exit: 0
 ```
 

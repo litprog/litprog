@@ -1,4 +1,4 @@
-## Solve Every Sudoku Puzzle
+# Solve Every Sudoku Puzzle
 
 Where the previous chapter *described* how LitProg works, this chapter aims to *demonstrate* by example how LitProg can be used.
 
@@ -13,14 +13,14 @@ This chapter produces the following artifacts:
 | examples/sudoku_hardester.txt  | 2 hardest puzzels by Arto Inkala      |
 
 
-### Introduction
+## Introduction
 
 > This chapter is a recasting of the essay [Solving Every Sudoku Puzzle by Peter Norvig](http://norvig.com/sudoku.html).
 
 It is quite easy to solve every Sudoku puzzle with two ideas: [constraint propagation](http://en.wikipedia.org/wiki/Constraint_satisfaction) and [search](http://en.wikipedia.org/wiki/Search_algorithm).
 
 
-### Sudoku Notation and Preliminary Notions
+## Sudoku Notation and Preliminary Notions
 
 First we have to agree on some notation. A Sudoku puzzle is a *grid* of 81 squares; the majority of enthusiasts label the columns `1-9`, the rows `A-I` (in other words, exactly as Excel would **NOT** label them). Here are the names of the squares:
 
@@ -42,18 +42,18 @@ First we have to agree on some notation. A Sudoku puzzle is a *grid* of 81 squar
 A collection of nine squares (column, row, or box) we call a *unit* and the squares that share a unit we call *peers* of each other. Every square has exactly 3 units and 20 peers. For example, here are the units and peers for the square C2:
 
 ```
-  1 2 3   4 5 6   7 8 9      1 2 3   4 5 6   7 8 9      1 2 3   4 5 6   7 8 9
-A   o   |       |          A       |       |          A o o o |       |
-B   o   |       |          B       |       |          B o o o |       |
-C   X   |       |          C o X o | o o o | o o o    C o X o |       |
-  ------+-------+------      ------+-------+------    --------+-------+------
-D   o   |       |          D       |       |          D       |       |
-E   o   |       |          E       |       |          E       |       |
-F   o   |       |          F       |       |          F       |       |
-  ------+-------+------      ------+-------+------    --------+-------+------
-G   o   |       |          G       |       |          G       |       |
-H   o   |       |          H       |       |          H       |       |
-I   o   |       |          I       |       |          I       |       |
+        1 2 3   4 5 6   7 8 9
+    A   o o o |       |
+    B   o o o |       |
+    C   o X o | o o o | o o o
+       -------+-------+-------
+    D     o   |       |
+    E     o   |       |
+    F     o   |       |
+       -------+-------+-------
+    G     o   |       |
+    H     o   |       |
+    I     o   |       |
 ```
 
 A puzzle leaves some squares blank and fills others with digits, and the whole idea is this:
@@ -74,7 +74,6 @@ F . . . | . 1 . | . . .    F 3 4 6 | 9 1 2 | 7 5 8
   ------+-------+------      ------+-------+------
 G . . . | 6 . 3 | . 7 .    G 2 8 9 | 6 4 3 | 5 7 1
 H 5 . . | 2 . . | . . .    H 5 7 3 | 2 9 1 | 6 8 4
-I 1 . 4 | . . . | . . .    I 1 6 4 | 8 7 5 | 2 9 3
 ```
 
 We can implement the notions of units, peers, and squares in Python 3.6+ as follows:
@@ -205,7 +204,7 @@ assert dict(grid_items(FIXTURE_1)) == dict(grid_items(FIXTURE_3))
 ```
 
 
-### Grid Display
+## Grid Display
 
 Soon enough we'll want to see our partial results, so we'll need a function to `display` a puzzle.
 
@@ -261,7 +260,7 @@ display(dict(grid_items(FIXTURE_1)))
 ```
 
 
-### Constraint Propagation
+## Constraint Propagation
 
 Those with experience solving Sudoku puzzles know that there are two important strategies that we can use to make progress towards a solution:
 
@@ -419,7 +418,7 @@ In this case, we are still a long way from solving the puzzle--61 squares remain
 
 Coding up strategies like this is a possible route, but would require hundreds of lines of code (there are dozens of these strategies), and we'd never be sure if we could solve *every* puzzle.
 
-### Search
+## Search
 
 The other route is to *search* for a solution: to systematically try all possibilities until we hit one that works. The code for this is less than a dozen lines, but we run another risk: that it might take forever to run. Consider that in the `grid2` above, `A2` has 4 possibilities (`1679`) and `A3` has 5 possibilities (`12679`); together that's 20, and if we keep [multiplying](http://www.google.com/search?hl=en&q=4*5*3*4*3*4*5*7*5*5*6*5*4*6*4*5*6*6*6*5*5*6*4*5*4*5*4*5*5*4*5*5*3*5*5*5*5*5*3*5*5*5*5*3*2*3*3*4*5*4*3*2*3*4*4*3*3*4*5*5*5), we get $`4.62838344192 × 10^{38}`$ possibilities for the whole puzzle. How can we cope with that? There are two choices.
 
@@ -483,7 +482,7 @@ display(solve(grid2))
 # exit: 0
 ```
 
-### CLI Program
+## CLI Program
 
 Now we can create the complete program `examples/sudoku.py`.
 
@@ -553,35 +552,35 @@ sjfmt examples/sudoku.py
 ```
 
 
-### Results
+## Results
 
 Below is the output from running the program at the command line; it solves the two files of [50 easy](http://projecteuler.net/project/sudoku.txt) and [95 hard puzzles](http://norvig.com/top95.txt) (see also the [95 solutions](http://norvig.com/top95solutions.html), [eleven puzzles](http://norvig.com/hardest.txt) I found under a search for ( [hardest sudoku](http://www.google.com/search?q=hardest+sudoku) ).
 
 ```bash
 # lp_run: python examples/sudoku.py examples/sudoku_p096_euler.txt
-Solved 50 of 50 puzzles. (avg 3 ms/solve  max 4 ms)
+Solved 50 of 50 puzzles. (avg 2 ms/solve  max 3 ms)
 # exit: 0
 ```
 
 ```bash
 # lp_run: python examples/sudoku.py examples/sudoku_top95.txt
-Solved 95 of 95 puzzles. (avg 8 ms/solve  max 39 ms)
+Solved 95 of 95 puzzles. (avg 8 ms/solve  max 38 ms)
 # exit: 0
 ```
 
 ```bash
 # lp_run: python examples/sudoku.py examples/sudoku_hardest.txt
-Solved 11 of 11 puzzles. (avg 3 ms/solve  max 5 ms)
+Solved 11 of 11 puzzles. (avg 3 ms/solve  max 6 ms)
 # exit: 0
 ```
 
 
-### Analysis
+## Analysis
 
 !!! note "Execution Timeings from 2006 vs 2020"
 
     The original essay by Peter Norvig was written in 2006. This section uses
-    some of the execution times from that essay, but the graphs were generated based on execution times from a newer machine.
+    some of the execution times from that essay, but the plots were generated based on execution times from a newer machine.
 
 Each of the puzzles above was solved in less than a fifth of a second. What about really hard puzzles? Finnish mathematician Arto Inkala described his [2006 puzzle](http://www.usatoday.com/news/offbeat/2006-11-06-sudoku_x.htm) as "the most difficult sudoku-puzzle known so far" and his [2010 puzzle](http://www.mirror.co.uk/fun-games/sudoku/2010/08/19/world-s-hardest-sudoku-can-you-solve-dr-arto-inkala-s-puzzle-115875-22496946/) as "the most difficult puzzle I've ever created." My program solves them in 0.01 seconds each:
 
@@ -665,15 +664,15 @@ def random_puzzle(n=17) -> str:
     """
     grid: Grid = {s: DIGITS for s in SQUARES}
     for s in shuffled(SQUARES):
-        if assign(grid, s, random.choice(grid[s])):
+        if assign(grid, s, random.choice(grid[s])) is None:
+            return random_puzzle(n)    # Give up and make a new puzzle
+        else:
             ds = [grid[s] for s in SQUARES if len(grid[s]) == 1]
             if len(ds) >= n and len(set(ds)) >= 8:
                 return ''.join(
                     grid[s] if len(grid[s]) == 1 else '.'
                     for s in SQUARES
                 )
-        else:
-            return random_puzzle(n)    # Give up and make a new puzzle
 ```
 
 Even with these checks, my random puzzles are not guaranteed to have one unique solution. Many have multiple solutions, and a few (about 0.2%) have no solution. Puzzles that appear in books and newspapers always have one unique solution.
@@ -687,8 +686,8 @@ The average time to solve a random puzzle is 0.01 seconds, and more than 99.95% 
 
 Here are the times in seconds for the 139 out of a million puzzles that took more than a second, sorted, on linear and log scales:
 
-![](static/sudoku_random_puzzle_times_linear.png)
-![](static/sudoku_random_puzzle_times_log.png)
+![](static/sudoku_random_puzzle_times_linear.svg)
+![](static/sudoku_random_puzzle_times_log.svg)
 
 It is hard to draw conclusions from this. Is the uptick in the last few values significant? If I generated 10 million puzzles, would one take 1000 seconds? Here's the hardest (for my program) of the million random puzzles:
 
@@ -707,7 +706,7 @@ It is hard to draw conclusions from this. Is the uptick in the last few values s
  . . . | . . . | . . .
 ```
 
-I capture the result in a file, just so I don't have to recompute it again and again.
+I capture the result in `examples/sudoku_hardestest_result.txt`, just so I don't have to recompute it again and again during development.
 
 ```shell
 # lp_exec
@@ -784,7 +783,7 @@ Here is the impossible puzzle that took 1439 seconds:
 . . . |. . . |. . .
 ```
 
-### Why?
+## Why?
 
 Why did I do this? As computer security expert [Ben Laurie](http://en.wikipedia.org/wiki/Ben_Laurie) has stated, Sudoku is "a denial of service attack on human intellect". Several people I know (including my wife) were infected by the virus, and I thought maybe this would demonstrate that they didn't need to spend any more time on Sudoku. It didn't work for my friends (although my wife has since independently kicked the habit without my help), but at least one stranger wrote and said this page worked for him, so I've made the world more productive. And perhaps along the way I've taught something about Python, constraint propagation, and search.
 
@@ -799,6 +798,8 @@ from typing import Sequence, Tuple, List, Dict, Optional, Iterable
 
 DIGITS = "123456789"
 ```
+
+Test case for `grid_items`.
 
 ```python
 # lp_exec: python3
@@ -888,9 +889,9 @@ if [[ ! -f "examples/sudoku_hardest.txt" ]]; then
 fi
 ```
 
-### Statistics Collection/Graphing
+### Statistics Collection/Charts
 
-This script generates the statistics for the two graphs of calculation times.
+This script generates the statistics for the two plots of calculation times.
 
 ```python
 # lp_def: calc_random_puzzle_times
@@ -931,7 +932,7 @@ with DATA_PATH.open(mode="w") as out_fobj:
     out_fobj.write(times_data)
 ```
 
-I spent a few hours on different ways to render charts eventually gave up on getting it the way I wanted (as close as possible to the originals). The matplotlib API is a travasty.
+I spent a few hours on different ways to render plots eventually gave up on getting it the way I wanted (as close as possible to the originals). The matplotlib API is a travasty.
 
 ```python
 # lp_exec
@@ -949,11 +950,27 @@ df['sec_log'] = df['sec'].apply(math.log)
 
 os.makedirs("lit_v3/static/", exist_ok=True)
 
-plt1 = df['sec'].plot.bar(legend=None)
-plt1.axes.xaxis.set_visible(False)
-plt1.figure.savefig("lit_v3/static/sudoku_random_puzzle_times_linear.png")
+def save_bar_plot(series, path: str, **kwargs) -> None:
+    # I am aware that this is manipulates global state
+    # and I don't like it either. I can't be bothered
+    # to deal with this anymore.
+    plot = series.plot.bar(legend=None, colormap="gray", **kwargs)
+    plot.axes.xaxis.set_visible(False)
+    plot.figure.set_size_inches((3.5 * 1.78, 3.5))
+    plot.figure.savefig(path, transparent=True)
 
-plt2 = df['sec_log'].plot.bar(legend=None, logy=True)
-plt2.axes.xaxis.set_visible(False)
-plt2.figure.savefig("lit_v3/static/sudoku_random_puzzle_times_log.png")
+save_bar_plot(
+    df['sec'],
+    "lit_v3/static/sudoku_random_puzzle_times_linear.svg",
+)
+save_bar_plot(
+    df['sec_log'],
+    "lit_v3/static/sudoku_random_puzzle_times_log.svg",
+    logy=True
+)
+```
+
+```python
+# lp_out
+# exit: 0
 ```
