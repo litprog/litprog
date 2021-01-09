@@ -612,9 +612,10 @@ h1 a:visited, h2 a:visited, h3 a:visited, h4 a:visited, h5 a:visited {
     display: none;
     opacity: 0;
 
-    box-shadow: #8885 0px 0px 30px 20px;
+    box-shadow: #8885 0px 0px 8px 2px;
     transition: opacity 250ms ease;
     will-change: opactiy;
+    border: 1px solid #888;
     border-radius: 2px;
 }
 .dark .pdf-links {

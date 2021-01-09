@@ -18,8 +18,9 @@ from . import md2html
 from . import html2pdf
 from . import pdf_booklet
 from . import html_postproc
+from . import vcs
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("litprog.gen_docs")
 
 MarkdownText = str
 
@@ -262,11 +263,27 @@ def parse_front_matter(md_text: MarkdownText) -> typ.Tuple[Metadata, MarkdownTex
 
 def _init_meta() -> typ.Dict[str, str]:
     build_tt = time.localtime()
-    return {
+    meta = {
+        # TODO (mb 2021-01-08): parse from front matter
+        'copyright_url'  : "https://gitlab.com/mbarkhau/litprog/-/blob/master/LICENSE",
+        'copyright'      : "2019-2021 Manuel Barkhau - MIT License",
+        'repo_url'       : "https://gitlab.com/mbarkhau/litprog/-/blob/",
         'litprog_version': __version__,
-        'git_revision'   : "0123_TODO_4567",
         'build_timestamp': time.strftime("%a %Y-%m-%d %H:%M:%S %Z", build_tt),
+        'vcs_dirty_files': set(),
+        'vcs_revision'   : "",
+        'vcs_revision_short': "",
     }
+    vcs_api = vcs.get_vcs_api()
+    if vcs_api:
+        head_rev = vcs_api.head_rev()
+        meta.update({
+            'vcs_name'          : vcs_api.name,
+            'vcs_revision'      : head_rev,
+            'vcs_revision_short': head_rev[:10],
+            'vcs_dirty_files'   : set(vcs_api.status()),
+        })
+    return meta
 
 
 def gen_html(ctx: parse.Context, html_dir: pl.Path) -> None:
@@ -291,6 +308,9 @@ def gen_html(ctx: parse.Context, html_dir: pl.Path) -> None:
         new_meta, md_text = parse_front_matter(md_text)
         cur_meta = cur_meta.copy()
         cur_meta.update(new_meta)
+        md_filepath = str(md_file.md_path)
+        cur_meta['md_filepath']   = md_filepath
+        cur_meta['is_file_dirty'] = md_filepath in cur_meta['vcs_dirty_files']
 
         for img_tag in md_file.image_tags:
             src_path = md_file.md_path.parent / img_tag.url

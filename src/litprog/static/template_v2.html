@@ -126,18 +126,28 @@
                 </div>
                 <hr/>
                 <div class="footer">
+                    <!-- Copyright -->
                     {% if meta.copyright_url %}
                     <a href="{{meta.copyright_url}}">© {{meta.copyright}}</a>
                     {% elif meta.copyright %}
                     <span>© {{meta.copyright}}</span>
                     {% endif %}
-
-                    {% if meta.git_revision %}
-                    <a href="{{meta.repo_url}}">Git Revision <code>{{meta.git_revision}}</code> (Clean/Dirty)</a>
+                    <br/>
+                    <!-- File/VCS Info -->
+                    {% if fmt.is_web_target %}
+                        {% if meta.vcs_revision %}
+                        <a href="{{meta.repo_url}}/{{meta.vcs_revision or 'master'}}/{{meta.md_filepath}}">{{meta.vcs_name.title()}} Revision: <code>{{meta.md_filepath}}@{{meta.vcs_revision_short}}</code>{% if meta.is_file_dirty %} (Dirty) {% endif %}</a>
+                        {% else %}
+                        <code>{{meta.md_filepath}}</code>
+                        {% endif %}
+                    {% else %}
+                        {% if meta.vcs_revision %}
+                        <a href="{{meta.repo_url}}/{{meta.vcs_revision or 'master'}}">{{meta.vcs_name.title()}} Revision: <code>{{meta.vcs_revision_short}}</code>{% if meta.vcs_dirty_files %} (Dirty) {% endif %}</a>
+                        {% endif %}
                     {% endif %}
                     <br/>
+                    <!-- Build Info -->
                     <span>
-                        <!-- TODO <a href="https://mbarkhau.gitlab.io/litprog/docs/"> -->
                         Built {{ meta.build_timestamp }} with
                         <a href="https://gitlab.com/mbarkhau/litprog/">
                             LitProg {{meta.litprog_version}}

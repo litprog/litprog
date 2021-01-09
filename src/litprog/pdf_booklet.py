@@ -1,3 +1,4 @@
+#!/home/mbarkhau/miniconda3/envs/litprog_py38/bin/python
 # This file is part of the litprog project
 # https://gitlab.com/mbarkhau/litprog
 #
