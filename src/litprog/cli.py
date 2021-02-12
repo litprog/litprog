@@ -71,7 +71,7 @@ def _configure_logging(verbosity: int = 0) -> None:
     logging.basicConfig(level=log_cfg.lvl, format=log_cfg.fmt, datefmt="%Y-%m-%dT%H:%M:%S")
 
 
-def _iter_markdown_filepaths(input_paths: InputPaths) -> typ.List[pl.Path]:
+def _iter_markdown_filepaths(input_paths: InputPaths) -> typ.Iterable[pl.Path]:
     for path_str in input_paths:
         path = pl.Path(path_str)
         if path.is_file():
@@ -107,17 +107,37 @@ def _get_md_paths(input_paths: InputPaths) -> typ.List[pl.Path]:
     return md_paths
 
 
+# TODO (mb 2021-01-28): These should be parsed from the front matter
+SELECTED_FORMATS = [
+    # 'print_a4',
+    # 'print_letter',
+    # 'print_ereader',
+    'print_a5',
+    'print_booklet_a4',
+    # 'print_halfletter',
+    # 'print_booklet_letter',
+    # 'print_twocol_letter',
+    # 'print_twocol_a4',
+]
+
+
 def _build(
     input_paths    : InputPaths,
     html           : typ.Optional[str],
     pdf            : typ.Optional[str],
     exitfirst      : bool,
     in_place_update: bool,
+    concurrency    : int,
 ) -> None:
     md_paths = _get_md_paths(input_paths)
 
-    ctx       = lp_parse.parse_context(md_paths)
-    built_ctx = lp_build.build(ctx, exitfirst=exitfirst, in_place_update=in_place_update)
+    parse_ctx = lp_parse.parse_context(md_paths)
+    built_ctx = lp_build.build(
+        parse_ctx,
+        exitfirst=exitfirst,
+        in_place_update=in_place_update,
+        concurrency=concurrency,
+    )
 
     logger.info("build completed")
 
@@ -143,19 +163,8 @@ def _build(
     lp_gen_docs.gen_html(built_ctx, html_dir)
 
     if pdf:
-        pdf_dir          = pl.Path(pdf)
-        selected_formats = [
-            # 'print_letter',
-            # 'print_halfletter',
-            # 'print_booklet_letter',
-            # 'print_twocol_letter',
-            # 'print_a4',
-            'print_a5',
-            'print_booklet_a4',
-            # 'print_twocol_a4',
-            # 'print_ereader',
-        ]
-        lp_gen_docs.gen_pdf(built_ctx, html_dir, pdf_dir, formats=selected_formats)
+        pdf_dir = pl.Path(pdf)
+        lp_gen_docs.gen_pdf(built_ctx, html_dir, pdf_dir, formats=SELECTED_FORMATS)
 
     if is_html_tmp_dir:
         shutil.rmtree(html_dir)
@@ -184,10 +193,14 @@ _opt_in_place = click.option(
     help="In place update of lp_out and lp_run blocks in markdown files.",
 )
 
-
-_opt_verbose = click.option(
-    '-v', '--verbose', count=True, help="Control log level. -vv for debug level."
+_opt_concurrency = click.option(
+    '-n',
+    "--concurrency",
+    default=lp_build.DEFAULT_CONCURRENCY,
+    help="Number of concurrent processes to execute.",
 )
+
+_opt_verbose = click.option('-v', '--verbose', count=True, help="Control log level. -vv for debug level.")
 
 
 @click.group()
@@ -204,6 +217,7 @@ def cli(verbose: int = 0) -> None:
 @_opt_pdf
 @_opt_existfirst
 @_opt_in_place
+@_opt_concurrency
 @_opt_verbose
 def build(
     input_paths    : InputPaths,
@@ -211,10 +225,11 @@ def build(
     pdf            : typ.Optional[str],
     exitfirst      : bool = False,
     in_place_update: bool = False,
+    concurrency    : int  = lp_build.DEFAULT_CONCURRENCY,
     verbose        : int  = 0,
 ) -> None:
     _configure_logging(verbose)
-    _build(input_paths, html, pdf, exitfirst, in_place_update)
+    _build(input_paths, html, pdf, exitfirst, in_place_update, concurrency)
 
 
 @cli.command()
@@ -223,6 +238,7 @@ def build(
 @_opt_pdf
 @_opt_existfirst
 @_opt_in_place
+@_opt_concurrency
 @_opt_verbose
 def watch(
     input_paths    : InputPaths,
@@ -230,6 +246,7 @@ def watch(
     pdf            : typ.Optional[str],
     exitfirst      : bool = False,
     in_place_update: bool = False,
+    concurrency    : int  = lp_build.DEFAULT_CONCURRENCY,
     verbose        : int  = 0,
 ) -> None:
     _configure_logging(verbose)
@@ -240,7 +257,7 @@ def watch(
 
     # initial build
     try:
-        _build(input_paths, html, pdf, exitfirst, in_place_update)
+        _build(input_paths, html, pdf, exitfirst, in_place_update, concurrency)
     except lp_build.BlockExecutionError:
         pass
 
@@ -248,7 +265,7 @@ def watch(
 
     def _build_cb(changes) -> None:
         try:
-            _build(input_paths, html, pdf, exitfirst, in_place_update)
+            _build(input_paths, html, pdf, exitfirst, in_place_update, concurrency)
         except lp_build.BlockExecutionError:
             pass
         # refresh mtimes after build, as they may have changed in the meantime

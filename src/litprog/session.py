@@ -72,9 +72,7 @@ class CapturingThread(typ.NamedTuple):
 
 def _start_reader(sp_output_pipe: typ.IO[bytes], encoding: str = "utf-8") -> CapturingThread:
     captured_lines: typ.List[RawCapturedLine] = []
-    read_loop_thread = threading.Thread(
-        target=_read_loop, args=(sp_output_pipe, captured_lines, encoding)
-    )
+    read_loop_thread = threading.Thread(target=_read_loop, args=(sp_output_pipe, captured_lines, encoding))
     read_loop_thread.start()
     return CapturingThread(read_loop_thread, captured_lines)
 
@@ -100,7 +98,7 @@ class InteractiveSession:
 
     _retcode: typ.Optional[int]
     _proc   : sp.Popen
-    _stdin  : typ.IO[bytes]
+    _stdin  : typ.Optional[typ.IO[bytes]]
     _stdout : typ.IO[bytes]
     _stderr : typ.IO[bytes]
 
@@ -142,14 +140,21 @@ class InteractiveSession:
     def send(self, input_str: str, delay: float = 0) -> None:
         self._in_cl.append(RawCapturedLine(time.time(), input_str))
         input_data = input_str.encode(self.encoding)
-        self._stdin.write(input_data)
+
+        _stdin = self._stdin
+        if _stdin:
+            _stdin.write(input_data)
+
+            if delay:
+                _stdin.flush()
         if delay:
-            self._stdin.flush()
             time.sleep(delay)
 
     @property
     def retcode(self) -> int:
-        self._stdin.flush()
+        _stdin = self._stdin
+        if _stdin:
+            _stdin.flush()
         return self.wait()
 
     def _assert_retcode(self) -> None:
@@ -189,12 +194,14 @@ class InteractiveSession:
 
         logger.debug(f"wait with timeout={timeout}")
         returncode: typ.Optional[int] = None
-        try:
-            self._stdin.close()
-        except BrokenPipeError:
-            # NOTE (mb 2020-06-05): Some subprocesses exit so fast that the pipe
-            #   may already be closed.
-            logger.debug("stdin already closed")
+        _stdin = self._stdin
+        if _stdin:
+            try:
+                _stdin.close()
+            except BrokenPipeError:
+                # NOTE (mb 2020-06-05): Some subprocesses exit so fast that the pipe
+                #   may already be closed.
+                logger.debug("stdin already closed")
 
         returncode = self._wait(timeout)
         self._out_ct.thread.join()
@@ -269,13 +276,14 @@ class DebugInteractiveSession(InteractiveSession):
 
     _retcode: typ.Optional[int]
     _proc   : sp.Popen
-    _stdin  : typ.IO[bytes]
+    _stdin  : typ.Optional[typ.IO[bytes]]
 
     _in_cl: typ.List[RawCapturedLine]
 
     def __init__(
         self, cmd: AnyCommand, *, env: typ.Optional[Environ] = None, encoding: str = "utf-8"
     ) -> None:
+        # pylint: disable=super-init-not-called; initialization is substantially different
         _env: Environ
         if env is None:
             _env = os.environ.copy()

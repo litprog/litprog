@@ -1,25 +1,10 @@
 (function () {
 "strict";
 
-// let slideout = new Slideout({
-//   'panel'    : document.querySelector('.wrapper'),
-//   'menu'     : document.querySelector('.nav'),
-//   'padding'  : 256,
-//   'duration' : 0,
-//   'tolerance': 10000,
-// });
-
-// window.myslideout = slideout
-
 let menuIcon = document.querySelector(".menu-icon")
 let navPanel = document.querySelector(".nav")
 
-// slideout.on('beforeopen', () => menuIcon.classList.add("active"))
-// slideout.on('beforeclose', () => menuIcon.classList.remove("active"))
-
-// slideout.on('open', (evt) => console.log("open", evt))
-// slideout.on('close', (evt) => console.log("close", evt))
-
+let loadingStart = Date.now()
 let lastInteraction = Date.now()
 
 let navState = {
@@ -27,6 +12,7 @@ let navState = {
 }
 
 function toggleNav() {
+    lastInteraction = Date.now()
     navState.isOpen = !navState.isOpen
     if (navState.isOpen) {
         navPanel.classList.add("active")
@@ -40,13 +26,15 @@ function toggleNav() {
 
 function onInteraction(node, func) {
   const debounced = function(evt) {
-      if (Date.now() - lastInteraction > 500) {
-          // console.log("tap", evt.type, func.name)
+      // console.log("tap", evt.type, func.name, Date.now() - lastInteraction)
+      if (Date.now() - lastInteraction > 300) {
           func(evt)
       }
       lastInteraction = Date.now()
   }
-  if ('ontouchstart' in window) {
+  if (0 && 'ontouchstart' in window) {
+      // disabled. there might be a benefit to this wrt. interactivity on mobile,
+      // but I can't get scrollToTop working right on firefox.
       node.addEventListener('touchstart', debounced, true)
   } else {
       node.addEventListener('click', debounced)
@@ -54,33 +42,60 @@ function onInteraction(node, func) {
 }
 
 onInteraction(menuIcon, (evt) => {
-    // slideout.toggle()
     toggleNav()
     evt.preventDefault()
 })
 
 
-// function closeSlideoutIfLinkClicked(e) {
-//     console.log(e.target.closest(".nav"), e.target.closest("a"))
-//     if (e.target.closest(".nav") && e.target.closest("a")) {
-//         setTimeout(() => {slideout.close();}, 100)
-//     }
-// }
+let scrollTopIcon = document.querySelector(".scroll-to-top")
 
-// onInteraction(document.querySelector(".nav"), closeSlideoutIfLinkClicked)
+onInteraction(scrollTopIcon, (evt) => {
+    lastInteraction = Date.now()
+    window.scroll({top: 0})
+    evt.preventDefault()
+})
+
+function closeNavIfLinkClicked(evt) {
+    let navTgt = evt.target.closest(".nav")
+    if (!navTgt) return
+    let aTgt = evt.target.closest("a")
+    if (!aTgt) return
+    let headlineId = aTgt.href.split("#")[1]
+    let headline = document.querySelector("#" + headlineId)
+    if (headline) {
+        toggleNav()
+        // HACK to supress menu hide effect (as if scrolling)
+        // when scrolling is in fact triggered due to navigation
+        setMenuVis(true)
+        prevScrollY = 99999999
+    }
+}
+
+onInteraction(document.querySelector(".nav"), closeNavIfLinkClicked)
 
 let contrastIcon = document.querySelector(".toggle-contrast")
+let darkOverlay = document.querySelector(".dark-overlay")
 
 onInteraction(contrastIcon, (evt) => {
     lastInteraction = Date.now()
-    // console.log("contrast", evt.type, Date.now() / 1000)
-    if (document.body.classList.contains("dark")) {
-        document.body.classList.remove("dark")
-        localStorage.setItem("litprog_theme", "light")
-    } else {
-        document.body.classList.add("dark")
-        localStorage.setItem("litprog_theme", "dark")
-    }
+    darkOverlay.style.opacity = "0";
+    darkOverlay.style.display = "block";
+    setTimeout(function () {
+        darkOverlay.style.opacity = "1";
+        setTimeout(function () {
+            if (document.body.classList.contains("dark")) {
+                localStorage.setItem("litprog_theme", "light")
+                document.body.classList.remove("dark")
+            } else {
+                localStorage.setItem("litprog_theme", "dark")
+                document.body.classList.add("dark")
+            }
+            darkOverlay.style.opacity = "0";
+            setTimeout(function () {
+                darkOverlay.style.display = "none";
+            }, 350);
+        }, 350);
+    }, 20);
     evt.preventDefault()
 })
 
@@ -93,7 +108,7 @@ if (selectedTheme == "dark") {
     document.body.classList.remove("dark")
 }
 
-let pdfIcon = document.querySelector(".pdf-icon")
+let pdfIcon = document.querySelector(".print-icon")
 let pdfLinks = document.querySelector(".pdf-links")
 let clickTimetout = -1;
 
@@ -113,35 +128,40 @@ onInteraction(pdfIcon, togglePdfLinks)
 let navScrollerNode = document.querySelector(".nav-scroller")
 let tocNode = document.querySelector(".toc")
 let headingNodes = document.querySelectorAll("h1, h2, h3, h4, h5")
-let navigationNodes = document.querySelectorAll(".nav li a")
+let navLinkNodes = document.querySelectorAll(".toc a")
+
+let navLinkNodesByHash = {}
+for (var i = 0; i < navLinkNodes.length; i++) {
+    let href = navLinkNodes[i].href
+    let hrefAnchor = href.slice(href.indexOf("#"))
+    navLinkNodesByHash[hrefAnchor] = navLinkNodes[i]
+}
+
 let setActiveNavTimeout = 0
 let activeNavNode = null
 
-
 function setActiveNav() {
     let wrapperOffset = document.querySelector(".wrapper").offsetTop
-    // TODO: Not all nav nodes have headings, so this only works
-    //      on the first page. We need to somehow figure out the
-    //      number of headings that preceed the active one
-    // Oooor, we just stick with a single page ? ¯\_(ツ)_/¯
-
     // A heading is considered active if it is the first one
     // on screen or the first higher than the middle of the screen
     // (because there may not be a heading on the screen.
     let minActiveY = window.pageYOffset
     let maxActiveY = window.pageYOffset + window.innerHeight / 2
-    let headingsOffsetIndex = 0
+
     for (var i = 0; i < headingNodes.length; i++) {
         let headingNode = headingNodes[i]
         let headingOffset = headingNode.offsetTop + wrapperOffset
+
         if (headingOffset < minActiveY) {continue}
 
-        let newActiveNav = navigationNodes[i + headingsOffsetIndex]
-        // Check if it's below the fold and
-        if (i > 0 && headingOffset > maxActiveY) {
-          // Use the previous heading
-          newActiveNav = navigationNodes[i - 1]
+        if (i == 0 || headingOffset < maxActiveY) {
+            var headingHash = "#" + headingNode.getAttribute("id")
+        } else {
+            // next heading is still below the fold, so use the previous one
+            var headingHash = "#" + headingNodes[i - 1].getAttribute("id")
         }
+
+        let newActiveNav = navLinkNodesByHash[headingHash];
 
         if (activeNavNode == newActiveNav) {return}
 
@@ -166,26 +186,39 @@ setActiveNav()
 let headerNode = document.querySelector(".header")
 let menuNode = document.querySelector(".menu")
 
+let prevScrollY = -1;
+setTimeout(function() {prevScrollY = window.pageYOffset}, 1000)
+
 function setMenuVis(vis) {
+    lastInteraction = Date.now()
+    prevScrollY = window.pageYOffset
     if (menuNode.classList.contains("offscreen") && vis) {
         headerNode.classList.remove("offscreen")
         menuNode.classList.remove("offscreen")
     } else if (!menuNode.classList.contains("offscreen") && !vis) {
         headerNode.classList.add("offscreen")
         menuNode.classList.add("offscreen")
+    } else {
+        return
     }
-    prevScrollY = window.pageYOffset
 }
-
-let prevScrollY = -1;
-setTimeout(function() {prevScrollY = window.pageYOffset}, 1000)
 
 window.addEventListener("scroll", (evt) => {
     clearTimeout(setActiveNavTimeout)
     setActiveNavTimeout = setTimeout(setActiveNav, 100)
+    if (window.pageYOffset < 10) {
+        setMenuVis(true)
+        return
+    }
 
-    if (Date.now() - lastInteraction < 500) {
+    if (Date.now() - lastInteraction < 700) {
         // supress toggle for firefox
+        return
+    }
+
+    if (Date.now() - loadingStart < 2000) {
+        // supress nav toggle due to initial page reflow
+        setMenuVis(true)
         return
     }
 
@@ -204,8 +237,6 @@ window.addEventListener("scroll", (evt) => {
     // }
 
     setMenuVis(window.pageYOffset < 10 || deltaY < 0)
-    lastInteraction = Date.now()
-    prevScrollY = window.pageYOffset;
 })
 
 let contentNode = document.querySelector(".content")
@@ -217,51 +248,17 @@ contentNode.addEventListener('click', (evt) => {
     }
 })
 
-function getContentFoldClass(e) {
-    let contentRect = contentNode.getBoundingClientRect()
-    let deltaContentLeft = Math.abs(e.clientX - contentRect.x)
-    // TODO: only return if there's a next chapter
-    if (deltaContentLeft < 40) {
-        return "lift-fold-left"
-    }
-    let deltaContentRight = Math.abs(e.clientX - (contentRect.x + contentRect.width))
-    if (deltaContentRight < 40) {
-        return "lift-fold-right"
-    }
-    return null
-}
-
 let activeTarget = null;
 let activePopper = null;
 let activePopperNode = null;
 let popperDestroyTimeout = null;
 
-function updateContentFoldClass(e) {
-    let foldClass = getContentFoldClass(e)
-    let altFoldClass = (
-        foldClass == "lift-fold-left" ? "lift-fold-right" :
-        foldClass == "lift-fold-right" ? "lift-fold-left" :
-        null
-    )
-    let body = document.body
-    if (altFoldClass && body.classList.contains(altFoldClass)) {
-        body.classList.remove(altFoldClass)
-    }
-    if (!foldClass) {
-        if (body.classList.contains("lift-fold-left")){
-            body.classList.remove("lift-fold-left")
-        }
-        if (body.classList.contains("lift-fold-right")){
-            body.classList.remove("lift-fold-right")
-        }
-    } else if (!body.classList.contains(foldClass)) {
-        body.classList.add(foldClass)
+document.body.addEventListener("mousemove", (evt) => {
+    if (evt.target.nodeName == "#text") {
+        return
     }
 
-}
-
-document.body.addEventListener("mousemove", (e) => {
-    let isPopper = !!e.target.closest(".popper")
+    let isPopper = !!evt.target.closest(".popper")
     if (isPopper) {
         // keep active
         if (popperDestroyTimeout != null) {
@@ -272,15 +269,13 @@ document.body.addEventListener("mousemove", (e) => {
         return
     }
 
-    // updateContentFoldClass(e)
-
     // TODO: More hovers
     //  - Link URL
     //  - Internal link preview (less wrong marks these with °)
     //  - Function definition preview
 
-    let isFnote = e.target.classList.contains("footnote-ref")
-    let isAltFnote = isFnote && activeTarget != e.target
+    let isFnote = evt.target.classList.contains("footnote-ref")
+    let isAltFnote = isFnote && activeTarget != evt.target
 
     if (!isFnote || isAltFnote) {
         // hide the current popper
@@ -318,7 +313,7 @@ document.body.addEventListener("mousemove", (e) => {
         return
     }
 
-    let footnoteNum = new RegExp("[0-9]+").exec(e.target.innerText)[0]
+    let footnoteNum = new RegExp("[0-9]+").exec(evt.target.innerText)[0]
     let footnoteNode = document.querySelector(`.footnote > ol > li:nth-child(${footnoteNum})`)
     let popperNode = document.createElement("div")
     popperNode.setAttribute("footnote-number", footnoteNum)
@@ -329,8 +324,8 @@ document.body.addEventListener("mousemove", (e) => {
         + '</div>'
     )
     document.body.appendChild(popperNode)
-    activeTarget = e.target
-    activePopper = Popper.createPopper(e.target, popperNode, {
+    activeTarget = evt.target
+    activePopper = Popper.createPopper(evt.target, popperNode, {
         placement: 'top',
         modifiers: [
             {

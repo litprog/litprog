@@ -52,31 +52,46 @@
         }
     </script>
 
-    {% if fmt.is_web_target %}
-        {% include "inline_font_styles.html" %}
-        <link rel="stylesheet" type="text/css" href="static/general_v2.css">
-        <link rel="stylesheet" type="text/css" href="static/screen_v2.css">
-        <noscript><link rel="stylesheet" href="static/katex.css" type="text/css"></noscript>
-        <noscript><link rel="stylesheet" href="static/codehilite.css" type="text/css"></noscript>
-    {% endif %}
+    {% include "inline_font_styles.html" %}
+    <link rel="stylesheet" type="text/css" href="static/general_v2.css">
+    <link rel="stylesheet" type="text/css" href="static/screen_v3.css">
+    <noscript><link rel="stylesheet" href="static/katex.css" type="text/css"></noscript>
+    <noscript><link rel="stylesheet" href="static/codehilite.css" type="text/css"></noscript>
+
+    <div class="dark-overlay"></div>
+
     <div class="header">
         <img alt="Logo of {{ meta.project_name }} " src="{{ meta.logo_url }}">
         <div>{{ meta.title }}</div>
     </div>
     <div class="menu">
-        <span class="menu-icon" title="Toggle Navigation">
-            <span></span>
-            <span></span>
-            <span></span>
-        </span>
-        <span class="toggle-contrast" title="Toggle Light/Dark Mode">
-            <span></span>
-        </span>
-        <span class="pdf-icon" title="Download PDF files">
-            <span></span>
-            <span></span>
-            <span></span>
-        </span>
+        <div class="menu-icons-left">
+            <span class="menu-icon" title="Toggle Navigation">
+                <span></span>
+                <span></span>
+                <span></span>
+            </span>
+            <span class="toggle-contrast" title="Toggle Light/Dark Mode">
+                <span></span>
+            </span>
+            <span class="print-icon" title="Download PDF files">
+                <span></span>
+                <span></span>
+                <span></span>
+            </span>
+            <!--
+            <span class="download-icon" title="Downloads">
+                <span></span>
+                <span></span>
+                <span></span>
+            </span>
+            -->
+        </div><div class="menu-icons-right">
+            <span class="scroll-to-top" title="Scroll to Top">
+                <span></span>
+                <span></span>
+            </span>
+        </div>
     </div>
     <div class="pdf-links">
         <table>
@@ -95,12 +110,14 @@
                     <td><a class="letter portrait" href="print_letter.pdf"></a></td>
                     <td><a class="ereader" href="print_ereader.pdf"></a></td>
                 </tr>
+                <!--
                 <tr>
                     <th>Dense</th>
                     <td><a class="a4 portrait twocol" href="print_twocol_a4.pdf"></a></td>
                     <td><a class="letter portrait twocol" href="print_twocol_letter.pdf"></a></td>
                     <td></td>
                 </tr>
+                -->
                 <tr>
                     <th>Booklet<br/>(duplex)</th>
                     <td><a class="a4 landscape twocol" href="print_booklet_a4.pdf"></a></td>
@@ -145,8 +162,16 @@
                         <a href="{{meta.repo_url}}/{{meta.vcs_revision or 'master'}}">{{meta.vcs_name.title()}} Revision: <code>{{meta.vcs_revision_short}}</code>{% if meta.vcs_dirty_files %} (Dirty) {% endif %}</a>
                         {% endif %}
                     {% endif %}
+                    <!-- Authors Timeline -->
+                    {% if meta.authors_timeline_svg %}
                     <br/>
+                    <span>Authorship Timeline for file </span>
+                    <code>{{meta.md_filepath}}</code>
+                    <br/>
+                    <img class="authors-timeline" src="{{meta.authors_timeline_svg}}">
+                    {% endif %}
                     <!-- Build Info -->
+                    <br/>
                     <span>
                         Built {{ meta.build_timestamp }} with
                         <a href="https://gitlab.com/mbarkhau/litprog/">

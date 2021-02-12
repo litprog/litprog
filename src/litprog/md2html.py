@@ -22,7 +22,7 @@ TocTokens = typ.List[typ.Dict[str, typ.Any]]
 class HTMLResult(typ.NamedTuple):
 
     raw_html  : HTMLText
-    toc       : TocHTML
+    toc_html  : TocHTML
     toc_tokens: TocTokens
 
 

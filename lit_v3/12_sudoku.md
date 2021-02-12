@@ -1,4 +1,4 @@
-# Solve Every Sudoku Puzzle
+# By Example: Solve Every Sudoku Puzzle
 
 Where the previous chapter *described* how LitProg works, this chapter aims to *demonstrate* by example how LitProg can be used.
 
@@ -15,7 +15,7 @@ This chapter produces the following artifacts:
 
 ## Introduction
 
-> This chapter is a recasting of the essay [Solving Every Sudoku Puzzle by Peter Norvig](http://norvig.com/sudoku.html).
+> This chapter is a rewrite of the essay [Solving Every Sudoku Puzzle by Peter Norvig](http://norvig.com/sudoku.html).
 
 It is quite easy to solve every Sudoku puzzle with two ideas: [constraint propagation](http://en.wikipedia.org/wiki/Constraint_satisfaction) and [search](http://en.wikipedia.org/wiki/Search_algorithm).
 
@@ -79,8 +79,8 @@ H 5 . . | 2 . . | . . .    H 5 7 3 | 2 9 1 | 6 8 4
 We can implement the notions of units, peers, and squares in Python 3.6+ as follows:
 
 ```python
-# lp_def: notions
-# lp_dep: boilerplate
+# def: notions
+# dep: boilerplate
 
 def cross(A: Sequence[str], B: Sequence[str]) -> Sequence[str]:
     """Cross product of elements in A and elements in B."""
@@ -114,8 +114,8 @@ PEERS = {
 ```
 
 ```python
-# lp_exec
-# lp_dep: notions
+# exec
+# dep: notions
 assert len(UNITLIST) == 27
 assert all(len(UNITS[s]) == 3 for s in SQUARES)
 assert all(len(PEERS[s]) == 20 for s in SQUARES)
@@ -140,7 +140,7 @@ Now that we have squares, units, and peers, the next step is to define the Sudok
 For the textual format we'll allow a string of characters with 1-9 to indicate a digit, and a period to specify an empty square. All other characters are ignored (including spaces, newlines, dashes, and bars). So each of the following three grid strings represent the same puzzle:
 
 ```python
-# lp_def: fixtures
+# def: fixtures
 FIXTURE_1 = """
   4.....8.5.3..........7.....
   .2.....6.....8.4......1....
@@ -179,8 +179,8 @@ Now for *values*. One might think that a 9 x 9 array would be the obvious data s
 Here is the code to parse a grid into a values dict:
 
 ```python
-# lp_def: grid_items
-# lp_dep: notions
+# def: grid_items
+# dep: notions
 
 Square = str
 Digits = str     # length >= 1
@@ -197,10 +197,16 @@ def grid_items(raw_grid: str) -> Iterable[GridItem]:
 ```
 
 ```python
-# lp_exec
-# lp_dep: grid_items, fixtures
-assert dict(grid_items(FIXTURE_1)) == dict(grid_items(FIXTURE_2))
-assert dict(grid_items(FIXTURE_1)) == dict(grid_items(FIXTURE_3))
+# exec
+# dep: grid_items, fixtures
+grid1 = dict(grid_items(FIXTURE_1))
+grid2 = dict(grid_items(FIXTURE_2))
+grid3 = dict(grid_items(FIXTURE_3))
+assert grid1 == grid2
+assert grid1 == grid3
+digites = [grid1[sq] for sq in SQUARES if grid1[sq] != "."]
+expected = list("48537268416375214")
+assert digites == expected
 ```
 
 
@@ -209,8 +215,8 @@ assert dict(grid_items(FIXTURE_1)) == dict(grid_items(FIXTURE_3))
 Soon enough we'll want to see our partial results, so we'll need a function to `display` a puzzle.
 
 ```python
-# lp_def: display
-# lp_dep: shorten_digits
+# def: display
+# dep: shorten_digits
 def display(grid: Grid) -> None:
     """Display compact 2-D representation of grid."""
     # copy to prevent modification of our input
@@ -238,13 +244,13 @@ def display(grid: Grid) -> None:
 ```
 
 ```python
-# lp_exec: python3
-# lp_dep: fixtures, grid_items, display
+# exec: python3
+# dep: fixtures, grid_items, display
 display(dict(grid_items(FIXTURE_1)))
 ```
 
 ```python
-# lp_out
+# out
  4     |       | 8   5
    3   |       |
        | 7     |
@@ -273,10 +279,10 @@ As an example of strategy 2: If it turns out that none of `A3` through `A9` has 
 
 The function `assign` will return the updated values (including the updates from constraint propagation), but if there is a contradiction (if the assignment cannot be made consistently) then `assign` returns `None`. For example, if a grid starts with the digits `'77...'` then when we try to assign the 7 to `A2`, assign would notice that 7 is not a possibility for `A2`, because it was eliminated by the peer, `A1`.
 
-It turns out that the fundamental operation is not assigning a value, but rather eliminating one of the possible values for a square, which we implement with the `eliminate` function.
+It turns out that the fundamental operation is not to assign a value, but rather to eliminate one of the possible values for a square, which we implement with the `eliminate` function.
 
 ```python
-# lp_def: eliminate
+# def: eliminate
 def eliminate(grid: Grid, s: Square, d: Digit) -> MaybeGrid:
     """Eliminate d from grid[s];
 
@@ -315,8 +321,8 @@ def eliminate(grid: Grid, s: Square, d: Digit) -> MaybeGrid:
 We could implement `assign` as `grid[s] = d`, but we can do more than just that. Once we have `eliminate`, then `assign` can be defined as "eliminate all the digits at `s` except `d`". This approach triggers the recursive constraint propagation.
 
 ```python
-# lp_def: assign
-# lp_dep: eliminate
+# def: assign
+# dep: eliminate
 def assign(grid: Grid, s: Square, d: Digit) -> MaybeGrid:
     """Eliminate all the other grid (except d) from grid[s] and propagate.
 
@@ -332,8 +338,8 @@ def assign(grid: Grid, s: Square, d: Digit) -> MaybeGrid:
 Now we can proceed to actually use our building blocks and solve a puzzle. The function `parse_grid` calls `assign`, which in turn will call `elimitate`...
 
 ```python
-# lp_def: parse_grid
-# lp_dep: grid_items, assign
+# def: parse_grid
+# dep: grid_items, assign
 def parse_grid(raw_grid: str) -> MaybeGrid:
     """Convert grid to a dict of possible values.
 
@@ -354,8 +360,8 @@ def parse_grid(raw_grid: str) -> MaybeGrid:
 Now we're ready to go. I picked the first example from a list of [easy puzzles](http://norvig.com/easy50.txt) from the fine [Project Euler](http://projecteuler.net/) [Sudoku problem](http://projecteuler.net/index.php?section=problems&id=96) and tried it:
 
 ```python
-# lp_exec
-# lp_dep: parse_grid, display
+# exec
+# dep: parse_grid, display
 grid1 = """
 ..3.2.6..9..3.5..1..18.64..
 ..81.29..7.......8..67.82..
@@ -366,7 +372,7 @@ display(parse_grid(grid1))
 ```
 
 ```python
-# lp_out
+# out
  4 8 3 | 9 2 1 | 6 5 7
  9 6 7 | 3 4 5 | 8 2 1
  2 5 1 | 8 7 6 | 4 9 3
@@ -384,7 +390,7 @@ display(parse_grid(grid1))
 In this case, the puzzle was completely solved by rote application of strategies 1. and 2.! Unfortunately, that will not always be the case. Here is the first example from a list of [hard puzzles](http://magictour.free.fr/top95):
 
 ```python
-# lp_def: grid2
+# def: grid2
 grid2 = """
 4.....8.5.3..........7.....
 .2.....6.....8.4......1....
@@ -393,13 +399,13 @@ grid2 = """
 ```
 
 ```python
-# lp_exec
-# lp_dep: parse_grid, display, grid2
+# exec
+# dep: parse_grid, display, grid2
 display(parse_grid(grid2))
 ```
 
 ```python
-# lp_out
+# out
     4     1679  12679 |   139    2369   269  |    8     1239    5
   26789    3    125-9 |  14589  24569  245689|  12679   1249  124679
    2689  15689  125689|    7     2-69  245689|  12369  12349  1-469
@@ -416,7 +422,7 @@ display(parse_grid(grid2))
 
 In this case, we are still a long way from solving the puzzle--61 squares remain uncertain. What next? We could try to code [more sophisticated strategies](http://www.sudokudragon.com/sudokustrategy.htm). For example, the *naked twins* strategy looks for two squares in the same unit that both have the same two possible digits. Given `{'A5': '26', 'A6':'26', ...}`, we can conclude that 2 and 6 must be in `A5` and `A6` (although we don't know which is where), and we can therefore eliminate 2 and 6 from every other square in the `A` row unit. We could code that strategy in a few lines by adding an `elif len(values[s]) == 2` test to `eliminate`.
 
-Coding up strategies like this is a possible route, but would require hundreds of lines of code (there are dozens of these strategies), and we'd never be sure if we could solve *every* puzzle.
+To code up strategies like this is a possible route, but would require hundreds of lines of code (there are dozens of these strategies), and we'd never be sure if we could solve *every* puzzle.
 
 ## Search
 
@@ -428,7 +434,7 @@ The second choice is to somehow process much more than one possibility per machi
 
 In fact, it turns out that to solve this particular puzzle we need to look at only 25 possibilities and we only have to explicitly search through 9 of the 61 unfilled squares; constraint propagation does the rest. For the list of 95 [hard puzzles](http://magictour.free.fr/top95), on average we need to consider 64 possibilities per puzzle, and in no case do we have to search more than 16 squares.
 
-What is the search algorithm? Simple: first make sure we haven't already found a solution or a contradiction, and if not, choose one unfilled square and consider all its possible values. One at a time, try assigning the square each value, and searching from the resulting position. In other words, we search for a value `d` such that we can successfully search for a solution from the result of assigning square `s` to `d`. If the search leads to an failed position, go back and consider another value of `d`. This is a *recursive* search, and we call it a *[depth-first](http://en.wikipedia.org/wiki/Depth-first_search)* search because we (recursively) consider all possibilities under `values[s] = d` before we consider a different value for `s`.
+What is the search algorithm? Simple: first make sure we haven't already found a solution or a contradiction, and if not, choose one unfilled square and consider all its possible values. One at a time, try to assign the square each value, and to search from the resulting position. In other words, we search for a value `d` such that we can successfully search for a solution from the result of assigning square `s` to `d`. If the search leads to an failed position, go back and consider another value of `d`. This is a *recursive* search, and we call it a *[depth-first](http://en.wikipedia.org/wiki/Depth-first_search)* search because we (recursively) consider all possibilities under `values[s] = d` before we consider a different value for `s`.
 
 To avoid bookkeeping complications, we create a new copy of `values` for each recursive call to `search`. This way each branch of the search tree is independent, and doesn't confuse another branch. (This is why I chose to implement the set of possible values for a square as a string: I can copy `values` with `values.copy()` which is simple and efficient. If I implemented a possibility as a Python `set` or `list` I would need to use `copy.deepcopy(values)`, which is less efficient.) The alternative is to keep track of each change to `values` and undo the change when we hit a dead end. This is known as *[backtracking search](http://en.wikipedia.org/wiki/Backtracking_search)*. It makes sense when each step in the search is a single change to a large data structure, but is complicated when each assignment can lead to many other changes via constraint propagation.
 
@@ -437,8 +443,8 @@ There are two choices we have to make in implementing the search: *variable orde
 Now we're ready to define the `solve` function in terms of the `search` function:
 
 ```python
-# lp_def: solve
-# lp_dep: parse_grid
+# def: solve
+# dep: parse_grid
 def search(grid: Grid) -> MaybeGrid:
     """Using depth-first search and propagation, try all possible values."""
     if grid is None:
@@ -461,13 +467,13 @@ def solve(raw_grid: str) -> MaybeGrid:
 **That's it!** We're done; it only took one page of code, and we can now solve any Sudoku puzzle, including `grid2` which we previously couldn't.
 
 ```python
-# lp_exec
-# lp_dep: solve, display, grid2
+# exec
+# dep: solve, display, grid2
 display(solve(grid2))
 ```
 
 ```python
-# lp_out
+# out
  4 1 7 | 3 6 9 | 8 2 5
  6 3 2 | 1 5 8 | 9 4 7
  9 5 8 | 7 2 4 | 3 1 6
@@ -487,8 +493,8 @@ display(solve(grid2))
 Now we can create the complete program `examples/sudoku.py`.
 
 ```python
-# lp_def: read_grids
-# lp_dep: boilerplate
+# def: read_grids
+# dep: boilerplate
 import re
 
 def parse_grids(text: str) -> Iterable[str]:
@@ -507,8 +513,8 @@ def read_grids(filename: str) -> List[str]:
 ```
 
 ```python
-# lp_def: solve_all
-# lp_dep: boilerplate, solve, display
+# def: solve_all
+# dep: boilerplate, solve, display
 import time
 
 def solve_all(raw_grids: List[str], show: bool) -> None:
@@ -528,8 +534,8 @@ def solve_all(raw_grids: List[str], show: bool) -> None:
 ```
 
 ```python
-# lp_file: examples/sudoku.py
-# lp_dep: read_grids, solve_all
+# file: examples/sudoku.py
+# dep: read_grids, solve_all
 import os
 import sys
 
@@ -546,7 +552,7 @@ if __name__ == '__main__':
 ```
 
 ```bash
-# lp_exec
+# exec
 isort examples/sudoku.py
 sjfmt examples/sudoku.py
 ```
@@ -557,20 +563,20 @@ sjfmt examples/sudoku.py
 Below is the output from running the program at the command line; it solves the two files of [50 easy](http://projecteuler.net/project/sudoku.txt) and [95 hard puzzles](http://norvig.com/top95.txt) (see also the [95 solutions](http://norvig.com/top95solutions.html), [eleven puzzles](http://norvig.com/hardest.txt) I found under a search for ( [hardest sudoku](http://www.google.com/search?q=hardest+sudoku) ).
 
 ```bash
-# lp_run: python examples/sudoku.py examples/sudoku_p096_euler.txt
+# run: python examples/sudoku.py examples/sudoku_p096_euler.txt
 Solved 50 of 50 puzzles. (avg 2 ms/solve  max 3 ms)
 # exit: 0
 ```
 
 ```bash
-# lp_run: python examples/sudoku.py examples/sudoku_top95.txt
-Solved 95 of 95 puzzles. (avg 8 ms/solve  max 38 ms)
+# run: python examples/sudoku.py examples/sudoku_top95.txt
+Solved 95 of 95 puzzles. (avg 8 ms/solve  max 36 ms)
 # exit: 0
 ```
 
 ```bash
-# lp_run: python examples/sudoku.py examples/sudoku_hardest.txt
-Solved 11 of 11 puzzles. (avg 3 ms/solve  max 6 ms)
+# run: python examples/sudoku.py examples/sudoku_hardest.txt
+Solved 11 of 11 puzzles. (avg 3 ms/solve  max 5 ms)
 # exit: 0
 ```
 
@@ -585,7 +591,7 @@ Solved 11 of 11 puzzles. (avg 3 ms/solve  max 6 ms)
 Each of the puzzles above was solved in less than a fifth of a second. What about really hard puzzles? Finnish mathematician Arto Inkala described his [2006 puzzle](http://www.usatoday.com/news/offbeat/2006-11-06-sudoku_x.htm) as "the most difficult sudoku-puzzle known so far" and his [2010 puzzle](http://www.mirror.co.uk/fun-games/sudoku/2010/08/19/world-s-hardest-sudoku-can-you-solve-dr-arto-inkala-s-puzzle-115875-22496946/) as "the most difficult puzzle I've ever created." My program solves them in 0.01 seconds each:
 
 ```bash
-# lp_file: examples/sudoku_hardester.txt
+# file: examples/sudoku_hardester.txt
 8 5 . |. . 2 |4 . .
 7 2 . |. . . |. . 9
 . . 4 |. . . |. . .
@@ -612,7 +618,7 @@ Each of the puzzles above was solved in less than a fifth of a second. What abou
 ```
 
 ```python
-# lp_run: python examples/sudoku.py --show examples/sudoku_hardester.txt
+# run: python examples/sudoku.py --show examples/sudoku_hardester.txt
  8 5 9 | 6 1 2 | 4 3 7
  7 2 3 | 8 5 4 | 1 6 9
  1 6 4 | 3 7 9 | 5 2 8
@@ -641,11 +647,11 @@ Solved 2 of 2 puzzles. (avg 4 ms/solve  max 4 ms)
 # exit: 0
 ```
 
-I guess if I want a really hard puzzle I'll have to make it myself. I don't know how to make hard puzzles, so I generated a million random puzzles. My algorithm for making a random puzzle is simple: first, randomly shuffle the order of the squares. One by one, fill in each square with a random digit, respecting the possible digit choices. If a contradiction is reached, start over. If we fill at least 17 squares with at least 8 different digits then we are done. (Note: with less than 17 squares filled in or less than 8 different digits it is known that there will be duplicate solutions. Thanks to Olivier Grégoire for the fine suggestion about 8 different digits.)
+I guess if I want a really hard puzzle I'll have to make it myself. I don't know how to make hard puzzles, so I generated a million random puzzles. My algorithm to make a random puzzle is simple: first, randomly shuffle the order of the squares. One by one, fill in each square with a random digit, respecting the possible digit choices. If a contradiction is reached, start over. If we fill at least 17 squares with at least 8 different digits then we are done. (Note: with less than 17 squares filled in or less than 8 different digits it is known that there will be duplicate solutions. Thanks to Olivier Grégoire for the fine suggestion about 8 different digits.)
 
 ```python
-# lp_def: random_puzzle
-# lp_dep: boilerplate, solve
+# def: random_puzzle
+# dep: boilerplate, solve
 import random
 
 def shuffled(seq: Sequence[str]) -> Sequence[str]:
@@ -692,7 +698,7 @@ Here are the times in seconds for the 139 out of a million puzzles that took mor
 It is hard to draw conclusions from this. Is the uptick in the last few values significant? If I generated 10 million puzzles, would one take 1000 seconds? Here's the hardest (for my program) of the million random puzzles:
 
 ```shell
-# lp_file: examples/sudoku_hardestest.txt
+# file: examples/sudoku_hardestest.txt
  . . . | . . 6 | . . .
  . 5 9 | . . . | . . 8
  2 . . | . . 8 | . . .
@@ -709,8 +715,8 @@ It is hard to draw conclusions from this. Is the uptick in the last few values s
 I capture the result in `examples/sudoku_hardestest_result.txt`, just so I don't have to recompute it again and again during development.
 
 ```shell
-# lp_exec
-# lp_timeout: 60
+# exec
+# timeout: 60
 if [[ ! -f examples/sudoku_hardestest_result.txt ]]; then
     python examples/sudoku.py \
         --show examples/sudoku_hardestest.txt \
@@ -719,7 +725,7 @@ fi
 ```
 
 ```shell
-# lp_run: cat examples/sudoku_hardestest_result.txt
+# run: cat examples/sudoku_hardestest_result.txt
  4 3 8 | 7 9 6 | 2 1 5
  6 5 9 | 1 3 2 | 4 7 8
  2 7 1 | 4 5 8 | 6 9 3
@@ -793,7 +799,7 @@ Why did I do this? As computer security expert [Ben Laurie](http://en.wikipedia.
 ### Boilerplate
 
 ```python
-# lp_def: boilerplate
+# def: boilerplate
 from typing import Sequence, Tuple, List, Dict, Optional, Iterable
 
 DIGITS = "123456789"
@@ -802,8 +808,8 @@ DIGITS = "123456789"
 Test case for `grid_items`.
 
 ```python
-# lp_exec: python3
-# lp_dep: grid_items, fixtures
+# exec: python3
+# dep: grid_items, fixtures
 assert dict(grid_items(FIXTURE_1)) == {
     "A1": "4", "A2": ".", "A3": ".",
     "A4": ".", "A5": ".", "A6": ".",
@@ -842,7 +848,7 @@ The `shorten_digits` function is just to make the output of the `display` funcit
 ### Pretty Printing
 
 ```python
-# lp_def: shorten_digits
+# def: shorten_digits
 def shorten_digits(digits: str) -> str:
     """Shorten contiguous sequences of digits."""
     for i in range(8):
@@ -856,8 +862,8 @@ def shorten_digits(digits: str) -> str:
 ```
 
 ```python
-# lp_exec: python3
-# lp_dep: shorten_digits
+# exec: python3
+# dep: shorten_digits
 assert shorten_digits("12345")     == "1-5"
 assert shorten_digits("123456789") == "1-9"
 assert shorten_digits("456789")    == "4-9"
@@ -869,7 +875,7 @@ assert shorten_digits("256789")    == "25-9"
 This script is used to download various inputs stored as `examples/sudoku_*.txt`.
 
 ```bash
-# lp_exec: bash
+# exec: bash
 set -e
 set -o pipefail
 if [[ ! -f "examples/sudoku_p096_euler.txt" ]]; then
@@ -894,8 +900,8 @@ fi
 This script generates the statistics for the two plots of calculation times.
 
 ```python
-# lp_def: calc_random_puzzle_times
-# lp_dep: random_puzzle
+# def: calc_random_puzzle_times
+# dep: random_puzzle
 import math, time, collections
 
 def round_to_2(x):
@@ -914,8 +920,8 @@ for _ in range(100):
 Update the persisted/serialized data, which is kept on disk, since it is expensive to calculate and we don't want to slow down `litprog build`, esp. with `--in-place-update`.
 
 ```python
-# lp_exec
-# lp_dep: calc_random_puzzle_times
+# exec
+# dep: calc_random_puzzle_times
 import pathlib
 
 DATA_PATH = pathlib.Path("examples/sudoku_random_times.csv")
@@ -935,7 +941,7 @@ with DATA_PATH.open(mode="w") as out_fobj:
 I spent a few hours on different ways to render plots eventually gave up on getting it the way I wanted (as close as possible to the originals). The matplotlib API is a travasty.
 
 ```python
-# lp_exec
+# exec
 import os, math
 import pandas
 
@@ -971,6 +977,6 @@ save_bar_plot(
 ```
 
 ```python
-# lp_out
+# out
 # exit: 0
 ```

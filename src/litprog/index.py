@@ -219,9 +219,7 @@ class Index:
             if entry is None:
                 entries[key] = entry
             else:
-                entries[key] = IndexEntry(
-                    pl.Path(entry['path']), Stat(*entry['stat']), entry['digest']
-                )
+                entries[key] = IndexEntry(pl.Path(entry['path']), Stat(*entry['stat']), entry['digest'])
 
         targets: EntryKeysByTarget = {}
         for target, deps in data['targets'].items():
@@ -256,11 +254,7 @@ class Index:
 
         if self.has_index_changed():
             tmp_file.unlink()
-            err_msg = (
-                "WARNING: Concurrent update of index "
-                "detected. This may result in a corrupted "
-                "build."
-            )
+            err_msg = "WARNING: Concurrent update of index detected. This may result in a corrupted build."
             raise Exception(err_msg)
         else:
             tmp_file.rename(self.index_file)
@@ -268,11 +262,10 @@ class Index:
     def has_index_changed(self) -> bool:
         if not self.index_file.exists():
             return True
-
-        if self.index_stat != mk_stat(self.index_file):
+        elif self.index_stat != mk_stat(self.index_file):
             return True
-
-        return False
+        else:
+            return False
 
     def add_files(self, paths: typ.Iterable[pl.Path]) -> None:
         for path in paths:
@@ -297,21 +290,18 @@ class Index:
         entry = self.entries[entry_key(path)]
         if entry is None:
             return CheckResult(False, "")
-
-        if not entry.path.exists():
+        elif not entry.path.exists():
             return CheckResult(False, "")
-
-        if entry.stat != mk_stat(path):
+        elif entry.stat != mk_stat(path):
             return CheckResult(False, "")
-
-        # If mtime is very new, then it can't be trusted.
-        if entry.stat.mtime <= self.index_stat.mtime - 2:
+        elif entry.stat.mtime <= self.index_stat.mtime - 2:
+            # If mtime is very new, then it can't be trusted.
             return CheckResult(True, entry.digest)
-
-        # fallback to digest check
-        new_digest = _file_digest(path)
-        check_ok   = new_digest == entry.digest
-        return CheckResult(check_ok, new_digest)
+        else:
+            # fallback to digest check
+            new_digest = _file_digest(path)
+            check_ok   = new_digest == entry.digest
+            return CheckResult(check_ok, new_digest)
 
     def is_target_done(self, target: Target, deps: typ.Set[pl.Path]) -> bool:
         for dep in deps:

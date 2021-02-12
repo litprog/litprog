@@ -3,22 +3,23 @@
 #
 # Copyright (c) 2018-2020 Manuel Barkhau (mbarkhau@gmail.com) - MIT License
 # SPDX-License-Identifier: MIT
+import re
 import time
 import shutil
 import typing as typ
 import logging
 import pathlib as pl
 
-import yaml
 import jinja2
 
-from . import __version__
+from . import vcs
 from . import parse
 from . import md2html
 from . import html2pdf
+from . import __version__
 from . import pdf_booklet
+from . import vcs_timeline
 from . import html_postproc
-from . import vcs
 
 logger = logging.getLogger("litprog.gen_docs")
 
@@ -35,10 +36,11 @@ class Replacement(typ.NamedTuple):
 
 PRINT_FORMATS = (
     'print_ereader',
+    'print_a4',
     'print_a5',
     'print_booklet_a4',
-    # 'print_halfletter',
-    # 'print_booklet_letter',
+    'print_halfletter',
+    'print_booklet_letter',
     # 'print_tallcol_a4',
     # 'print_tallcol_letter',
     # 'print_twocol_a4',
@@ -77,6 +79,7 @@ STATIC_DEPS = {
     STATIC_DIR / "codehilite.css",
     STATIC_DIR / "general_v2.css",
     STATIC_DIR / "screen_v2.css",
+    STATIC_DIR / "screen_v3.css",
     STATIC_DIR / "slideout.js",
     STATIC_DIR / "popper.js",
     STATIC_DIR / "popper.min.js",
@@ -210,20 +213,27 @@ DEBUG_NAVIGATION_OUTLINE = """
 """
 
 
-Metadata = typ.Dict[str, str]
+Metadata = typ.Dict[str, typ.Any]
+
+METADATA_DEFAULTS = {'lang': "en-US", 'title': "-"}
 
 
 class FileItem(typ.NamedTuple):
     md_path : pl.Path
     meta    : Metadata
-    toc     : md2html.TocHTML
     html_res: md2html.HTMLResult
 
     block_linenos: typ.List[typ.Tuple[int, int]]
 
 
+FOOTNOTES_RE = re.compile(r'\<h\d\s+id="references"\s*\>')
+
+
 def wrap_content_html(
-    content: HTMLText, target: str, meta: Metadata, nav_html: typ.Optional[HTMLText] = None
+    content_html: HTMLText,
+    target      : str,
+    meta        : Metadata,
+    nav_html    : typ.Optional[HTMLText] = None,
 ) -> HTMLText:
     assert target == 'screen' or target.startswith('print_')
     meta['target'] = target
@@ -235,14 +245,11 @@ def wrap_content_html(
         'is_tallcol_target': "_tallcol_" in target,
     }
 
-    nav = {}
-
-    if nav_html:
-        nav['outline_html'] = html_postproc.postproc_nav_html(nav_html)
+    nav = {'outline_html': nav_html} if nav_html else {}
 
     # nav['outline_html'] = DEBUG_NAVIGATION_OUTLINE
 
-    ctx = {'meta': meta, 'fmt': fmt, 'nav': nav, 'content': content}
+    ctx = {'meta': meta, 'fmt': fmt, 'nav': nav, 'content': content_html}
 
     env = jinja2.Environment(
         loader=jinja2.FileSystemLoader(str(STATIC_DIR.absolute()))
@@ -253,37 +260,134 @@ def wrap_content_html(
     return result
 
 
-def parse_front_matter(md_text: MarkdownText) -> typ.Tuple[Metadata, MarkdownText]:
-    meta = {'lang': "en-US", 'title': "-"}
-    if md_text.lstrip().startswith("---"):
-        _, front_matter, md_text = md_text.split("---", 2)
-        meta = yaml.safe_load(front_matter)
-    return meta, md_text
+def _deep_update(src: typ.Dict, dest: typ.Dict) -> None:
+    for k, src_v in src.items():
+        if isinstance(src_v, dict):
+            dest_v = dest.get(k, {})
+            _deep_update(src=src_v, dest=dest_v)
+            dest[k] = dest_v
+        else:
+            dest[k] = src_v
 
 
-def _init_meta() -> typ.Dict[str, str]:
+def _init_meta(output_dir: pl.Path, file_metas: typ.List[Metadata]) -> Metadata:
     build_tt = time.localtime()
-    meta = {
+    meta: Metadata = {
         # TODO (mb 2021-01-08): parse from front matter
-        'copyright_url'  : "https://gitlab.com/mbarkhau/litprog/-/blob/master/LICENSE",
-        'copyright'      : "2019-2021 Manuel Barkhau - MIT License",
-        'repo_url'       : "https://gitlab.com/mbarkhau/litprog/-/blob/",
-        'litprog_version': __version__,
-        'build_timestamp': time.strftime("%a %Y-%m-%d %H:%M:%S %Z", build_tt),
-        'vcs_dirty_files': set(),
-        'vcs_revision'   : "",
+        'litprog_version'   : __version__,
+        'build_timestamp'   : time.strftime("%a %Y-%m-%d %H:%M:%S %Z", build_tt),
+        'vcs_name'          : "",
+        'vcs_revision'      : "",
         'vcs_revision_short': "",
+        'vcs_dirty_files'   : set(),
+        'configuration'     : {
+            'concurrent': True,
+        },
     }
+
+    for file_meta in file_metas:
+        if file_meta:
+            _deep_update(src=file_meta, dest=meta)
+
+    author_aliases = {}
+    for raw_alias in meta.get('vcs_author_alias', []):
+        alias_re = re.compile(raw_alias['alias_regex'])
+        author_aliases[alias_re] = (raw_alias['real_name'], raw_alias['real_email'])
+
     vcs_api = vcs.get_vcs_api()
     if vcs_api:
-        head_rev = vcs_api.head_rev()
-        meta.update({
-            'vcs_name'          : vcs_api.name,
-            'vcs_revision'      : head_rev,
-            'vcs_revision_short': head_rev[:10],
-            'vcs_dirty_files'   : set(vcs_api.status()),
-        })
+        head_rev      = vcs_api.head_rev()
+        commits       = vcs_api.commits()
+        stats_by_file = vcs_timeline.stats_by_file(commits, author_aliases)
+        overall_stats = vcs_timeline.calc_overall_stats(commits, author_aliases)
+        meta.update(
+            {
+                'overall_stats'     : overall_stats,
+                'stats_by_file'     : stats_by_file,
+                'vcs_name'          : vcs_api.name,
+                'vcs_revision'      : head_rev,
+                'vcs_revision_short': head_rev[:10],
+                'vcs_dirty_files'   : set(vcs_api.status()),
+            }
+        )
+
     return meta
+
+
+StaticPaths = typ.Set[typ.Tuple[str, str]]
+
+
+HEADLINE_RE = re.compile('<h1 id="([^"]+)">')
+
+
+def _iter_file_nav_htmls(file_items: typ.List[FileItem]) -> typ.Iterable[str]:
+    top_level_toc = []
+    for file_item in file_items:
+        for toc in file_item.html_res.toc_tokens:
+            if toc['level'] == 1:
+                filename_md   = str(file_item.md_path.name)
+                filename_html = filename_md[: -len(file_item.md_path.suffix)] + ".html"
+                file_nav_id   = filename_html + "#" + toc['id']
+                top_level_toc.append((file_nav_id, toc['id'], toc['name']))
+
+    for file_item in file_items:
+        content_html = file_item.html_res.raw_html
+        headline     = HEADLINE_RE.search(content_html)
+        if headline is None:
+            continue
+
+        cur_nav_id = headline.group(1)
+
+        nav_html_parts = ['<div class="toc"><ul>']
+        for file_nav_id, nav_id, nav_name in top_level_toc:
+            if nav_id == cur_nav_id:
+                subnav_html = file_item.html_res.toc_html
+                l_index     = subnav_html.find("<ul>")
+                r_index     = subnav_html.rfind("</ul>")
+                subnav_html = subnav_html[l_index + 4 : r_index]
+                html_part   = f"<li><ul>{subnav_html}</ul></li>"
+                html_part   = html_part.replace("#" + nav_id, file_nav_id, 1)
+                nav_html_parts.append(html_part)
+            else:
+                nav_html_parts.append(f'<li><a href="{file_nav_id}">{nav_name}</a></li>')
+        nav_html_parts.append("</ul></div>")
+
+        nav_html = "\n".join(nav_html_parts)
+
+        has_footnotes = bool(FOOTNOTES_RE.search(content_html))
+        nav_html      = html_postproc.postproc_nav_html(nav_html, has_footnotes)
+
+        yield nav_html
+
+
+def _write_screen_html(file_items: typ.List[FileItem], html_dir: pl.Path) -> None:
+    nav_htmls = list(_iter_file_nav_htmls(file_items))
+    for nav_html, (md_path, meta, html_res, block_linenos) in zip(nav_htmls, file_items):
+        html_fpath = html_dir / (md_path.stem + ".html")
+        logger.info(f"writing '{md_path}' -> '{html_fpath}'")
+        content_html = html_postproc.postproc4screen(html_res, block_linenos, nav_html)
+        wrapped_html = wrap_content_html(content_html, 'screen', meta, nav_html)
+        with html_fpath.open(mode="w") as fobj:
+            fobj.write(wrapped_html)
+
+
+def _write_static_files(captured_static_paths: StaticPaths, html_dir: pl.Path) -> None:
+    # copy/update static dependencies
+    for src_path_str, tgt_path_str in sorted(captured_static_paths):
+        # logger.info(f"copy {src_path_str} -> {tgt_path_str}")
+        shutil.copy(src_path_str, tgt_path_str)
+
+    # TODO: copy only ttf for print target
+    #       copy only woff for screen target
+    out_static_dir = html_dir / "static"
+    out_static_dir.mkdir(parents=True, exist_ok=True)
+    for in_fpath in STATIC_DEPS:
+        in_fname     = in_fpath.name
+        out_fpath    = out_static_dir / in_fname
+        is_out_older = not out_fpath.exists() or out_fpath.stat().st_mtime <= in_fpath.stat().st_mtime
+        if is_out_older:
+            # logger.info(f"copy {in_fpath} -> {out_fpath}")
+            shutil.copy(str(in_fpath), str(out_fpath))
 
 
 def gen_html(ctx: parse.Context, html_dir: pl.Path) -> None:
@@ -293,71 +397,48 @@ def gen_html(ctx: parse.Context, html_dir: pl.Path) -> None:
 
     md_file: parse.MarkdownFile
 
-    # NOTE (mb): In order to do linking between documents, we need
-    #   the full toc. This is why there are two passes.
+    file_metas = [md_file.parse_front_matter_meta() for md_file in ctx.files]
+    cur_meta   = _init_meta(html_dir, file_metas)
 
-    cur_meta = _init_meta()
+    captured_static_paths: StaticPaths = set()
 
     file_items: typ.List[FileItem] = []
-
-    static_paths: typ.Set[typ.Tuple[str, str]] = set()
-
-    for md_file in ctx.files:
+    for file_meta, md_file in zip(file_metas, ctx.files):
         logger.info(f"processing '{md_file.md_path}'")
         md_text: MarkdownText = str(md_file)
-        new_meta, md_text = parse_front_matter(md_text)
-        cur_meta = cur_meta.copy()
-        cur_meta.update(new_meta)
+        cur_meta.update(file_meta)
         md_filepath = str(md_file.md_path)
-        cur_meta['md_filepath']   = md_filepath
+        cur_meta['md_filepath'  ] = md_filepath
         cur_meta['is_file_dirty'] = md_filepath in cur_meta['vcs_dirty_files']
+
+        if cur_meta.get('stats_by_file') and md_filepath in cur_meta['stats_by_file']:
+            base_name, _ = re.subn(r"[^\w]", "_", str(md_file.md_path.name))
+            svg_name = base_name + "_authors_timeline.svg"
+            svg_path = html_dir / svg_name
+            stats    = cur_meta['stats_by_file'][md_filepath]
+            vcs_timeline.write_stats_svg(stats, svg_path)
+            cur_meta['authors_timeline_svg'] = svg_name
 
         for img_tag in md_file.image_tags:
             src_path = md_file.md_path.parent / img_tag.url
             if src_path.exists():
                 tgt_path = html_dir / img_tag.url
-                static_paths.add((src_path, tgt_path))
+                captured_static_paths.add((str(src_path), str(tgt_path)))
 
         html_res: md2html.HTMLResult = md2html.md2html(md_text)
 
         if html_res.raw_html:
             block_linenos = list(md_file.iter_block_linenos())
-            file_item = FileItem(
+            file_item     = FileItem(
                 md_file.md_path,
-                cur_meta,
-                html_res.toc,
+                cur_meta.copy(),
                 html_res,
                 block_linenos,
             )
             file_items.append(file_item)
 
-    for md_path, meta, toc, html_res, block_linenos in file_items:
-        html_fname = md_path.stem + ".html"
-        html_fpath = html_dir / html_fname
-        logger.info(f"writing '{md_path}' -> '{html_fpath}'")
-        content_html = html_postproc.postproc4screen(html_res, block_linenos)
-        wrapped_html = wrap_content_html(content_html, 'screen', meta, toc)
-        with html_fpath.open(mode="w") as fobj:
-            fobj.write(wrapped_html)
-
-    # copy/update static dependencies
-    for src_path, tgt_path in sorted(static_paths):
-        # logger.info(f"copy {src_path} -> {tgt_path}")
-        shutil.copy(str(src_path), str(tgt_path))
-
-    # TODO: copy only ttf for print target
-    #       copy only woff for screen target
-    out_static_dir = html_dir / "static"
-    out_static_dir.mkdir(parents=True, exist_ok=True)
-    for in_fpath in STATIC_DEPS:
-        in_fname     = in_fpath.name
-        out_fpath    = out_static_dir / in_fname
-        is_out_older = (
-            not out_fpath.exists() or out_fpath.stat().st_mtime <= in_fpath.stat().st_mtime
-        )
-        if is_out_older:
-            # logger.info(f"copy {in_fpath} -> {out_fpath}")
-            shutil.copy(str(in_fpath), str(out_fpath))
+    _write_screen_html(file_items, html_dir)
+    _write_static_files(captured_static_paths, html_dir)
 
 
 def gen_pdf(
@@ -371,14 +452,17 @@ def gen_pdf(
 
     # TODO (mb 2021-01-06): This should probably
     #   be more unified with gen_html.
-    cur_meta = _init_meta()
+    # TODO (mb 2021-01-21): cover page with title and author(s)
+    #   timeline for whole project
+
+    file_metas = [md_file.parse_front_matter_meta() for md_file in ctx.files]
+    cur_meta   = _init_meta(pdf_dir, file_metas)
 
     all_md_texts = []
-    block_linenos = []
-    for md_file in ctx.files:
+    block_linenos: typ.List[typ.Tuple[int, int]] = []
+    for file_meta, md_file in zip(file_metas, ctx.files):
         md_text: MarkdownText = str(md_file)
-        new_meta, md_text = parse_front_matter(md_text)
-        cur_meta.update(new_meta)
+        cur_meta.update(file_meta)
         all_md_texts.append(md_text)
         block_linenos.extend(md_file.iter_block_linenos())
 

@@ -125,15 +125,16 @@ def _iter_wrapped_line_parts(line: str, max_len: int) -> typ.Iterable[str]:
         yield "".join(chunk)
 
 
-BlockLinenos      = typ.List[int]
+BlockLinenos      = typ.List[typ.Tuple[int, int]]
 MaybeBlockLinenos = typ.Optional[BlockLinenos]
 
 
 def iter_wrapped_lines(
-    pre_content_text: str,
-    max_line_len    : int  = 80,
-    add_line_numbers: bool = True,
-    first_lineno    : int  = 0,
+    pre_content_text     : str,
+    max_line_len         : int  = 80,
+    add_line_numbers     : bool = True,
+    first_lineno         : int  = 0,
+    add_initial_linebreak: bool = False,
 ) -> typ.Iterable[str]:
     pre_content_text  = pre_content_text.replace("<span></span>", "")
     pre_content_lines = pre_content_text.splitlines()
@@ -150,15 +151,15 @@ def iter_wrapped_lines(
                 else:
                     lineno_span = "<span class=\"lineno\">\u21AA</span>"
 
-                if line_part.startswith("<code"):
+                if add_initial_linebreak and line_part.startswith("<code"):
                     tag_end_idx = line_part.index(">")
                     # TODO: Fix this cludge. For some reason, the
                     #   first line is indented by less than a full
                     #   space and I have no idea why.
-                    _stupid_print_linebreak = "\n"
-                    line_part               = (
+                    _stupid_linebreak = "\n"
+                    line_part         = (
                         line_part[: tag_end_idx + 1]
-                        + _stupid_print_linebreak
+                        + _stupid_linebreak
                         + lineno_span
                         + line_part[tag_end_idx + 1 :]
                     )
@@ -201,50 +202,55 @@ $ pycalver test 'v201811.0051-beta' '{pycalver}' --release final
 # sys.exit(1)
 
 
-def _iter_postproc_html(
-    html_text    : HTMLText,
-    max_line_len : int,
-    block_linenos: MaybeBlockLinenos = None,
+def _iter_postproc_content_html(
+    content_html         : HTMLText,
+    max_line_len         : int,
+    add_initial_linebreak: bool              = False,
+    block_linenos        : MaybeBlockLinenos = None,
 ) -> typ.Iterable[str]:
-    html_text = html_text.replace("<table>" , """<div class="table-wrap"><table>""")
-    html_text = html_text.replace("</table>", """</table></div>""")
+    content_html = content_html.replace("<table>" , """<div class="table-wrap"><table>""")
+    content_html = content_html.replace("</table>", """</table></div>""")
 
     pre_begin_re = re.compile(r'<div class="codehilite"><pre>')
     pre_end_re   = re.compile(r"</pre>")
 
     last_end_idx = 0
-    block_index = 0
+    block_index  = 0
 
-    for match in pre_begin_re.finditer(html_text):
+    for match in pre_begin_re.finditer(content_html):
         _begin_lidx, begin_ridx = match.span()
-        yield html_text[last_end_idx:begin_ridx]
+        yield content_html[last_end_idx:begin_ridx]
 
-        end_match = pre_end_re.search(html_text, begin_ridx + 1)
+        end_match = pre_end_re.search(content_html, begin_ridx + 1)
         assert end_match is not None
         end_lidx, end_ridx = end_match.span()
-        content_text  = html_text[begin_ridx:end_lidx]
+        content_text = content_html[begin_ridx:end_lidx]
 
         if block_linenos is None:
             first_lineno = 0
         else:
             first_lineno, num_lines = block_linenos[block_index]
-            if num_lines == content_text.strip("\n").count("\n"):
+            num_content_lines = content_text.strip("\n").count("\n")
+            if num_lines == num_content_lines:
                 block_index += 1
             else:
                 logger.warning("could not match line numbers to html code block")
                 first_lineno = 0
 
         wrapped_lines = iter_wrapped_lines(
-            content_text, max_line_len=max_line_len, first_lineno=first_lineno
+            content_text,
+            max_line_len=max_line_len,
+            first_lineno=first_lineno,
+            add_initial_linebreak=add_initial_linebreak,
         )
         yield "".join(wrapped_lines)
 
-        end_tag = html_text[end_lidx : end_ridx + 1]
+        end_tag = content_html[end_lidx : end_ridx + 1]
         yield end_tag
 
         last_end_idx = end_ridx + 1
 
-    yield html_text[last_end_idx:]
+    yield content_html[last_end_idx:]
 
 
 # TODO (mb 2021-01-05): This can probably be removed
@@ -513,8 +519,7 @@ def _add_footer_links(soup: bs4.BeautifulSoup, fmt: str) -> None:
 
 
 def _add_heading_links(soup: bs4.BeautifulSoup) -> None:
-    selector = ", ".join(f"h{i}" for i in range(1, 6))
-    for heading in soup.select(selector):
+    for heading in soup.select("h1, h2, h3, h4, h5"):
         a_tag = soup.new_tag("a", href="#" + heading['id'])
         if heading.string is None:
             a_tag.extend(list(heading.children))
@@ -524,7 +529,22 @@ def _add_heading_links(soup: bs4.BeautifulSoup) -> None:
             heading.string.wrap(a_tag)
 
 
-def _add_heading_numbers(
+def _add_heading_numbers_screen(
+    content_soup: bs4.BeautifulSoup, nav_soup: bs4.BeautifulSoup, heading_prefix: str = ""
+) -> None:
+
+    numbers_by_hashlink = {
+        node['href'].split("#", 1)[-1]: node.text.split(" ", 1)[0] for node in nav_soup.select("a")
+    }
+
+    for heading in content_soup.select("h1, h2, h3, h4, h5"):
+        number            = numbers_by_hashlink.get(heading['id'])
+        is_section_number = number and "." in number
+        if is_section_number:
+            heading.insert(0, number + " ")
+
+
+def _add_heading_numbers_print(
     soup: bs4.BeautifulSoup, toc_tokens: md2html.TocTokens, heading_prefix: str = ""
 ) -> None:
     for i, entry in enumerate(toc_tokens):
@@ -535,7 +555,7 @@ def _add_heading_numbers(
         heading['heading-num'] = heading_number
         if heading_prefix:
             heading.insert(0, heading_number + " ")
-        _add_heading_numbers(soup, entry['children'], heading_number + ".")
+        _add_heading_numbers_print(soup, entry['children'], heading_number + ".")
 
 
 def _add_figure_numbers(soup: bs4.BeautifulSoup) -> None:
@@ -576,15 +596,23 @@ def _add_figure_numbers(soup: bs4.BeautifulSoup) -> None:
             fig_num += 1
 
 
-def _add_nav_numbers(ul_tag: bs4.BeautifulSoup, heading_prefix: str = "") -> None:
+def _add_nav_numbers(ul_tag: bs4.BeautifulSoup, heading_prefix: str = "", heading: str = "") -> None:
     li_children = [child for child in ul_tag.children if child.name == "li"]
-    for i, li_tag in enumerate(li_children):
-        heading_number = heading_prefix + str(i + 1)
-        if heading_prefix:
-            li_tag.a.string = heading_number + " " + li_tag.a.string
+
+    i = 1
+    for li_tag in li_children:
+        if heading == li_tag.a.string:
+            sub_heading    = heading
+            heading_number = sub_heading.split(" ", 1)[0]
+        else:
+            heading_number  = heading_prefix + str(i)
+            sub_heading     = heading_number + " " + li_tag.a.string
+            li_tag.a.string = sub_heading
+            i += 1
+
         sub_uls = [child for child in li_tag.children if child.name == "ul"]
         for sub_ul in sub_uls:
-            _add_nav_numbers(sub_ul, heading_number + ".")
+            _add_nav_numbers(sub_ul, heading_number + ".", sub_heading)
 
 
 CODE_CHUNK_SIZE = 5
@@ -637,47 +665,57 @@ def _split_code_blocks(soup: bs4.BeautifulSoup) -> None:
         codehilite.contents = new_pre_nodes
 
 
-def postproc_nav_html(nav_html: HTMLText) -> HTMLText:
-    soup   = bs4.BeautifulSoup(nav_html, PARSER_MODULE)
-    toc_ul = soup.select(".toc > ul")[0]
+def postproc_nav_html(nav_html: HTMLText, has_footnotes: bool = False) -> HTMLText:
+    nav_soup = bs4.BeautifulSoup(nav_html, PARSER_MODULE)
+    toc_ul   = nav_soup.select(".toc > ul")[0]
     _add_nav_numbers(toc_ul)
 
-    refs_a        = soup.new_tag('a')
-    refs_a.string = FNOTES_TEXT
-    refs_a['href'] = "#references"
-    refs_li = soup.new_tag('li')
-    refs_li.append(refs_a)
+    if has_footnotes:
+        refs_a        = nav_soup.new_tag('a')
+        refs_a.string = FNOTES_TEXT
+        refs_a['href'] = "#references"
+        refs_li = nav_soup.new_tag('li')
+        refs_li.append(refs_a)
 
-    toc_ul.append(refs_li)
+        toc_ul.append(refs_li)
 
-    return str(soup)
+    return str(nav_soup)
 
 
-def postproc4screen(html_res: md2html.HTMLResult, block_linenos: typ.List[int]) -> HTMLText:
-    html_text = html_res.raw_html
+def postproc4screen(
+    html_res     : md2html.HTMLResult,
+    block_linenos: BlockLinenos,
+    nav_html     : HTMLText,
+) -> HTMLText:
+    content_html: HTMLText = html_res.raw_html
 
-    # html_text = "".join(_wrap_firstpara(html_text))
-    html_chunks = _iter_postproc_html(
-        html_text, max_line_len=MAX_CODE_BLOCK_LINE_LEN, block_linenos=block_linenos
+    # content_html = "".join(_wrap_firstpara(content_html))
+    html_chunks = _iter_postproc_content_html(
+        content_html,
+        max_line_len=MAX_CODE_BLOCK_LINE_LEN,
+        add_initial_linebreak=False,
+        block_linenos=block_linenos,
     )
-    html_text = "".join(html_chunks)
+    content_html = "".join(html_chunks)
 
-    soup = bs4.BeautifulSoup(html_text, PARSER_MODULE)
-    _add_heading_numbers(soup, html_res.toc_tokens)
-    _add_figure_numbers(soup)
-    _add_heading_links(soup)
-    _shyphenate_html(soup)
-    _add_sentence_spacing(soup)
-    _add_code_scrollers(soup)
-    _update_footnote_refs(soup)
-    _add_footnotes_header(soup)
-    html_text = str(soup)
+    content_soup = bs4.BeautifulSoup(content_html, PARSER_MODULE)
+    nav_soup     = bs4.BeautifulSoup(nav_html    , PARSER_MODULE)
 
-    # html_text.replace("\u00AD", "&shy;")
-    return html_text
+    _add_heading_numbers_screen(content_soup, nav_soup)
+    _add_figure_numbers(content_soup)
+    _add_heading_links(content_soup)
+    _shyphenate_html(content_soup)
+    _add_sentence_spacing(content_soup)
+    _add_code_scrollers(content_soup)
+    _update_footnote_refs(content_soup)
+    _add_footnotes_header(content_soup)
+    content_html = str(content_soup)
+
+    # content_html.replace("\u00AD", "&shy;")
+    return content_html
 
 
-def postproc4print(html_res: md2html.HTMLResult, fmt: str, block_linenos: typ.List[int]) -> HTMLText:
+def postproc4print(html_res: md2html.HTMLResult, fmt: str, block_linenos: BlockLinenos) -> HTMLText:
     # TODO: split code blocks
     # - add ids to headlines
     # - collect links and insert superscript (footnote links)
@@ -690,13 +728,16 @@ def postproc4print(html_res: md2html.HTMLResult, fmt: str, block_linenos: typ.Li
     else:
         max_line_len = MAX_CODE_BLOCK_LINE_LEN
 
-    html_chunks = _iter_postproc_html(
-        html_res.raw_html, max_line_len=max_line_len, block_linenos=block_linenos
+    html_chunks = _iter_postproc_content_html(
+        html_res.raw_html,
+        max_line_len=max_line_len,
+        add_initial_linebreak=True,
+        block_linenos=block_linenos,
     )
-    html_text   = "".join(html_chunks)
+    html_text = "".join(html_chunks)
 
     soup = bs4.BeautifulSoup(html_text, PARSER_MODULE)
-    _add_heading_numbers(soup, html_res.toc_tokens)
+    _add_heading_numbers_print(soup, html_res.toc_tokens)
     _add_figure_numbers(soup)
     _update_footnote_refs(soup)
     _add_footnotes_header(soup)

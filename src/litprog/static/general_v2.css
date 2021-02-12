@@ -24,8 +24,8 @@ body {
 }
 
 .content p, .content ul, .content ol {
-    /*letter-spacing: -0.02em;*/
-    /*word-spacing: 0.02em;*/
+    letter-spacing: -0.02em;
+    word-spacing: 0.1em;
     margin: 0 0 1em 0;
 }
 .content li {
@@ -44,11 +44,15 @@ div.codehilite {
 div.codehilite pre {
     font-family: lp-iosevka, "Iosevka Term SS05", monospace;
     padding: 0 0.5em 0 0;
-    display: block;
+    /* display: inline-block is needed for horizontal scroll on narrow screens. */
+    display: inline-block;
     page-break-inside: avoid;
 }
+
 @media print {
     div.codehilite pre {
+        /* display: block is needed to break code blocks across pages. */
+        display: block;
         font-family: "Iosevka Term SS05", monospace;
     }
 }
@@ -111,6 +115,10 @@ h1#references {
     padding: 2em 0 3em 0;
     margin: 0 0 5em 0;
 }
+.footer .authors-timeline {
+    max-width: 100%;
+}
+
 .footer > a, .footer > span {
     display: inline-block;
     margin: 0em 1em;
@@ -121,19 +129,20 @@ h1#references {
 }
 
 blockquote, .admonition.aside {
-    border-left: 2px solid #BBB;
-    padding: 0 3em 0 1em;
-    line-height: 1.4em;
-    color: #555;
+    border-left: 3px solid #AAA;
+    padding: 0 1em 0 1em;
+    font-size: 0.95em;
+    line-height: 1.55em;
+    color: #333;
     margin: 0;
 }
 
 .dark blockquote, .dark .admonition.aside {
-    border-left: 2px solid #777;
+    border-left: 3px solid #777;
 }
 
 .dark blockquote, .dark .admonition.aside {
-    color: #DDD;
+    color: #EEE;
 }
 
 .content ol, .content ul {

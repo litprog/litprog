@@ -8,10 +8,15 @@ import typing as typ
 import logging
 import pathlib as pl
 
-log = logging.getLogger(__name__)
+import toml
+import yaml
+
+logger = logging.getLogger(__name__)
 
 
 FilePaths = typ.Iterable[pl.Path]
+
+MD_FRONT_MATTER = 'front_matter'
 
 MD_HEADLINE   = 'headline'
 MD_PARAGRAPH  = 'paragraph'
@@ -27,6 +32,7 @@ MD_FOOTNOTE_DEF = 'footnote_def'
 MD_BLOCK = 'block'
 
 VALID_ELEMENT_TYPES = {
+    MD_FRONT_MATTER,
     MD_HEADLINE,
     MD_PARAGRAPH,
     MD_LIST,
@@ -39,6 +45,15 @@ VALID_ELEMENT_TYPES = {
 NON_CODE_BLOCKS = ('bob', 'math')
 
 MarkdownElementType = str
+
+FrontMatterMetadata = typ.Dict[str, typ.Any]
+
+DEFAULT_FRONT_MATTER_META = {'lang': "en-US", 'title': "-"}
+
+
+FRONT_MATTER_PATTERN = r"^(\+\+\+|\-\-\-)$"
+
+FRONT_MATTER_RE = re.compile(FRONT_MATTER_PATTERN, flags=re.MULTILINE)
 
 
 HEADLINE_PATTERN_A = r"""
@@ -251,7 +266,7 @@ class MarkdownElement:
     def __repr__(self) -> str:
         addr = hex(id(self))
         return (
-            f"MarkdownElement("
+            "MarkdownElement("
             + f"'{self.md_path}', "
             + f"{self.first_line}, "
             + f"{self.elem_index}, "
@@ -268,6 +283,10 @@ class MarkdownElement:
             content=self.content,
             successor=self._successor or self,
         )
+
+
+MarkdownElements      = typ.List[MarkdownElement]
+MaybeMarkdownElements = typ.Optional[MarkdownElements]
 
 
 class Headline(typ.NamedTuple):
@@ -303,38 +322,64 @@ class Block(typ.NamedTuple):
 
 
 VALID_DIRECTIVE_NAMES = {
-    'lp_language',
+    'language',
     # block composition
-    'lp_def',
-    'lp_addto',
-    'lp_dep',
-    'lp_include',
+    'def',
+    'addto',
+    'dep',
+    'include',
     # session/subprocess
-    'lp_exec',
-    'lp_out',
-    'lp_run',
-    # parameters for lp_out and _lp_run
-    'lp_debug',
-    'lp_expect',
-    'lp_timeout',
-    # NOTE: lp_input_delay might allow the accurate
+    'exec',
+    'out',
+    'run',
+    # parameters for out and run
+    'debug',
+    'expect',
+    'timeout',
+    # NOTE: input_delay might allow the accurate
     #   association of input/output as long as output
     #   is always captured by the time the delay passes.
-    'lp_input_delay',
-    'lp_hide',
-    'lp_proc_info',
-    'lp_out_prefix',
-    'lp_err_prefix',
-    'lp_out_color',
-    'lp_err_color',
+    'input_delay',
+    'hide',
+    'proc_info',
+    'out_prefix',
+    'err_prefix',
+    'out_color',
+    'err_color',
     # file generation
-    'lp_file',
-    'lp_require',
-    'lp_make',
-    # 'lp_const'
-    # 'lp_use_macro',
-    # 'lp_def_macro',
+    'file',
+    # TODO (mb 2021-01-30): build system
+    'requires',
+    'provides',
+    'idempotent',
+    # 'make',
+    # 'const'
+    # 'use_macro',
+    # 'def_macro',
 }
+
+
+def has_directive(line: str, language: typ.Optional[str]) -> bool:
+    if language is None:
+        comment_text = line
+    else:
+        comment_start_re, comment_end_re = LANGUAGE_COMMENT_REGEXES[language]
+        start_match = comment_start_re.search(line)
+        if start_match is None:
+            return False
+
+        comment_text = line[start_match.end() :]
+        end_match    = comment_end_re.search(comment_text)
+        if end_match is None:
+            return False
+
+    comment_text = comment_text.strip()
+
+    for name in VALID_DIRECTIVE_NAMES:
+        if comment_text.startswith(name):
+            return True
+
+    return False
 
 
 def _parse_directive(directive_text: str, raw_text: str) -> Directive:
@@ -399,11 +444,9 @@ class MarkdownFile:
 
     md_path : pl.Path
     errors  : typ.Set[ParseError]
-    elements: typ.List[MarkdownElement]
+    elements: MarkdownElements
 
-    def __init__(
-        self, md_path: pl.Path, elements: typ.Optional[typ.List[MarkdownElement]] = None
-    ) -> None:
+    def __init__(self, md_path: pl.Path, elements: MaybeMarkdownElements = None) -> None:
         self.md_path = md_path
         self.errors  = set()
         if elements is None:
@@ -431,7 +474,7 @@ class MarkdownFile:
     @property
     def headlines(self) -> typ.Iterable[Headline]:
         for elem_index, elem in enumerate(self.elements):
-            if elem.md_type != 'headline':
+            if elem.md_type != MD_HEADLINE:
                 continue
 
             a_match = HEADLINE_RE_A.match(elem.content)
@@ -452,7 +495,7 @@ class MarkdownFile:
 
     @property
     def image_tags(self) -> typ.Iterable[ImageTag]:
-        for elem_index, elem in enumerate(self.elements):
+        for elem in self.elements:
             if elem.md_type in (MD_HEADLINE, MD_BLOCK):
                 continue
             for image_match in IMAGE_URL_RE.finditer(elem.content):
@@ -481,7 +524,7 @@ class MarkdownFile:
         language = info_string
         comment_start_re, comment_end_re = LANGUAGE_COMMENT_REGEXES[language]
 
-        directives = [Directive('lp_language', language, language)]
+        directives = [Directive('language', language, language)]
 
         inner_chunks      = []
         includable_chunks = []
@@ -512,11 +555,11 @@ class MarkdownFile:
             assert raw_text in elem.content
 
             comment_text = comment_text.strip()
-            if comment_text.startswith("lp_"):
+            if has_directive(comment_text, language=None):
                 directive = _parse_directive(comment_text, raw_text)
                 directives.append(directive)
                 inner_chunks.append(raw_text)
-                if directive.name in ('lp_dep', 'lp_include'):
+                if directive.name in ('dep', 'include'):
                     # NOTE (mb 2020-06-03): needed for recursive include
                     includable_chunks.append(raw_text)
             else:
@@ -531,9 +574,7 @@ class MarkdownFile:
         includable_content = "".join(includable_chunks)
         # trim off final fence
         includable_content = includable_content.rsplit("\n", 1)[0]
-        includable_content = "\n".join(
-            line for line in includable_content.splitlines() if line.strip()
-        )
+        includable_content = "\n".join(line for line in includable_content.splitlines() if line.strip())
 
         return Block(
             self.md_path,
@@ -547,15 +588,16 @@ class MarkdownFile:
             includable_content,
         )
 
-    def _iter_block_elements(self) -> typ.Iterable[MarkdownElement]:
+    def _iter_block_elements(self) -> typ.Iterable[typ.Tuple[MarkdownElement, str, str]]:
         for elem in self.elements:
             if elem.md_type == 'block':
                 start_match = BLOCK_START_RE.match(elem.content)
                 assert start_match is not None
-                info_string   = start_match.group('info_string') or ""
-                info_string   = info_string.strip()
-                content_start = start_match.end()
-                content = elem.content[content_start:]
+                maybe_info_string = start_match.group('info_string')
+                info_string       = typ.cast(str, maybe_info_string or "")
+                info_string       = info_string.strip()
+                content_start     = start_match.end()
+                content           = elem.content[content_start:]
                 yield (elem, info_string, content)
 
     def iter_blocks(self) -> typ.Iterable[Block]:
@@ -577,6 +619,22 @@ class MarkdownFile:
                 num_lines = content.strip().count("\n")
                 yield elem.first_line, num_lines
 
+    def parse_front_matter_meta(self) -> FrontMatterMetadata:
+        metadata = DEFAULT_FRONT_MATTER_META.copy()
+        if len(self.elements) > 0 and self.elements[0].md_type == MD_FRONT_MATTER:
+            content = self.elements[0].content
+            if content.startswith("+++"):
+                meta = toml.loads(content.strip("+ \n\r"))
+            elif content.startswith("---"):
+                meta = yaml.safe_load(content.strip("- \n\r"))
+            else:
+                raise RuntimeError("Invalid front matter")
+
+            # TODO (mb 2021-01-31): Better validation
+            #   - Check that only known keys and corresponding values are used
+            metadata.update(meta)
+        return metadata
+
     def __lt__(self, other: 'MarkdownFile') -> bool:
         return self.md_path < other.md_path
 
@@ -591,7 +649,7 @@ class MarkdownFile:
             return True
 
     def __str__(self) -> str:
-        return "".join(elem.content for elem in self.elements)
+        return "".join(elem.content for elem in self.elements if elem.md_type != MD_FRONT_MATTER)
 
     def __repr__(self) -> str:
         return f"litprog.parse.MarkdownFile(\"{self.md_path}\")"
@@ -600,6 +658,17 @@ class MarkdownFile:
 def _iter_raw_md_elements(content: str) -> typ.Iterable[_RawMarkdownElement]:
     line_no = 1
     while content:
+        if line_no == 1:
+            start_match = FRONT_MATTER_RE.match(content)
+            if start_match and start_match.start() == 0:
+                end_match = FRONT_MATTER_RE.search(content, pos=start_match.end())
+                if end_match:
+                    front_matter_end     = end_match.end()
+                    front_matter_content = content[:front_matter_end]
+                    yield _RawMarkdownElement(MD_FRONT_MATTER, line_no, front_matter_content)
+                    line_no += front_matter_content.count("\n")
+                    content = content[front_matter_end:]
+
         match = ELEMENT_RE.search(content)
         if match is None:
             break
@@ -642,7 +711,7 @@ def _iter_raw_md_elements(content: str) -> typ.Iterable[_RawMarkdownElement]:
         yield _RawMarkdownElement(MD_PARAGRAPH, line_no, content)
 
 
-def _parse_md_elements(md_path: pl.Path) -> typ.List[MarkdownElement]:
+def _parse_md_elements(md_path: pl.Path) -> MarkdownElements:
     # TODO: encoding from config
     with md_path.open(mode='r', encoding="utf-8") as fobj:
         content = fobj.read()
@@ -650,7 +719,12 @@ def _parse_md_elements(md_path: pl.Path) -> typ.List[MarkdownElement]:
     elements = []
     for elem_index, raw_elem in enumerate(_iter_raw_md_elements(content)):
         elem = MarkdownElement(
-            md_path, raw_elem.first_line, elem_index, raw_elem.md_type, raw_elem.content, None
+            md_path,
+            raw_elem.first_line,
+            elem_index,
+            raw_elem.md_type,
+            raw_elem.content,
+            None,
         )
         elements.append(elem)
 
@@ -695,21 +769,19 @@ class Context:
         return Context([f.copy() for f in self.files])
 
     def __eq__(self, other: object) -> bool:
-        if isinstance(other, Context):
-            return self.files == other.files
-        else:
-            return False
+        return isinstance(other, Context) and self.files == other.files
 
 
 def parse_context(md_paths: FilePaths) -> Context:
-    ctx = Context(md_paths)
+    parse_ctx = Context(md_paths)
 
-    assert ctx.copy() == ctx
-    list(ctx.headlines)
-    list(ctx.iter_blocks())
+    # provoke parse errors early on
+    assert parse_ctx.copy() == parse_ctx
+    list(parse_ctx.headlines)
+    list(parse_ctx.iter_blocks())
 
-    for md_file in ctx.files:
+    for md_file in parse_ctx.files:
         for err in md_file.errors:
-            log.log(err.level, f"{err.location:<3} : " + err.message)
+            logger.log(err.level, f"{err.location:<3} : " + err.message)
 
-    return ctx
+    return parse_ctx

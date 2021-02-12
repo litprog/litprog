@@ -55,9 +55,7 @@ PAPER_FORMATS_PT = {
 # https://tex.stackexchange.com/questions/60934/
 
 
-def calc_booklet_page_counts(
-    total_pages: int, max_sheets: int = MAX_BOOKLET_SHEETS
-) -> typ.List[int]:
+def calc_booklet_page_counts(total_pages: int, max_sheets: int = MAX_BOOKLET_SHEETS) -> typ.List[int]:
     total_sheets = math.ceil(total_pages  / PAGES_PER_SHEET)
     num_booklets = math.ceil(total_sheets / max_sheets)
 
@@ -209,9 +207,7 @@ def _init_output_parameters(media_box: MediaBox, rescale: float) -> OutputParame
     center_spacing = out_width * 0.005
     center_spacing = center_margin
 
-    return OutputParameters(
-        scale, out_width, out_height, trim_x, trim_y, page_order, center_spacing
-    )
+    return OutputParameters(scale, out_width, out_height, trim_x, trim_y, page_order, center_spacing)
 
 
 def _create_sheets(
@@ -220,10 +216,8 @@ def _create_sheets(
     out_coords          : OutputParameters,
     half_page_to_in_page: PageIndexMapping,
 ) -> typ.List[PDFPage]:
-    sheet_indexes = {
-        half_page_index // 2 for in_page_index, half_page_index in half_page_to_in_page
-    }
-    out_sheets = [
+    sheet_indexes = {half_page_index // 2 for in_page_index, half_page_index in half_page_to_in_page}
+    out_sheets    = [
         output.addBlankPage(width=out_coords.width, height=out_coords.height) for _ in sheet_indexes
     ]
 

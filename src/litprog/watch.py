@@ -1,6 +1,4 @@
-"""Asynchronos polling based file system watching.
-
-"""
+"""Asynchronos polling based file system watching."""
 import os
 import sys
 import glob
@@ -55,15 +53,15 @@ Changes = typ.Set[Change]
 
 class Watcher:
 
-    _watch_dirs : typ.List[pl.Path]
-    _file_mtimes: typ.Dict[pl.Path, float]
+    _watch_dirs : typ.List[str]
+    _file_mtimes: typ.Dict[str, float]
 
     def __init__(self, path_strs: PathStrings) -> None:
-        self._watch_dirs  = sorted(set(_iter_parent_dirs(path_strs)))
+        self._watch_dirs  = sorted({str(p) for p in _iter_parent_dirs(path_strs)})
         self._file_mtimes = {}
         self.refresh_mtimes()
 
-    def _watch_file(self, path: pl.Path, new_changes: typ.Set[Change]) -> None:
+    def _watch_file(self, path: str, new_changes: typ.Set[Change]) -> None:
         stat      = os.stat(path)
         mtime     = stat.st_mtime
         old_mtime = self._file_mtimes.get(path)
@@ -74,7 +72,7 @@ class Watcher:
         elif old_mtime != mtime:
             new_changes.add(('modified', path, stat))
 
-    def _walk_dir(self, dirpath: pl.Path, new_changes: typ.Set[Change]) -> None:
+    def _walk_dir(self, dirpath: str, new_changes: typ.Set[Change]) -> None:
         for entry in os.scandir(dirpath):
             if entry.is_dir():
                 self._walk_dir(entry.path, new_changes)
@@ -89,10 +87,10 @@ class Watcher:
         def _watch_loop() -> None:
             sleep_duration = MIN_SLEEP_DURATION
             last_change    = unix_ms()
-            changes        = set()
+            changes: typ.Set[Change] = set()
 
             while True:
-                new_changes = set()
+                new_changes: typ.Set[Change] = set()
                 for watch_dir in self._watch_dirs:
                     self._walk_dir(watch_dir, new_changes)
 
@@ -113,16 +111,16 @@ class Watcher:
                 time.sleep(sleep_duration / 1000)
 
         try:
-            t        = threading.Thread(target=_watch_loop)
-            t.daemon = True
-            t.start()
+            thread        = threading.Thread(target=_watch_loop)
+            thread.daemon = True
+            thread.start()
             while True:
                 time.sleep(1)
         except (KeyboardInterrupt, SystemExit):
             return
 
 
-def main():
+def main() -> None:
     watcher = Watcher(sys.argv)
     watcher.watch(print)
 
