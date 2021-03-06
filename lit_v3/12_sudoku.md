@@ -1,4 +1,4 @@
-# By Example: Solve Every Sudoku Puzzle
+# Example: Solve Every Sudoku Puzzle
 
 Where the previous chapter *described* how LitProg works, this chapter aims to *demonstrate* by example how LitProg can be used.
 
@@ -563,20 +563,20 @@ sjfmt examples/sudoku.py
 Below is the output from running the program at the command line; it solves the two files of [50 easy](http://projecteuler.net/project/sudoku.txt) and [95 hard puzzles](http://norvig.com/top95.txt) (see also the [95 solutions](http://norvig.com/top95solutions.html), [eleven puzzles](http://norvig.com/hardest.txt) I found under a search for ( [hardest sudoku](http://www.google.com/search?q=hardest+sudoku) ).
 
 ```bash
-# run: python examples/sudoku.py examples/sudoku_p096_euler.txt
-Solved 50 of 50 puzzles. (avg 2 ms/solve  max 3 ms)
+# run: python3 examples/sudoku.py examples/sudoku_p096_euler.txt
+Solved 50 of 50 puzzles. (avg 11 ms/solve  max 14 ms)
 # exit: 0
 ```
 
 ```bash
-# run: python examples/sudoku.py examples/sudoku_top95.txt
-Solved 95 of 95 puzzles. (avg 8 ms/solve  max 36 ms)
+# run: python3 examples/sudoku.py examples/sudoku_top95.txt
+Solved 95 of 95 puzzles. (avg 38 ms/solve  max 190 ms)
 # exit: 0
 ```
 
 ```bash
-# run: python examples/sudoku.py examples/sudoku_hardest.txt
-Solved 11 of 11 puzzles. (avg 3 ms/solve  max 5 ms)
+# run: python3 examples/sudoku.py examples/sudoku_hardest.txt
+Solved 11 of 11 puzzles. (avg 14 ms/solve  max 20 ms)
 # exit: 0
 ```
 
@@ -618,7 +618,7 @@ Each of the puzzles above was solved in less than a fifth of a second. What abou
 ```
 
 ```python
-# run: python examples/sudoku.py --show examples/sudoku_hardester.txt
+# run: python3 examples/sudoku.py --show examples/sudoku_hardester.txt
  8 5 9 | 6 1 2 | 4 3 7
  7 2 3 | 8 5 4 | 1 6 9
  1 6 4 | 3 7 9 | 5 2 8
@@ -643,7 +643,7 @@ Each of the puzzles above was solved in less than a fifth of a second. What abou
  9 8 4 | 7 6 1 | 2 3 5
  5 2 1 | 8 3 9 | 7 6 4
 
-Solved 2 of 2 puzzles. (avg 4 ms/solve  max 4 ms)
+Solved 2 of 2 puzzles. (avg 18 ms/solve  max 20 ms)
 # exit: 0
 ```
 
@@ -690,7 +690,7 @@ The average time to solve a random puzzle is 0.01 seconds, and more than 99.95% 
 - `0.003%     (1 in 30,000) took more than 10 seconds`
 - `0.0001% (1 in 1,000,000) took more than 100 seconds`
 
-Here are the times in seconds for the 139 out of a million puzzles that took more than a second, sorted, on linear and log scales:
+Here are the times in seconds from puzzles that took more than a second, sorted, on linear and log scales:
 
 ![](static/sudoku_random_puzzle_times_linear.svg)
 ![](static/sudoku_random_puzzle_times_log.svg)
@@ -895,88 +895,79 @@ if [[ ! -f "examples/sudoku_hardest.txt" ]]; then
 fi
 ```
 
+
 ### Statistics Collection/Charts
 
-This script generates the statistics for the two plots of calculation times.
+The `collect_stats.py` script generates the statistics for the two plots of calculation times.
 
 ```python
-# def: calc_random_puzzle_times
-# dep: random_puzzle
-import math, time, collections
+# def: paths
+from pathlib import Path
 
-def round_to_2(x):
-    return int(round(x, - int(math.log10(abs(x)) - 1)))
+STATIC_DIR = Path("lit_v3") / "static"
+TIMES_PATH = Path("examples") / "sudoku_random_times.csv"
 
-times = collections.Counter()
+LIN_PATH = STATIC_DIR / "sudoku_random_puzzle_times_linear.svg"
+LOG_PATH = STATIC_DIR / "sudoku_random_puzzle_times_log.svg"
+```
 
-for _ in range(100):
-    raw_grid = random_puzzle()
+```python
+# file: examples/collect_stats.py
+# dep: boilerplate, paths, random_puzzle
+import os, math, time
+from multiprocessing import Pool
+
+
+def collect_time(*args) -> int:
+    while True:
+        raw_grid = random_puzzle()
+        tzero = time.time()
+        solve(raw_grid)
+        duration_ms = (time.time() - tzero) * 1000
+        if duration_ms > 50:
+            return round(duration_ms)
+
+
+def main():
     tzero = time.time()
-    solve(raw_grid)
-    duration_ms = (time.time() - tzero) * 1000
-    times[round_to_2(duration_ms)] += 1
+
+    pool_size = max(1, len(os.sched_getaffinity(0)) - 2)
+    pool = Pool(pool_size)
+    for result in pool.imap_unordered(collect_time, range(pool_size)):
+        with TIMES_PATH.open(mode="a") as fobj:
+            fobj.write("\n" + str(result))
+
+    print(f"duration: {time.time() - tzero:9.3f} sec")
+
+if __name__ == '__main__':
+    main()
 ```
 
-Update the persisted/serialized data, which is kept on disk, since it is expensive to calculate and we don't want to slow down `litprog build`, esp. with `--in-place-update`.
-
-```python
-# exec
-# dep: calc_random_puzzle_times
-import pathlib
-
-DATA_PATH = pathlib.Path("examples/sudoku_random_times.csv")
-
-if DATA_PATH.exists():
-    with DATA_PATH.open(mode="r") as in_fobj:
-        for line in in_fobj:
-            k, v = line.split(",")
-            times[int(k)] += int(v)
-
-times_data = "".join(f"{k},{v}\n" for k, v in sorted(times.items()))
-
-with DATA_PATH.open(mode="w") as out_fobj:
-    out_fobj.write(times_data)
-```
-
-I spent a few hours on different ways to render plots eventually gave up on getting it the way I wanted (as close as possible to the originals). The matplotlib API is a travasty.
-
-```python
-# exec
-import os, math
-import pandas
-
-df = pandas.read_csv(
-    "examples/sudoku_random_times.csv",
-    header=0,
-    names=["ms", "count"],
-)
-df = df[df.ms > 1000]
-df['sec'] = df['ms'] / 1000
-df['sec_log'] = df['sec'].apply(math.log)
-
-os.makedirs("lit_v3/static/", exist_ok=True)
-
-def save_bar_plot(series, path: str, **kwargs) -> None:
-    # I am aware that this is manipulates global state
-    # and I don't like it either. I can't be bothered
-    # to deal with this anymore.
-    plot = series.plot.bar(legend=None, colormap="gray", **kwargs)
-    plot.axes.xaxis.set_visible(False)
-    plot.figure.set_size_inches((3.5 * 1.78, 3.5))
-    plot.figure.savefig(path, transparent=True)
-
-save_bar_plot(
-    df['sec'],
-    "lit_v3/static/sudoku_random_puzzle_times_linear.svg",
-)
-save_bar_plot(
-    df['sec_log'],
-    "lit_v3/static/sudoku_random_puzzle_times_log.svg",
-    logy=True
-)
-```
-
-```python
-# out
+```bash
+# run: python3 examples/collect_stats.py
+# def: calc_random_puzzle_times
+# timeout: 1000
+duration:    33.510 sec
 # exit: 0
+```
+
+I spent a few hours on different ways to render plots eventually gave up on getting it the way I wanted (as close as possible to the originals). I'm not fond of the matplotlib API.
+
+```python
+# exec
+# dep: paths, overview.save_bar_plot
+# requires: calc_random_puzzle_times
+import os, math
+import pandas as pd
+
+df = pd.read_csv(str(TIMES_PATH), header=0, names=["ms"])
+df = df[df['ms'] > 1000]
+df['sec'] = df['ms'] / 1000
+
+STATIC_DIR.mkdir(exist_ok=True)
+times = df['sec'].sort_values()
+times = times.reset_index(drop=True)
+
+save_bar_plot(times, str(LIN_PATH))
+save_bar_plot(times, str(LOG_PATH), logy=True)
 ```

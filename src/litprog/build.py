@@ -12,9 +12,12 @@ import logging
 import pathlib as pl
 import tempfile
 import collections
+from concurrent.futures import Future
 from concurrent.futures import ThreadPoolExecutor
 
+from . import cache
 from . import parse
+from . import common
 from . import session
 
 logger = logging.getLogger(__name__)
@@ -45,61 +48,6 @@ MarkdownFiles = typ.Iterable[parse.MarkdownFile]
 ExpandedMarkdownFile  = parse.MarkdownFile
 ExpandedMarkdownFiles = typ.Iterable[ExpandedMarkdownFile]
 
-CapturedLine = session.CapturedLine
-
-
-class SessionBlockOptions(typ.NamedTuple):
-    """A Session Block based on an 'exec', 'run' or 'out' directive.
-
-    If it is an exec or run directive a session is run and the output is
-    captured for later use. If it is an out directive, output from a previous
-    capture is used.
-    """
-
-    command  : typ.Optional[str]
-    directive: str
-
-    is_stdin_writable   : bool
-    is_debug            : bool
-    keepends            : bool
-    timeout             : float
-    input_delay         : float
-    debug_prefix        : str
-    expected_exit_status: int
-
-    out_fmt : str
-    err_fmt : str
-    info_fmt: str
-
-    out_prefix: str
-    err_prefix: str
-
-
-Task = typ.Tuple[parse.Block, SessionBlockOptions]
-
-
-ElemIndex = int
-
-
-class TaskBlocks(typ.NamedTuple):
-    block: parse.Block
-    opts : SessionBlockOptions
-
-
-class BlockTask(typ.NamedTuple):
-    md_path: pl.Path
-    block  : parse.Block
-    opts   : SessionBlockOptions
-    # block to which the captured output belongs
-    capture_index: ElemIndex
-
-
-class Capture(typ.NamedTuple):
-    command    : str
-    exit_status: int
-    runtime    : float
-    lines      : typ.List[CapturedLine]
-
 
 class BlockError(Exception):
 
@@ -111,7 +59,8 @@ class BlockError(Exception):
     ) -> None:
         self.block            = block
         self.include_contents = include_contents or []
-        loc                   = parse.location(block).strip()
+
+        loc = parse.location(block).strip()
         super().__init__(f"{loc} - " + msg)
 
 
@@ -510,10 +459,20 @@ def _dump_files(build_ctx: parse.Context) -> None:
             if file_directive is None:
                 continue
 
-            path = pl.Path(file_directive.value)
+            path             = pl.Path(file_directive.value)
+            new_content_data = block.includable_content.encode("utf-8")
+
+            if path.exists():
+                with path.open(mode="rb") as fobj:
+                    old_content_data = fobj.read()
+
+                if old_content_data == new_content_data:
+                    # don't needlessly update mtimes
+                    continue
+
             path.parent.mkdir(parents=True, exist_ok=True)
-            with path.open(mode="w", encoding="utf-8") as fobj:
-                fobj.write(block.includable_content)
+            with path.open(mode="wb") as fobj:
+                fobj.write(new_content_data)
 
 
 def _parse_out_fmt(block: parse.Block, directive_name: str, default_fmt: str) -> str:
@@ -552,7 +511,7 @@ def _get_default_command(block: parse.Block) -> typ.Optional[str]:
         return None
 
 
-def _parse_session_block_options(block: parse.Block) -> typ.Optional[SessionBlockOptions]:
+def _parse_session_block_options(block: parse.Block) -> typ.Optional[common.SessionBlockOptions]:
     exec_directive = get_directive(block, 'exec')
     run_directive  = get_directive(block, 'run')
     out_directive  = get_directive(block, 'out')
@@ -574,6 +533,18 @@ def _parse_session_block_options(block: parse.Block) -> typ.Optional[SessionBloc
         is_stdin_writable = False
     else:
         return None
+
+    provides_id: typ.Optional[str] = None
+    provides_directive = get_directive(block, 'def')
+    if provides_directive:
+        provides_id = provides_directive.value.strip()
+        provides_id = _namespaced_lp_id(block, provides_id)
+
+    requires = get_directive(block, 'requires')
+    if requires:
+        requires_ids = {_namespaced_lp_id(block, req_id) for req_id in requires.value.split(",")}
+    else:
+        requires_ids = set()
 
     debug_directive = get_directive(block, 'debug')
     if debug_directive:
@@ -615,9 +586,11 @@ def _parse_session_block_options(block: parse.Block) -> typ.Optional[SessionBloc
 
     expected_exit_status = 0 if expect is None else int(expect.value)
 
-    return SessionBlockOptions(
+    return common.SessionBlockOptions(
         command=command,
         directive=directive,
+        provides_id=provides_id,
+        requires_ids=requires_ids,
         is_stdin_writable=is_stdin_writable,
         is_debug=is_debug,
         keepends=keepends,
@@ -633,7 +606,7 @@ def _parse_session_block_options(block: parse.Block) -> typ.Optional[SessionBloc
     )
 
 
-def _parse_capture_output(capture: Capture, opts: SessionBlockOptions) -> str:
+def _parse_capture_output(capture: session.Capture, opts: common.SessionBlockOptions) -> str:
     # TODO: coloring
     # if "\u001b" in capture.stderr:
     #     stderr = capture.stderr
@@ -681,6 +654,10 @@ class BlockExecutionError(Exception):
     pass
 
 
+class BlockTimeoutError(BlockExecutionError):
+    pass
+
+
 TEMPFILE_PATTERN = r"<TEMPFILE([\.\w]+)>"
 
 TEMPFILE_RE = re.compile(TEMPFILE_PATTERN)
@@ -688,9 +665,9 @@ TEMPFILE_RE = re.compile(TEMPFILE_PATTERN)
 
 def _postproc_failed_block(
     block      : parse.Block,
-    opts       : SessionBlockOptions,
+    opts       : common.SessionBlockOptions,
     stdin_lines: typ.List[str],
-    capture    : Capture,
+    capture    : session.Capture,
 ) -> None:
     rjust     = len(str(len(stdin_lines)))
     err_lines = []
@@ -713,14 +690,14 @@ Tempfile = typ.Optional[typ.Any]
 Command  = str
 
 
-def _init_isession(opts: SessionBlockOptions, command: Command) -> session.InteractiveSession:
+def _init_isession(opts: common.SessionBlockOptions, command: Command) -> session.InteractiveSession:
     if opts.is_debug:
         return session.DebugInteractiveSession(command)
     else:
         return session.InteractiveSession(command)
 
 
-def _init_command(opts: SessionBlockOptions) -> typ.Tuple[Tempfile, Command]:
+def _init_command(opts: common.SessionBlockOptions) -> typ.Tuple[Tempfile, Command]:
     command = opts.command
     if command is None:
         raise TypeError("Must be str but was None")
@@ -738,12 +715,15 @@ def _init_command(opts: SessionBlockOptions) -> typ.Tuple[Tempfile, Command]:
 
 def _process_command_block(
     block    : parse.Block,
-    opts     : SessionBlockOptions,
+    opts     : common.SessionBlockOptions,
     exitfirst: bool = False,
-) -> Capture:
+) -> session.Capture:
     tmp, command = _init_command(opts)
 
-    logger.debug(f"  {opts.directive} {command}")
+    _cmd = command if len(command) < 40 else (command[:40] + "...")
+
+    logmsg = f"Line {block.first_line:>5} of {block.md_path} - {opts.directive} {_cmd}"
+    logger.info(logmsg)
 
     if opts.is_stdin_writable:
         stdin_lines = block.inner_content.splitlines(opts.keepends)
@@ -780,30 +760,33 @@ def _process_command_block(
         exit_info = f"{exit_status} != {opts.expected_exit_status}"
 
     lines   = isession.output_lines()
-    capture = Capture(command, exit_status, isession.runtime, lines)
+    capture = session.Capture(command, exit_status, isession.runtime, lines)
 
     if runtime_ms < 500:
-        logger.debug(f"  {opts.directive:<7}  {command:<65}  time: {runtime_ms:>6}ms  exit: {exit_info}")
+        logger.debug(f"{logmsg:<90} time: {runtime_ms:>6}ms  exit: {exit_info}")
     else:
-        logger.info(f"  {opts.directive:<7}  {command:<65}  time: {runtime_ms:>6}ms  exit: {exit_info}")
+        logger.info(f"{logmsg:<90} time: {runtime_ms:>6}ms  exit: {exit_info}")
 
-    if exitfirst and exit_status != opts.expected_exit_status:
-        _postproc_failed_block(block, opts, stdin_lines, capture)
-        raise BlockExecutionError()
-    else:
+    if exit_status == opts.expected_exit_status:
         # TODO: limit output using max_bytes and max_lines
         # TODO: output escaping/fence style change and errors
         return capture
+    else:
+        _postproc_failed_block(block, opts, stdin_lines, capture)
+        if exit_status == -15:
+            raise BlockTimeoutError()
+        else:
+            raise BlockExecutionError()
 
 
-def _iter_task_blocks(md_file: parse.MarkdownFile) -> typ.Iterable[TaskBlocks]:
+def _iter_task_blocks(md_file: parse.MarkdownFile) -> typ.Iterable[common.TaskBlockOpts]:
     for block in md_file.iter_blocks():
         opts = _parse_session_block_options(block)
         if opts:
-            yield (block, opts)
+            yield common.TaskBlockOpts(block, opts)
 
 
-def _iter_block_tasks(md_file: parse.MarkdownFile) -> typ.Iterable[BlockTask]:
+def _iter_block_tasks(md_file: parse.MarkdownFile) -> typ.Iterable[common.BlockTask]:
     block_opts = list(_iter_task_blocks(md_file))
     for i, (block, opts) in enumerate(block_opts):
         capture_index = -1
@@ -817,7 +800,7 @@ def _iter_block_tasks(md_file: parse.MarkdownFile) -> typ.Iterable[BlockTask]:
             if opts.directive == 'run':
                 capture_index = block.elem_index
 
-            yield BlockTask(md_file.md_path, block, opts, capture_index)
+            yield common.BlockTask(md_file.md_path, block, opts, capture_index)
 
 
 class MarkdownFileResult(typ.NamedTuple):
@@ -838,8 +821,10 @@ class Runner:
     results    : typ.List[MarkdownFileResult]
 
     _file_items_by_path: typ.Dict[pl.Path, FilesItem]
-    _all_tasks         : typ.List[BlockTask]
-    _task_results      : typ.List[typ.Tuple[BlockTask, Capture]]
+    _all_tasks         : typ.List[common.BlockTask]
+    _task_results      : typ.List[typ.Tuple[common.BlockTask, session.Capture]]
+
+    _cache: cache.ResultCache
 
     def __init__(
         self,
@@ -858,12 +843,26 @@ class Runner:
         self._all_tasks          = []
         self._task_results       = []
 
+        # TODO (mb 2021-03-04): _task_results and _cache are somewhat redundant.
+        #   It might be possible/reasonable to always rely on the _cache to lookup
+        #   the capture of a task, even one that was just executed.
+
         for orig_md_file, md_file in zip(self.orig_files, self.build_files):
             self._file_items_by_path[md_file.md_path] = (orig_md_file, md_file)
             self._all_tasks.extend(_iter_block_tasks(md_file))
 
-    def _run_task(self, task: BlockTask) -> None:
-        capture = _process_command_block(task.block, task.opts, exitfirst=self.exitfirst)
+        # TODO (mb 2021-03-04): --no-cache option
+        #   self._cache = cache.DummyCache()
+        self._cache = cache.LocalResultCache(self.orig_files, self._all_tasks)
+
+    def _run_task(self, task: common.BlockTask) -> None:
+        cached_capture = self._cache.get_capture(task)
+        if cached_capture is None:
+            capture = _process_command_block(task.block, task.opts, exitfirst=self.exitfirst)
+            self._cache.update(task, capture)
+        else:
+            capture = cached_capture
+
         if task.capture_index >= 0:
             self._task_results.append((task, capture))
 
@@ -901,15 +900,60 @@ class Runner:
             result = MarkdownFileResult(orig_md_file, updated_elements[md_file.md_path])
             self.results.append(result)
 
+    def _start(self, submit_task: typ.Callable[[common.BlockTask], Future]) -> None:
+        provided_ids        : typ.Set[str] = set()
+        remaining_tasks     : typ.List[common.BlockTask] = list(self._all_tasks)
+        prev_remaining_tasks: typ.List[common.BlockTask] = []
+        num_completed = 0
+
+        while remaining_tasks:
+            if remaining_tasks == prev_remaining_tasks:
+                for task in remaining_tasks:
+                    logger.error(f"Task with unsatisfied requires: {task.opts.requires_ids}")
+                raise RuntimeError("No progress made processing block tasks")
+            else:
+                prev_remaining_tasks = remaining_tasks
+
+            defered_tasks: typ.List[common.BlockTask] = []
+            futures      : typ.List[typ.Tuple[Future, common.BlockTask]] = []
+
+            for task in remaining_tasks:
+                if task.opts.requires_ids <= provided_ids:
+                    future = submit_task(task)
+                    futures.append((future, task))
+                else:
+                    defered_tasks.append(task)
+
+            for future, task in futures:
+                future.result(timeout=task.opts.timeout)
+                num_completed += 1
+                if task.opts.provides_id:
+                    provided_ids.add(task.opts.provides_id)
+
+            remaining_tasks = defered_tasks
+
+        logger.info(f"Completed tasks: {num_completed} of {len(self._all_tasks)}")
+
     def start(self) -> None:
         if self.concurrency == 1 or self.exitfirst:
-            for task in self._all_tasks:
+
+            def submit(task: common.BlockTask) -> Future:
+                future: Future = Future()
                 self._run_task(task)
+                future.set_result(None)
+                return future
+
+            self._start(submit)
         else:
             with ThreadPoolExecutor(max_workers=self.concurrency) as executor:
-                executor.map(self._run_task, self._all_tasks)
+
+                def submit(task: common.BlockTask) -> Future:
+                    return executor.submit(self._run_task, task)
+
+                self._start(submit)
 
         self._postprocess_captures()
+        self._cache.flush()
 
     def wait(self) -> None:
         pass
@@ -993,6 +1037,7 @@ def build(
             logger.info(f"Updated {new_md_file.md_path}")
         else:
             logger.info(f"Update skipped for {new_md_file.md_path} (use -i/--in-place-update)")
+
         doc_ctx.files[file_idx] = new_md_file
 
     duration = time.time() - build_start

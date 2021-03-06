@@ -111,7 +111,7 @@ def _get_md_paths(input_paths: InputPaths) -> typ.List[pl.Path]:
 SELECTED_FORMATS = [
     # 'print_a4',
     # 'print_letter',
-    # 'print_ereader',
+    'print_ereader',
     'print_a5',
     'print_booklet_a4',
     # 'print_halfletter',
@@ -200,6 +200,13 @@ _opt_concurrency = click.option(
     help="Number of concurrent processes to execute.",
 )
 
+_opt_no_cache = click.option(
+    "--no-cache",
+    is_flag=True,
+    default=False,
+    help="Ignore block result cache/rerun all blocks.",
+)
+
 _opt_verbose = click.option('-v', '--verbose', count=True, help="Control log level. -vv for debug level.")
 
 
@@ -218,6 +225,7 @@ def cli(verbose: int = 0) -> None:
 @_opt_existfirst
 @_opt_in_place
 @_opt_concurrency
+@_opt_no_cache
 @_opt_verbose
 def build(
     input_paths    : InputPaths,
@@ -226,6 +234,7 @@ def build(
     exitfirst      : bool = False,
     in_place_update: bool = False,
     concurrency    : int  = lp_build.DEFAULT_CONCURRENCY,
+    no_cache       : bool = False,
     verbose        : int  = 0,
 ) -> None:
     _configure_logging(verbose)
@@ -239,6 +248,7 @@ def build(
 @_opt_existfirst
 @_opt_in_place
 @_opt_concurrency
+@_opt_no_cache
 @_opt_verbose
 def watch(
     input_paths    : InputPaths,
@@ -247,6 +257,7 @@ def watch(
     exitfirst      : bool = False,
     in_place_update: bool = False,
     concurrency    : int  = lp_build.DEFAULT_CONCURRENCY,
+    no_cache       : bool = False,
     verbose        : int  = 0,
 ) -> None:
     _configure_logging(verbose)

@@ -8,9 +8,6 @@ import typing as typ
 import logging
 import pathlib as pl
 
-import toml
-import yaml
-
 logger = logging.getLogger(__name__)
 
 
@@ -94,49 +91,6 @@ IMAGE_URL_PATTERN = r"""
 \)
 """
 
-LANGUAGE_COMMENT_PATTERNS = {
-    "c++"          : (r"^\s*//"  , r"$"),
-    'actionscript' : (r"^\s*//"  , r"$"),
-    'actionscript3': (r"^\s*//"  , r"$"),
-    'bash'         : (r"^\s*[#]" , r"$"),
-    'c'            : (r"^\s*//"  , r"$"),
-    'd'            : (r"^\s*//"  , r"$"),
-    'elixir'       : (r"^\s*[#]" , r"$"),
-    'erlang'       : (r"^\s*%"   , r"$"),
-    'go'           : (r"^\s*//"  , r"$"),
-    'zig'          : (r"^\s*//"  , r"$"),
-    'java'         : (r"^\s*//"  , r"$"),
-    'javascript'   : (r"^\s*//"  , r"$"),
-    'json'         : (r"^\s*//"  , r"$"),
-    'swift'        : (r"^\s*//"  , r"$"),
-    'r'            : (r"^\s*//"  , r"$"),
-    'php'          : (r"^\s*//"  , r"$"),
-    'svg'          : (r"^\s*<!--", r"-->"),
-    'html'         : (r"^\s*<!--", r"-->"),
-    'css'          : (r"^\s*/\*" , r"\*/"),
-    'csharp'       : (r"^\s*//"  , r"$"),
-    'fsharp'       : (r"^\s*//"  , r"$"),
-    'kotlin'       : (r"^\s*//"  , r"$"),
-    'make'         : (r"^\s*[#]" , r"$"),
-    'nim'          : (r"^\s*[#]" , r"$"),
-    'perl'         : (r"^\s*[#]" , r"$"),
-    'yaml'         : (r"^\s*[#]" , r"$"),
-    'prolog'       : (r"^\s*%"   , r"$"),
-    'scheme'       : (r"^\s*;"   , r"$"),
-    'clojure'      : (r"^\s*;"   , r"$"),
-    'lisp'         : (r"^\s*;"   , r"$"),
-    'coffee-script': (r"^\s*[#]" , r"$"),
-    'python'       : (r"^\s*[#]" , r"$"),
-    'ruby'         : (r"^\s*[#]" , r"$"),
-    'rust'         : (r"^\s*//"  , r"$"),
-    'scala'        : (r"^\s*//"  , r"$"),
-    'sh'           : (r"^\s*[#]" , r"$"),
-    'shell'        : (r"^\s*[#]" , r"$"),
-    'sql'          : (r"^\s*--"  , r"$"),
-    'typescript'   : (r"^\s*//"  , r"$"),
-}
-
-
 LANGUAGE_COMMENT_TEMPLATES = {
     "c++"          : "// {}",
     'actionscript' : "// {}",
@@ -180,8 +134,51 @@ LANGUAGE_COMMENT_TEMPLATES = {
 }
 
 
-def _re(pattern: str) -> typ.Pattern:
-    return re.compile(pattern, flags=re.VERBOSE | re.MULTILINE)
+LANGUAGE_COMMENT_PATTERNS = {
+    "c++"          : (r"^[ \t]*//"  , r"$"),
+    'actionscript' : (r"^[ \t]*//"  , r"$"),
+    'actionscript3': (r"^[ \t]*//"  , r"$"),
+    'bash'         : (r"^[ \t]*[#]" , r"$"),
+    'c'            : (r"^[ \t]*//"  , r"$"),
+    'd'            : (r"^[ \t]*//"  , r"$"),
+    'elixir'       : (r"^[ \t]*[#]" , r"$"),
+    'erlang'       : (r"^[ \t]*%"   , r"$"),
+    'go'           : (r"^[ \t]*//"  , r"$"),
+    'zig'          : (r"^[ \t]*//"  , r"$"),
+    'java'         : (r"^[ \t]*//"  , r"$"),
+    'javascript'   : (r"^[ \t]*//"  , r"$"),
+    'json'         : (r"^[ \t]*//"  , r"$"),
+    'swift'        : (r"^[ \t]*//"  , r"$"),
+    'r'            : (r"^[ \t]*//"  , r"$"),
+    'php'          : (r"^[ \t]*//"  , r"$"),
+    'svg'          : (r"^[ \t]*<!--", r"-->$"),
+    'html'         : (r"^[ \t]*<!--", r"-->$"),
+    'css'          : (r"^[ \t]*/\*" , r"\*/$"),
+    'csharp'       : (r"^[ \t]*//"  , r"$"),
+    'fsharp'       : (r"^[ \t]*//"  , r"$"),
+    'kotlin'       : (r"^[ \t]*//"  , r"$"),
+    'make'         : (r"^[ \t]*[#]" , r"$"),
+    'nim'          : (r"^[ \t]*[#]" , r"$"),
+    'perl'         : (r"^[ \t]*[#]" , r"$"),
+    'yaml'         : (r"^[ \t]*[#]" , r"$"),
+    'prolog'       : (r"^[ \t]*%"   , r"$"),
+    'scheme'       : (r"^[ \t]*;"   , r"$"),
+    'clojure'      : (r"^[ \t]*;"   , r"$"),
+    'lisp'         : (r"^[ \t]*;"   , r"$"),
+    'coffee-script': (r"^[ \t]*[#]" , r"$"),
+    'python'       : (r"^[ \t]*[#]" , r"$"),
+    'ruby'         : (r"^[ \t]*[#]" , r"$"),
+    'rust'         : (r"^[ \t]*//"  , r"$"),
+    'scala'        : (r"^[ \t]*//"  , r"$"),
+    'sh'           : (r"^[ \t]*[#]" , r"$"),
+    'shell'        : (r"^[ \t]*[#]" , r"$"),
+    'sql'          : (r"^[ \t]*--"  , r"$"),
+    'typescript'   : (r"^[ \t]*//"  , r"$"),
+}
+
+
+def _re(pattern: str, flags: int = 0) -> typ.Pattern:
+    return re.compile(pattern, flags=flags)
 
 
 LANGUAGE_COMMENT_REGEXES = {
@@ -198,16 +195,19 @@ KNOWN_INFO_STRINGS = {
 KNOWN_INFO_STRINGS.update(LANGUAGE_COMMENT_REGEXES.keys())
 
 
-ELEMENT_RE = _re(ELEMENT_PATTERN)
+ELEMENT_RE = _re(ELEMENT_PATTERN, flags=re.VERBOSE | re.MULTILINE)
 
-HEADLINE_RE_A = _re(HEADLINE_PATTERN_A)
-HEADLINE_RE_B = _re(HEADLINE_PATTERN_B)
+HEADLINE_RE_A = _re(HEADLINE_PATTERN_A, flags=re.VERBOSE | re.MULTILINE)
+HEADLINE_RE_B = _re(HEADLINE_PATTERN_B, flags=re.VERBOSE | re.MULTILINE)
 
-BLOCK_START_RE = _re(BLOCK_START_PATTERN)
+BLOCK_START_RE = _re(BLOCK_START_PATTERN, flags=re.VERBOSE | re.MULTILINE)
 
-BLOCK_END_RE = {"```": _re(r"^```"), "~~~": _re(r"^~~~")}
+BLOCK_END_RE = {
+    "```": _re(r"^```", flags=re.VERBOSE | re.MULTILINE),
+    "~~~": _re(r"^~~~", flags=re.VERBOSE | re.MULTILINE),
+}
 
-IMAGE_URL_RE = _re(IMAGE_URL_PATTERN)
+IMAGE_URL_RE = _re(IMAGE_URL_PATTERN, flags=re.VERBOSE | re.MULTILINE)
 
 
 class ImageTag(typ.NamedTuple):
@@ -321,7 +321,12 @@ class Block(typ.NamedTuple):
     includable_content: str
 
 
-VALID_DIRECTIVE_NAMES = {
+# NOTE (mb 2021-03-04): Right now the 'out' directive references the
+#   preceeding block. We could also make it more general by allowing
+#   explicit references to the def of an exec block. This would
+#   be similar to requires.
+
+VALID_NAMES = {
     'language',
     # block composition
     'def',
@@ -348,10 +353,12 @@ VALID_DIRECTIVE_NAMES = {
     'err_color',
     # file generation
     'file',
-    # TODO (mb 2021-01-30): build system
+    # build system
     'requires',
-    'provides',
-    'idempotent',
+    # 'cache_key_files',    # comma separated globs to invalidate block
+    # 'cache'   # yes|once|never
+    # 'stateful',
+    # 'pure',
     # 'make',
     # 'const'
     # 'use_macro',
@@ -375,7 +382,7 @@ def has_directive(line: str, language: typ.Optional[str]) -> bool:
 
     comment_text = comment_text.strip()
 
-    for name in VALID_DIRECTIVE_NAMES:
+    for name in VALID_NAMES:
         if comment_text.startswith(name):
             return True
 
@@ -391,7 +398,7 @@ def _parse_directive(directive_text: str, raw_text: str) -> Directive:
         name  = directive_text.strip()
         value = ""
 
-    if name in VALID_DIRECTIVE_NAMES:
+    if name in VALID_NAMES:
         return Directive(name, value, raw_text)
     else:
         errmsg = f"Invalid directive '{name}'"
@@ -457,7 +464,6 @@ class MarkdownFile:
     def copy(self) -> 'MarkdownFile':
         return MarkdownFile(self.md_path, list(self.elements))
 
-    @property
     def block_namespace(self) -> str:
         # The namespace is based only on the filename, directories are
         # only for organization, otherwise they are ignored.
@@ -471,7 +477,6 @@ class MarkdownFile:
             normalized_namespace = raw_namespace.replace("-", "_").replace(" ", "_")
             return normalized_namespace
 
-    @property
     def headlines(self) -> typ.Iterable[Headline]:
         for elem_index, elem in enumerate(self.elements):
             if elem.md_type != MD_HEADLINE:
@@ -493,7 +498,6 @@ class MarkdownFile:
 
             yield Headline(self.md_path, elem_index, text.strip(), level)
 
-    @property
     def image_tags(self) -> typ.Iterable[ImageTag]:
         for elem in self.elements:
             if elem.md_type in (MD_HEADLINE, MD_BLOCK):
@@ -509,7 +513,7 @@ class MarkdownFile:
 
         return Block(
             self.md_path,
-            self.block_namespace,
+            self.block_namespace(),
             elem.first_line,
             elem.elem_index,
             info_string,
@@ -532,6 +536,7 @@ class MarkdownFile:
         rest = rest_content
         while rest:
             start_match = comment_start_re.search(rest)
+
             if start_match is None:
                 inner_chunks.append(rest)
                 includable_chunks.append(rest)
@@ -578,7 +583,7 @@ class MarkdownFile:
 
         return Block(
             self.md_path,
-            self.block_namespace,
+            self.block_namespace(),
             elem.first_line,
             elem.elem_index,
             info_string,
@@ -620,12 +625,18 @@ class MarkdownFile:
                 yield elem.first_line, num_lines
 
     def parse_front_matter_meta(self) -> FrontMatterMetadata:
+        # NOTE (mb 2021-03-05): lazy load yaml and toml modules to speed up cli
+
         metadata = DEFAULT_FRONT_MATTER_META.copy()
         if len(self.elements) > 0 and self.elements[0].md_type == MD_FRONT_MATTER:
             content = self.elements[0].content
             if content.startswith("+++"):
+                import toml
+
                 meta = toml.loads(content.strip("+ \n\r"))
             elif content.startswith("---"):
+                import yaml
+
                 meta = yaml.safe_load(content.strip("- \n\r"))
             else:
                 raise RuntimeError("Invalid front matter")
@@ -754,10 +765,9 @@ class Context:
                 self.files.append(MarkdownFile(path_or_file))
         self.files.sort()
 
-    @property
     def headlines(self) -> typ.Iterable[Headline]:
         for md_file in self.files:
-            for headline in md_file.headlines:
+            for headline in md_file.headlines():
                 yield headline
 
     def iter_blocks(self) -> typ.Iterable[Block]:
@@ -777,7 +787,7 @@ def parse_context(md_paths: FilePaths) -> Context:
 
     # provoke parse errors early on
     assert parse_ctx.copy() == parse_ctx
-    list(parse_ctx.headlines)
+    list(parse_ctx.headlines())
     list(parse_ctx.iter_blocks())
 
     for md_file in parse_ctx.files:

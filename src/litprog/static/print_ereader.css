@@ -1,14 +1,15 @@
 @media print {
     @page {
-        /* ereader/kindle */
+        /* 15cm ereader/kindle */
         padding: 0;
         margin: 5mm 5mm;
         size: 90mm 120mm;
     }
     body {
         /* ereader/kindle */
-        font-size: 7.5pt;
-        line-height: 1.50em;
+        font-size: 7pt;
+        line-height: 1.45em;
+        letter-spacing: 0;
     }
     img {
         max-width: calc(90mm - 5mm);
@@ -16,7 +17,23 @@
     }
 
     div.codehilite pre {
-        font-size: 7pt;
-        letter-spacing: -0.04em;
+        font-size: 6.7pt;
+        letter-spacing: 0em;
+        margin-left: 0em;
+    }
+    blockquote p, .admonition p, blockquote li, .admonition li {
+        line-height: 1.4em
+    }
+
+    @page :first {
+        @top-left     {content: "."; color: #FEFEFE; font-size: 4pt;margin-bottom: -3em;}
+        @top-right    {content: "."; color: #FEFEFE; font-size: 4pt;margin-bottom: -3em;}
+    }
+    @page {
+        /* Render faint text in corners to deal with automatic page cropping. */
+        @top-left     {content: "."; color: #FEFEFE; font-size: 4pt;margin-bottom: -3em;}
+        @top-right    {content: "."; color: #FEFEFE; font-size: 4pt;margin-bottom: -3em;}
+        @bottom-left  {content: "`"; color: #FEFEFE; font-size: 4pt;margin-top: -5em;}
+        @bottom-right {content: "´"; color: #FEFEFE; font-size: 4pt;margin-top: -5em;}
     }
 }

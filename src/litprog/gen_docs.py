@@ -74,15 +74,16 @@ STATIC_DIR = pl.Path(__file__).parent / "static"
 FONTS_DIR  = STATIC_DIR.parent.parent.parent / "fonts"
 
 STATIC_DEPS = {
-    STATIC_DIR / "fonts.css",
+    STATIC_DIR / "fonts_screen.css",
+    STATIC_DIR / "fonts_print.css",
     STATIC_DIR / "katex.css",
     STATIC_DIR / "codehilite.css",
     STATIC_DIR / "general_v2.css",
-    STATIC_DIR / "screen_v2.css",
+    # STATIC_DIR / "screen_v2.css",
     STATIC_DIR / "screen_v3.css",
-    STATIC_DIR / "slideout.js",
+    # STATIC_DIR / "slideout.js",
     STATIC_DIR / "popper.js",
-    STATIC_DIR / "popper.min.js",
+    # STATIC_DIR / "popper.min.js",
     STATIC_DIR / "app.js",
     STATIC_DIR / "print.css",
     STATIC_DIR / "print_a4.css",
@@ -95,6 +96,8 @@ STATIC_DEPS = {
     STATIC_DIR / "print_tallcol_letter.css",
 }
 
+STATIC_DEPS.update(STATIC_DIR.glob("*.css"))
+STATIC_DEPS.update(STATIC_DIR.glob("*.svg"))
 STATIC_DEPS.update(FONTS_DIR.glob("*.woff2"))
 STATIC_DEPS.update(FONTS_DIR.glob("*.woff" ))
 STATIC_DEPS.update(FONTS_DIR.glob("*.ttf"  ))
@@ -104,6 +107,15 @@ def read_static(fname: str) -> str:
     fpath = STATIC_DIR / fname
     with fpath.open(mode="r", encoding="utf-8") as fobj:
         return fobj.read()
+
+
+INDEX_HTML = """
+<!DOCTYPE html>
+<html>
+<head> <meta http-equiv="refresh" content="0; URL='{}'" /> </head>
+<body></body>
+</html>
+"""
 
 
 DEBUG_NAVIGATION_OUTLINE = """
@@ -361,14 +373,26 @@ def _iter_file_nav_htmls(file_items: typ.List[FileItem]) -> typ.Iterable[str]:
 
 
 def _write_screen_html(file_items: typ.List[FileItem], html_dir: pl.Path) -> None:
+    inital_url = ""
+
     nav_htmls = list(_iter_file_nav_htmls(file_items))
     for nav_html, (md_path, meta, html_res, block_linenos) in zip(nav_htmls, file_items):
-        html_fpath = html_dir / (md_path.stem + ".html")
+        html_fname = md_path.stem + ".html"
+        html_fpath = html_dir / html_fname
         logger.info(f"writing '{md_path}' -> '{html_fpath}'")
         content_html = html_postproc.postproc4screen(html_res, block_linenos, nav_html)
         wrapped_html = wrap_content_html(content_html, 'screen', meta, nav_html)
         with html_fpath.open(mode="w") as fobj:
             fobj.write(wrapped_html)
+
+        if inital_url:
+            inital_url = min(inital_url, html_fname)
+        else:
+            inital_url = html_fname
+
+    if inital_url:
+        with (html_dir / "index.html").open(mode="w") as fobj:
+            fobj.write(INDEX_HTML.format(inital_url))
 
 
 def _write_static_files(captured_static_paths: StaticPaths, html_dir: pl.Path) -> None:
@@ -419,7 +443,7 @@ def gen_html(ctx: parse.Context, html_dir: pl.Path) -> None:
             vcs_timeline.write_stats_svg(stats, svg_path)
             cur_meta['authors_timeline_svg'] = svg_name
 
-        for img_tag in md_file.image_tags:
+        for img_tag in md_file.image_tags():
             src_path = md_file.md_path.parent / img_tag.url
             if src_path.exists():
                 tgt_path = html_dir / img_tag.url

@@ -23,7 +23,10 @@ PyPDF2
 
 toml
 PyYAML
-# ujson
 
 pandas
 matplotlib
+
+# for block result caching
+redis
+zstandard

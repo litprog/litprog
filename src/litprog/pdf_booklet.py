@@ -13,7 +13,7 @@ import pathlib as pl
 
 import PyPDF2 as pdf
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("pdf_booklet")
 
 
 MAX_BOOKLET_SHEETS = 13
@@ -139,11 +139,18 @@ def get_format_id(
     page_height_pt: float,
     epsilon_pt    : float = 2.0,
 ) -> typ.Optional[str]:
+    best_format_id: typ.Optional[str] = None
+    best_delta = 999999
+
     for format_id, (fmt_width_pt, fmt_height_pt) in PAPER_FORMATS_PT.items():
         delta = abs(fmt_width_pt - page_width_pt) + abs(fmt_height_pt - page_height_pt)
+        if delta < best_delta:
+            best_format_id = format_id
+
         if delta < epsilon_pt:
             return format_id
 
+    print(best_format_id, delta)
     return None
 
 
@@ -156,26 +163,82 @@ PageIndexMapping = typ.List[typ.Tuple[int, int]]
 
 class OutputParameters(typ.NamedTuple):
 
-    scale : float
-    width : float
-    height: float
-    trim_x: float
-    trim_y: float
+    page_order: str
+    scale     : float
+    width     : float
+    height    : float
+    pad_x     : float
+    pad_y     : float
+    pad_center: float
 
-    page_order    : str
-    center_spacing: float
 
-
-def _init_output_parameters(media_box: MediaBox, rescale: float) -> OutputParameters:
+def _init_output_parameters(media_box: MediaBox, out_sheet_format: str) -> OutputParameters:
+    # TODO (mb 2021-03-04): Can we figure out the bounds of the inner content
+    #   and scale + translate each page to be in a well defined content box
+    #   in the output page?
     in_page_width  = float(media_box.getWidth())
     in_page_height = float(media_box.getHeight())
-    in_format_id   = get_format_id(in_page_width, in_page_height)
+
+    out_sheet_width, out_sheet_height = PAPER_FORMATS_PT[out_sheet_format]
+    if out_sheet_width < out_sheet_height:
+        errmsg = f"Invalid out_sheet_format={out_sheet_format}. Landscape format required."
+        raise ValueError(errmsg)
+
+    out_page_width  = out_sheet_width / 2
+    out_page_height = out_sheet_height
+
+    x_scale = out_page_width  / in_page_width
+    y_scale = out_page_height / in_page_height
+
+    scale = min(x_scale, y_scale)
+
+    scaled_page_width  = in_page_width  * scale
+    scaled_page_height = in_page_height * scale
+
+    x_padding = out_page_width  - scaled_page_width
+    y_padding = out_page_height - scaled_page_height
+
+    pad_center = x_padding / 4
+    pad_center = 0
+    pad_x      = (x_padding - pad_center) / 2
+    pad_y      = y_padding / 2
+
+    _iw_mm = round(in_page_width      / PT_PER_MM)
+    _ih_mm = round(in_page_height     / PT_PER_MM)
+    _sw_mm = round(scaled_page_width  / PT_PER_MM)
+    _sh_mm = round(scaled_page_height / PT_PER_MM)
+    _ow_mm = round(out_sheet_width    / PT_PER_MM)
+    _oh_mm = round(out_sheet_height   / PT_PER_MM)
+    logger.info("OutputParameters")
+    logger.info(f"    scale: {scale:5.3f}x")
+    logger.info(f"    in : {_iw_mm}mm x {_ih_mm}mm -> {_sw_mm}mm x {_sh_mm}mm (2x)")
+    logger.info(f"    out: {_ow_mm}mm x {_oh_mm}mm")
+
+    return OutputParameters(
+        'booklet',
+        scale,
+        out_sheet_width,
+        out_sheet_height,
+        pad_x,
+        pad_y,
+        pad_center,
+    )
+
+
+def _old_init_output_parameters(media_box: MediaBox, out_sheet_format: str) -> OutputParameters:
+    in_page_width  = float(media_box.getWidth())
+    in_page_height = float(media_box.getHeight())
+
+    in_format_id = get_format_id(in_page_width, in_page_height)
     if in_format_id is None:
+        PAPER_FORMATS_PT[out_sheet_format]
         in_page_width_mm  = round(in_page_width  / PT_PER_MM)
         in_page_height_mm = round(in_page_height / PT_PER_MM)
 
-        err_msg = f"Unknown page format: {in_page_width_mm}mm x {in_page_height_mm}mm"
-        raise ValueError(err_msg)
+        errmsg = f"Unknown page format: {in_page_width_mm}mm x {in_page_height_mm}mm"
+        raise ValueError(errmsg)
+
+    rescale = 1.0
 
     (out_format_id, page_order, center_margin) = BOOKLET_FORMAT_MAPPING[in_format_id]
     logger.info(f"Converting 2x{in_format_id} -> {out_format_id}")
@@ -201,13 +264,21 @@ def _init_output_parameters(media_box: MediaBox, rescale: float) -> OutputParame
     scale = scale * rescale
 
     trim_factor = (rescale - 1) / 2
-    trim_x      = 0.5 * out_width  * trim_factor
-    trim_y      = 0.6 * out_height * trim_factor
+    pad_x       = -0.5 * out_width  * trim_factor
+    pad_y       = -0.6 * out_height * trim_factor
     # TODO: option for center spacing
-    center_spacing = out_width * 0.005
-    center_spacing = center_margin
+    pad_center = out_width * 0.005
+    pad_center = center_margin
 
-    return OutputParameters(scale, out_width, out_height, trim_x, trim_y, page_order, center_spacing)
+    return OutputParameters(
+        page_order,
+        scale,
+        out_width,
+        out_height,
+        pad_x,
+        pad_y,
+        pad_center,
+    )
 
 
 def _create_sheets(
@@ -229,12 +300,12 @@ def _create_sheets(
 
         out_sheet = out_sheets[half_page_index // 2]
         if half_page_index % 2 == 0:
-            x_offset = 0 - out_coords.center_spacing
+            x_offset = 0 - out_coords.pad_center
         else:
-            x_offset = (out_coords.width / 2) + out_coords.center_spacing
+            x_offset = (out_coords.width / 2) + out_coords.pad_center
 
-        translate_x = x_offset - out_coords.trim_x
-        translate_y = 0        - out_coords.trim_y
+        translate_x = x_offset + out_coords.pad_x
+        translate_y = 0        + out_coords.pad_y
 
         tzero = time.time()
 
@@ -253,10 +324,12 @@ def _create_sheets(
     return out_sheets
 
 
-def create(in_path: pl.Path, out_path: typ.Optional[pl.Path] = None) -> pl.Path:
-    # TODO: option for page scale
-    # rescale = 1.33
-    rescale = 1.00
+def create(
+    in_path         : pl.Path,
+    out_path        : typ.Optional[pl.Path] = None,
+    out_sheet_format: str = 'A4-Landscape',
+) -> pl.Path:
+    assert out_sheet_format in PAPER_FORMATS_PT
 
     max_sheets = MAX_BOOKLET_SHEETS
 
@@ -273,7 +346,7 @@ def create(in_path: pl.Path, out_path: typ.Optional[pl.Path] = None) -> pl.Path:
         reader    = pdf.PdfFileReader(in_fobj)
         media_box = reader.getPage(0).mediaBox
 
-        output_params = _init_output_parameters(media_box, rescale)
+        output_params = _init_output_parameters(media_box, out_sheet_format)
 
         in_pages = list(reader.pages)
 
@@ -300,6 +373,10 @@ def create(in_path: pl.Path, out_path: typ.Optional[pl.Path] = None) -> pl.Path:
 
 
 def main() -> int:
+    logging.basicConfig()
+    root_logger = logging.getLogger()
+    root_logger.setLevel(logging.INFO)
+
     create(in_path=pl.Path(sys.argv[1]))
     return 0
 

@@ -9,6 +9,11 @@
     {% if meta.keywords %}<meta name="keywords" content="{{meta.keywords}}">{% endif %}
     <meta name="generator" content="LitProg {{meta.litprog_version}}">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {% if meta.favicon_url %}
+    <link rel="shortcut icon" href="{{ meta.favicon_url }}" type="image/x-icon">
+    {% else %}
+    <link rel="shortcut icon" href="data:image/x-icon;," type="image/x-icon">
+    {% endif %}
     {% if fmt.is_web_target %}
     <style type="text/css">
     /* inline styles to avoid flashing (esp. in dark mode) */
@@ -16,9 +21,14 @@
     body.dark, body.dark .wrapper {background: #292929;}
     /*body.gray, body.gray .wrapper {background: #777;}*/
     </style>
+    <link rel="preload" href="/static/bitter-v17-latin-ext_latin-regular.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="/static/bitter-v17-latin-ext_latin-600.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="/static/enriqueta-v10-latin-ext_latin-regular.woff2" as="font" type="font/woff2" crossorigin>
+    <script defer src="static/popper.js"></script>
+    <script defer src="static/app.js"></script>
     {% endif %}
     {% if fmt.is_print_target %}
-        <link rel="stylesheet" type="text/css" href="static/fonts.css">
+        <link rel="stylesheet" type="text/css" href="static/fonts_print.css">
         <link rel="stylesheet" type="text/css" href="static/codehilite.css">
         <link rel="stylesheet" type="text/css" href="static/general_v2.css">
         <link rel="stylesheet" type="text/css" href="static/katex.css">
@@ -52,11 +62,12 @@
         }
     </script>
 
-    {% include "inline_font_styles.html" %}
+    <link rel="stylesheet" type="text/css" href="static/fonts_screen.css">
     <link rel="stylesheet" type="text/css" href="static/general_v2.css">
     <link rel="stylesheet" type="text/css" href="static/screen_v3.css">
-    <noscript><link rel="stylesheet" href="static/katex.css" type="text/css"></noscript>
-    <noscript><link rel="stylesheet" href="static/codehilite.css" type="text/css"></noscript>
+
+    <link rel="stylesheet" href="static/katex.css" type="text/css">
+    <link rel="stylesheet" href="static/codehilite.css" type="text/css">
 
     <div class="dark-overlay"></div>
 
@@ -87,10 +98,10 @@
             </span>
             -->
         </div><div class="menu-icons-right">
-            <span class="scroll-to-top" title="Scroll to Top">
+            <a class="scroll-to-top" title="Scroll to Top" href="#top">
                 <span></span>
                 <span></span>
-            </span>
+            </a>
         </div>
     </div>
     <div class="pdf-links">
@@ -138,6 +149,9 @@
         </div>
         {% endif %}
         <div class="wrapper">
+            {% if fmt.is_web_target %}
+            <div id="top"></div>
+            {% endif %}
             <div class="content">
                 {{content}}
                 </div>
@@ -182,25 +196,5 @@
             </div>
         </div>
     </div>
-    {% if fmt.is_web_target %}
-    <script type="text/javascript">
-    (function() {
-        'use strict';
-        var head = document.getElementsByTagName('head').item(0);
-
-        function loadStylesheet(href) {
-            var s = document.createElement('link');
-            s.setAttribute("href", href);
-            s.setAttribute("rel", "stylesheet");
-            s.setAttribute("type", "text/css");
-            head.appendChild(s);
-        }
-        loadStylesheet("static/katex.css");
-        loadStylesheet("static/codehilite.css");
-    })();
-    </script>
-    <script src="static/popper.js"></script>
-    <script src="static/app.js"></script>
-    {% endif %}
 </body>
 </html>

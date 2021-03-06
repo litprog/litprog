@@ -5,6 +5,7 @@
 # SPDX-License-Identifier: MIT
 
 import os
+import json
 import time
 import shlex
 import typing as typ
@@ -33,6 +34,43 @@ class CapturedLine(typ.NamedTuple):
     is_err: bool
 
 
+class Capture(typ.NamedTuple):
+    command    : str
+    exit_status: int
+    runtime    : float
+    lines      : typ.List[CapturedLine]
+
+
+CaptureData = bytes
+
+
+def loads_capture(capture_bytes: CaptureData) -> Capture:
+    capture_json = capture_bytes.decode("utf-8")
+    capture_obj  = json.loads(capture_json)
+    command, exit_status, runtime, lines_args = capture_obj
+
+    lines = [CapturedLine(*line_args) for line_args in lines_args]
+    return Capture(
+        command,
+        exit_status,
+        runtime,
+        lines,
+    )
+
+
+def dumps_capture(capture: Capture) -> CaptureData:
+    line_args   = [[line.ts, line.line, line.is_err] for line in capture.lines]
+    capture_obj = [
+        capture.command,
+        capture.exit_status,
+        capture.runtime,
+        line_args,
+    ]
+    capture_json  = json.dumps(capture_obj)
+    capture_bytes = capture_json.encode("utf-8")
+    return capture_bytes
+
+
 class SessionException(Exception):
     pass
 
@@ -43,7 +81,7 @@ _: Environ = os.environ
 
 
 def _gen_captured_lines(
-    raw_lines: typ.Iterable[bytes], encoding: str = "utf-8"
+    raw_lines: typ.Iterable[bytes], encoding: str = "utf-8", debug_log: bool = False
 ) -> typ.Iterable[RawCapturedLine]:
     for raw_line in raw_lines:
         # get timestamp as fast as possible after
@@ -51,14 +89,16 @@ def _gen_captured_lines(
         ts = time.time()
 
         line_value = raw_line.decode(encoding)
-        logger.debug(f"read {len(raw_line)} bytes")
+        if debug_log:
+            logger.debug(f"read {len(raw_line)} bytes")
         yield RawCapturedLine(ts, line_value)
 
 
 def _read_loop(
     sp_output_pipe: typ.IO[bytes],
     captured_lines: typ.List[RawCapturedLine],
-    encoding      : str = "utf-8",
+    encoding      : str  = "utf-8",
+    debug_log     : bool = False,
 ) -> None:
     raw_lines = iter(sp_output_pipe.readline, b'')
     for captured_line in _gen_captured_lines(raw_lines, encoding=encoding):
@@ -70,9 +110,15 @@ class CapturingThread(typ.NamedTuple):
     lines : typ.List[RawCapturedLine]
 
 
-def _start_reader(sp_output_pipe: typ.IO[bytes], encoding: str = "utf-8") -> CapturingThread:
+def _start_reader(
+    sp_output_pipe: typ.IO[bytes],
+    encoding      : str  = "utf-8",
+    debug_log     : bool = False,
+) -> CapturingThread:
     captured_lines: typ.List[RawCapturedLine] = []
-    read_loop_thread = threading.Thread(target=_read_loop, args=(sp_output_pipe, captured_lines, encoding))
+    read_loop_thread = threading.Thread(
+        target=_read_loop, args=(sp_output_pipe, captured_lines, encoding, debug_log)
+    )
     read_loop_thread.start()
     return CapturingThread(read_loop_thread, captured_lines)
 
@@ -107,7 +153,12 @@ class InteractiveSession:
     _err_ct: CapturingThread
 
     def __init__(
-        self, cmd: AnyCommand, *, env: typ.Optional[Environ] = None, encoding: str = "utf-8"
+        self,
+        cmd: AnyCommand,
+        *,
+        env      : typ.Optional[Environ] = None,
+        encoding : str  = "utf-8",
+        debug_log: bool = False,
     ) -> None:
         _env: Environ
         if env is None:
@@ -115,13 +166,15 @@ class InteractiveSession:
         else:
             _env = env
 
-        self.encoding = encoding
-        self.start    = time.time()
-        self.end      = -1.0
-        self._retcode = None
+        self.encoding  = encoding
+        self.debug_log = debug_log
+        self.start     = time.time()
+        self.end       = -1.0
+        self._retcode  = None
 
         cmd_parts = _normalize_command(cmd)
-        logger.debug(f"popen {cmd_parts}")
+        if self.debug_log:
+            logger.debug(f"popen {cmd_parts}")
         self._proc = sp.Popen(cmd_parts, stdin=sp.PIPE, stdout=sp.PIPE, stderr=sp.PIPE, env=_env)
 
         assert self._proc.stdin  is not None
@@ -134,8 +187,8 @@ class InteractiveSession:
         _enc = encoding
 
         self._in_cl  = []
-        self._out_ct = _start_reader(self._stdout, _enc)
-        self._err_ct = _start_reader(self._stderr, _enc)
+        self._out_ct = _start_reader(self._stdout, _enc, self.debug_log)
+        self._err_ct = _start_reader(self._stderr, _enc, self.debug_log)
 
     def send(self, input_str: str, delay: float = 0) -> None:
         self._in_cl.append(RawCapturedLine(time.time(), input_str))
@@ -168,18 +221,22 @@ class InteractiveSession:
             max_time = self.start + timeout
             while True:
                 time_left = max_time - time.time()
-                logger.debug(f"poll {time_left}")
+                if self.debug_log:
+                    logger.debug(f"poll {time_left}")
                 time.sleep(min(0.01, max(0, time_left)))
                 returncode = self._proc.poll()
                 if returncode is not None:
-                    logger.debug(f"poll() returned {returncode}")
+                    if self.debug_log:
+                        logger.debug(f"poll() returned {returncode}")
                     break
                 if time.time() > max_time:
-                    logger.debug("timeout")
+                    if self.debug_log:
+                        logger.debug("timeout")
                     break
         finally:
             if returncode is None:
-                logger.debug("sending SIGTERM")
+                if self.debug_log:
+                    logger.debug("sending SIGTERM")
                 self._proc.terminate()
                 returncode = self._proc.wait()
 
@@ -192,7 +249,8 @@ class InteractiveSession:
         if self._retcode is not None:
             return self._retcode
 
-        logger.debug(f"wait with timeout={timeout}")
+        if self.debug_log:
+            logger.debug(f"wait with timeout={timeout}")
         returncode: typ.Optional[int] = None
         _stdin = self._stdin
         if _stdin:
@@ -281,7 +339,12 @@ class DebugInteractiveSession(InteractiveSession):
     _in_cl: typ.List[RawCapturedLine]
 
     def __init__(
-        self, cmd: AnyCommand, *, env: typ.Optional[Environ] = None, encoding: str = "utf-8"
+        self,
+        cmd: AnyCommand,
+        *,
+        env      : typ.Optional[Environ] = None,
+        encoding : str  = "utf-8",
+        debug_log: bool = False,
     ) -> None:
         # pylint: disable=super-init-not-called; initialization is substantially different
         _env: Environ
@@ -290,13 +353,15 @@ class DebugInteractiveSession(InteractiveSession):
         else:
             _env = env
 
-        self.encoding = encoding
-        self.start    = time.time()
-        self.end      = -1.0
-        self._retcode = None
+        self.encoding  = encoding
+        self.debug_log = debug_log
+        self.start     = time.time()
+        self.end       = -1.0
+        self._retcode  = None
 
         cmd_parts = _normalize_command(cmd)
-        logger.debug(f"popen {cmd_parts}")
+        if self.debug_log:
+            logger.debug(f"popen {cmd_parts}")
         self._proc = sp.Popen(cmd_parts, env=_env)
 
         self._stdin = self._proc.stdin

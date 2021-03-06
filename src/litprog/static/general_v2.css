@@ -6,13 +6,8 @@ body {
     font-size: 14px;
     line-height: 1.6em;
     text-align: justify;
-    font-family: lp-bitter, Bitter, Georgia, serif;
-}
-
-@media print {
-    body {
-        font-family: Bitter, Georgia, serif;
-    }
+    font-weight: 400;
+    font-family: lp-bitter, Georgia, serif;
 }
 
 .content p, .content ul, .content ol {
@@ -28,8 +23,6 @@ body {
     word-spacing: 0.1em;
     margin: 0 0 1em 0;
 }
-.content li {
-}
 
 span.katex {
     font-size: 1.1em;
@@ -42,7 +35,7 @@ div.codehilite {
 }
 
 div.codehilite pre {
-    font-family: lp-iosevka, "Iosevka Term SS05", monospace;
+    font-family: lp-iosevka, monospace;
     padding: 0 0.5em 0 0;
     /* display: inline-block is needed for horizontal scroll on narrow screens. */
     display: inline-block;
@@ -53,7 +46,6 @@ div.codehilite pre {
     div.codehilite pre {
         /* display: block is needed to break code blocks across pages. */
         display: block;
-        font-family: "Iosevka Term SS05", monospace;
     }
 }
 
@@ -71,7 +63,7 @@ a:hover {
 }
 
 h1, h2, h3, h4 {
-    font-family: lp-enriqueta, lp-gelasio, Gelasio, serif;
+    font-family: lp-enriqueta, Gelasio, serif;
     line-height: 1.2em;
     text-align: left;
     font-weight: normal;
@@ -124,38 +116,15 @@ h1#references {
     margin: 0em 1em;
 }
 
-.admonition p:first-child {
-    page-break-after: avoid;
-}
+.content ol {padding-inline-start: 2em;}
+.content ul {padding-inline-start: 1em;}
 
-blockquote, .admonition.aside {
-    border-left: 3px solid #AAA;
-    padding: 0 1em 0 1em;
-    font-size: 0.95em;
-    line-height: 1.55em;
-    color: #333;
-    margin: 0;
-}
-
-.dark blockquote, .dark .admonition.aside {
-    border-left: 3px solid #777;
-}
-
-.dark blockquote, .dark .admonition.aside {
-    color: #EEE;
-}
-
-.content ol, .content ul {
-    padding-inline-start: 1em;
-}
-.content > ol, .content > ul {
-    margin-inline-end: 1em;
-}
 
 li {
-    line-height: 1.5em;
-    margin-bottom: 0.4em;
+    line-height: 1.65em;
+    margin-bottom: 0.3em;
 }
+li p:last-child {margin-bottom: 0;}
 
 table {
     border-collapse: collapse;
@@ -173,6 +142,9 @@ th, td {
     padding: 0.3em 0.6em;
     vertical-align: baseline;
 }
+
+.content td:first-child {white-space: pre;}
+.content td {white-space: pre-wrap;}
 
 tr, th, td {border: 1px solid #CCC;}
 .dark tr, .dark th, .dark td {border: 1px solid #555;}
@@ -201,21 +173,116 @@ body {
 }
 
 .admonition {
-    padding: 1em 0 0.1em 1em;
+    page-break-inside: avoid;
+}
+.admonition p:first-child {
+    page-break-after: avoid;
 }
 
-.admonition.caption {
-    margin: 0em 4em 1.5em 4em;
+blockquote p:last-child {margin: 0;}
+
+blockquote, .admonition {
+    font-size: 0.95em;
+    line-height: 1.65em;
     color: #333;
-    font-size: 0.9em;
-    line-height: 1.35em;
+    border-width: 0 0 0 5px;
+    border-style: solid;
+
+    width: calc(100% - 20px);
+    margin: 0.5em auto;
+    padding: 0 0 0.3em 0;
 }
-.dark .admonition.caption {
+
+blockquote li, .admonition li,
+blockquote p, .admonition p {
+    line-height: 1.65em;
+}
+
+blockquote {
+    padding: 0.3em 0;
+}
+
+.dark blockquote, .dark .admonition {
+    color: #EEE;
+}
+
+blockquote > p, .admonition > p {
+    padding: 0 1em;
+}
+blockquote > ul, .admonition > ol,
+.admonition > ul, .admonition > ol {
+    padding: 0 2em 0 2em;
+}
+
+.admonition p.admonition-title {
+    padding: 0.3em 1em;
+    color: #000;
+    font-size: 1.05em;
+}
+
+.dark .admonition p.admonition-title {
     color: #FFF;
 }
 
-.admonition.error {border-left: 0.5em solid #E66; }
-.admonition.warning {border-left: 0.5em solid #FA4; }
-.dark .admonition.error {border-left: 0.5em solid #B33; }
-.dark .admonition.warning {border-left: 0.5em solid #B80; }
+blockquote                {border-color: #AAA;}
+.admonition.aside         {border-color: #AAA;}
+.admonition.info          {border-color: #6AD;}
+.admonition.note          {border-color: #6AD;}
+.admonition.warn          {border-color: #FA4;}
+.admonition.warning       {border-color: #FA4;}
+.admonition.error         {border-color: #E66;}
+.admonition.danger        {border-color: #E66;}
+.dark blockquote          {border-color: #777;}
+.dark .admonition.aside   {border-color: #777;}
+.dark .admonition.info    {border-color: #48C;}
+.dark .admonition.note    {border-color: #48C;}
+.dark .admonition.warn    {border-color: #E80;}
+.dark .admonition.warning {border-color: #E80;}
+.dark .admonition.error   {border-color: #E44;}
+.dark .admonition.danger  {border-color: #E44;}
 
+.admonition.aside         .admonition-title {background: #DDD;}
+.admonition.info          .admonition-title {background: #BDF;}
+.admonition.note          .admonition-title {background: #BDF;}
+.admonition.warn          .admonition-title {background: #FDA;}
+.admonition.warning       .admonition-title {background: #FDA;}
+.admonition.error         .admonition-title {background: #FBB;}
+.admonition.danger        .admonition-title {background: #FBB;}
+.dark .admonition.aside   .admonition-title {background: #444;}
+.dark .admonition.info    .admonition-title {background: #246;}
+.dark .admonition.note    .admonition-title {background: #246;}
+.dark .admonition.warn    .admonition-title {background: #602D00;}
+.dark .admonition.warning .admonition-title {background: #602D00;}
+.dark .admonition.error   .admonition-title {background: #622;}
+.dark .admonition.danger  .admonition-title {background: #622;}
+
+.admonition .admonition-title {
+    position: relative;
+}
+.admonition .admonition-title:after {
+    content: " ";
+
+    background-size: 1.3em 1.3em;
+    height: 1.3em;
+    width: 1.3em;
+
+    display: inline-block;
+    position: absolute;
+    right: 0.5em;
+    top: 0.35em;
+}
+
+.admonition.info .admonition-title:after,
+.admonition.note .admonition-title:after {
+    background-image: url('/static/info.svg');
+}
+
+.admonition.warn .admonition-title:after,
+.admonition.warning .admonition-title:after {
+    background-image: url('/static/warn.svg');
+}
+
+.admonition.error .admonition-title:after,
+.admonition.danger .admonition-title:after {
+    background-image: url('/static/danger.svg');
+}

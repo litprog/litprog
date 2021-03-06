@@ -533,12 +533,12 @@ def _add_heading_numbers_screen(
     content_soup: bs4.BeautifulSoup, nav_soup: bs4.BeautifulSoup, heading_prefix: str = ""
 ) -> None:
 
-    numbers_by_hashlink = {
+    numbers_by_hashlink: typ.Dict[str, str] = {
         node['href'].split("#", 1)[-1]: node.text.split(" ", 1)[0] for node in nav_soup.select("a")
     }
 
     for heading in content_soup.select("h1, h2, h3, h4, h5"):
-        number            = numbers_by_hashlink.get(heading['id'])
+        number            = numbers_by_hashlink.get(heading['id'], "")
         is_section_number = number and "." in number
         if is_section_number:
             heading.insert(0, number + " ")
@@ -722,9 +722,9 @@ def postproc4print(html_res: md2html.HTMLResult, fmt: str, block_linenos: BlockL
     if fmt in ("print_a4", "print_letter"):
         max_line_len = MAX_CODE_BLOCK_LINE_LEN
     elif "tallcol" in fmt:
-        max_line_len = 70
+        max_line_len = 72
     elif "ereader" in fmt:
-        max_line_len = 65
+        max_line_len = 72
     else:
         max_line_len = MAX_CODE_BLOCK_LINE_LEN
 

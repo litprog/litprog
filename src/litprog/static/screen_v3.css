@@ -1,15 +1,47 @@
+/* Section - Global */
 
 ::selection {
-    background: #CCC;
+    background: #BBB;
 }
 
 html {
   scroll-behavior: smooth;
 }
 
-body.dark ::selection {
-    background: #AAA;
+/* Section - Theme */
+
+body {
+    background: #FBFAFA;
+    color: #000;
 }
+
+body.dark, body.dark .wrapper {
+    background: #000;
+    color: #FFF;
+}
+
+h1 a, h2 a, h3 a, h4 a, h5 a,
+h1 a:visited, h2 a:visited, h3 a:visited, h4 a:visited, h5 a:visited {
+    color: black;
+}
+.dark h1 a, .dark h2 a, .dark h3 a, .dark h4 a, .dark h5 a,
+.dark h1 a:visited, .dark h2 a:visited, .dark h3 a:visited, .dark h4 a:visited, .dark h5 a:visited {
+    color: white;
+}
+
+.dark a {
+    color: #9CF;
+}
+.dark a:visited {
+    color: #DBF;
+}
+
+.wrapper {
+    background: #FBFAFA;
+}
+
+
+/* Section - Component: Dark Toggle Overlay */
 
 body .dark-overlay {
     display: none;
@@ -24,9 +56,11 @@ body .dark-overlay {
     opacity: 0;
     z-index: 9;
 
-    transition: opacity 300ms linear;
+    transition: opacity 350ms linear;
     will-change: opacity;
 }
+
+/* Section - Component: Left Nav */
 
 .nav a {
     font-family: lp-enriqueta, Enriqueta, lp-bitter, Bitter, serif;
@@ -41,43 +75,6 @@ body .dark-overlay {
     text-align: left;
     list-style-type: none;
     padding-inline-start: 1em;
-}
-
-/* Layout Styles*/
-
-.content {
-    padding: 20px 10px;
-}
-
-body {
-    background: #FBFAFA;
-}
-
-.wrapper {
-    background: #FBFAFA;
-}
-
-body.dark, body.dark .wrapper {
-    background: #000;
-    color: #FFF;
-}
-
-.content > .codehilite {
-    margin: 1em 0;
-}
-
-.content img,
-img.bob {
-    display: block;
-    max-width: 100%;
-    margin: 1em auto;
-    filter: none;
-}
-
-
-body {
-  width: 100%;
-  height: 100%;
 }
 
 .nav {
@@ -118,10 +115,18 @@ body {
     margin-top: 0.8em;
 }
 
-.toc li a:hover,
-.toc li a.active {
+.toc a.active {text-decoration: underline;}
+.toc a.blur {color: #404040;}
+.dark .toc a.blur {color: #DDD;}
+.toc a.active {color: #000;}
+.dark .toc a.active {color: #FFF;}
+
+.toc li a:hover {
     border-radius: 2px;
     background: #EEE;
+}
+.dark .toc li a:hover {
+    background: #555;
 }
 
 .toc > ul > li > a,
@@ -145,6 +150,60 @@ body {
 .toc > ul {
     margin: 0;
     border: none;
+}
+
+.header, .menu, .nav {
+    background: #CCC;
+}
+.dark .header, .dark .menu, .dark .nav {
+    background: #292929;
+}
+
+.dark .nav a {
+    color: #FFF;
+}
+
+/* Section - Menu & Header & Nav Layout*/
+
+.header,
+.menu {
+    padding: 8px;
+    line-height: 0;
+    will-change: transform;
+    transition: transform 300ms;
+    transform: none;
+}
+.menu {
+    bottom: 0;
+    border-top: 1px solid #888;
+    box-shadow: 0px 30px 20px 20px;
+}
+
+
+.header img {
+    width: 32px;
+    height: 32px;
+    padding: 4px;
+}
+.header div {
+    position: absolute;
+    display: block;
+    font-size: 24px;
+    font-family: lp-enriqueta;
+    left: 100px;
+    width: calc(100% - 200px);
+    text-align: center;
+    vertical-align: middle;
+    line-height: 40px;
+    top: 4px;
+}
+
+.header {
+    top: 0;
+    border-bottom: 1px solid #888;
+    box-shadow: 0px -30px 20px 20px;
+    /* header disabled for now (maybe permanently) */
+    display: none;
 }
 
 .nav {
@@ -180,10 +239,275 @@ body {
     }
 }
 
-.header, .menu, .nav {background: #CCC}
-.dark .header, .dark .menu, .dark .nav {
-    background: #292929;
+/* Section - PDF Download Dialog*/
+
+.pdf-links table,
+.pdf-links tr,
+.pdf-links td,
+.pdf-links th {
+    border-width: 0;
+    background: none;
 }
+.pdf-links td {
+    text-align: center;
+}
+
+.pdf-links th {
+    vertical-align: middle;
+}
+
+.pdf-links {
+    position: fixed;
+    top: 130px;
+    left: 50%;
+    transform: translate(-50%, 0);
+    margin: 0 auto;
+    z-index: 2;
+
+    padding: 20px;
+    background: white;
+    display: none;
+    opacity: 0;
+
+    box-shadow: #8885 0px 0px 8px 2px;
+    transition: opacity 250ms;
+    will-change: opactiy;
+    border: 1px solid #888;
+    border-radius: 2px;
+}
+.dark .pdf-links {
+    background: black;
+}
+
+.pdf-links.active {
+    opacity: 1;
+}
+
+.pdf-links table a:hover {background: #DDD; }
+.pdf-links table a:hover span {background: #DDD; }
+.dark .pdf-links table a:hover {background: #444; }
+.dark .pdf-links table a:hover span {background: #444; }
+
+.pdf-links .a4.portrait {width: calc(2.10 * 6vmin); height: calc(2.96 * 6vmin);}
+.pdf-links .a5.portrait {width: calc(1.48 * 6vmin); height: calc(2.10 * 6vmin);}
+.pdf-links .a6.portrait {width: calc(1.05 * 6vmin); height: calc(1.48 * 6vmin);}
+.pdf-links .ereader {width: calc(0.90 * 6vmin); height: calc(1.20 * 6vmin);}
+.pdf-links .a4.portrait {min-width: calc(2.10 * 35px); min-height: calc(2.96 * 35px);}
+.pdf-links .a5.portrait {min-width: calc(1.48 * 35px); min-height: calc(2.10 * 35px);}
+.pdf-links .a6.portrait {min-width: calc(1.05 * 35px); min-height: calc(1.48 * 35px);}
+.pdf-links .ereader {min-width: calc(0.90 * 35px); min-height: calc(1.20 * 35px);}
+
+.pdf-links .a4.landscape {width: calc(2.96 * 6vmin); height: calc(2.10 * 6vmin);}
+.pdf-links .a5.landscape {width: calc(2.10 * 6vmin); height: calc(1.48 * 6vmin);}
+.pdf-links .a6.landscape {width: calc(1.48 * 6vmin); height: calc(1.05 * 6vmin);}
+.pdf-links .a4.landscape {min-width: calc(2.96 * 35px); min-height: calc(2.10 * 35px);}
+.pdf-links .a5.landscape {min-width: calc(2.10 * 35px); min-height: calc(1.48 * 35px);}
+.pdf-links .a6.landscape {min-width: calc(1.48 * 35px); min-height: calc(1.05 * 35px);}
+
+.pdf-links .letter.portrait {width: calc(2.16 * 6vmin); height: calc(2.79 * 6vmin);}
+.pdf-links .half-letter.portrait {width: calc(1.40 * 6vmin); height: calc(2.16 * 6vmin);}
+.pdf-links .letter.portrait {min-width: calc(2.16 * 35px); min-height: calc(2.79 * 35px);}
+.pdf-links .half-letter.portrait {min-width: calc(1.40 * 35px); min-height: calc(2.16 * 35px);}
+
+.pdf-links .letter.landscape {width: calc(2.79 * 6vmin); height: calc(2.16 * 6vmin);}
+.pdf-links .half-letter.landscape {width: calc(2.16 * 6vmin); height: calc(1.40 * 6vmin);}
+.pdf-links .letter.landscape {min-width: calc(2.79 * 35px); min-height: calc(2.16 * 35px);}
+.pdf-links .half-letter.landscape {min-width: calc(2.16 * 35px); min-height: calc(1.40 * 35px);}
+
+.pdf-links {
+    text-align: center;
+}
+.pdf-links a {
+    position: relative;
+    display: inline-block;
+    cursor: pointer;
+    vertical-align: middle;
+    background: #FFF;
+    color: #000;
+}
+.dark .pdf-links a {
+    font-size: 1.5em;
+    color: #FFF;
+    background: #222;
+    border-color: #FFF;
+}
+.pdf-links table a {
+    border: 1px solid #000;
+}
+
+.pdf-links table a.ereader:before,
+.pdf-links table a.portrait:before,
+.pdf-links table a.twocol:before,
+.pdf-links table a.twocol:after {
+    z-index: 2;
+    top: 0;
+    position: absolute;
+    font: 1vmin/0.8em sans-serif;
+    text-align: justify;
+    content: "– — – — – – – — – — – – – — – — – – — –– — – –– – — – — – – – — – — – – — –– — – – — – – — – – — – — — – – — – — – — – — – — – — – — —– — – — – – — –– — – – — – – — – – — – — — – – — – — – — – — – — – — – — —– — – — – – — –– — – – — – – — – – — – — — – – — – — – — – — – — – — – — — – — – — – – – — – — – – – — – — – – — –– — – –– – — – — – – – — – — – – — –– — – – — – – — – – — – — — – – — – — – — – — – — – — – — —– — – — – – — –– — – – — – – — – – — – — — – – — – — – — – — – — – — – — —– — – — – – — –– — – – — – – — – – — – — — – – — – — – — – — – — – — – — – — – — – – – — – — – – – — – — – – — –– — – –– – — – — – – – — – — – – — –– — – – — – – — – – — – — — – – — – — – — – — – — – — – — —– — – — – – — –– — – – — – – — – – — – — — – – — – — – — – — – — – — – — —– — – — – – — –– — – – — – – — – – — – — — – – — – — – — – — – — – — – — — – — – — – – – — – — – – – — – — – – — –– — – –– – — – — – – – — – — – – — –– — – – — – – — – – — – — — – – — – — – — – — – — – — – — —– — – — – – — –– — – – — – – — – – — – — — – – — – — – — – — – — – — – — —– — – — – – — –– — – – — – – — – – — – — — – – — – — – — – — – — – — – — ——";
+    color: #555;
+    overflow: hidden;
+    display: block;
+    height: 88%;
+    margin: 8%;
+}
+
+.pdf-links .ereader {
+    border-radius: 4px;
+    border: 1px solid #888;
+    border-width: 6px 6px 15px 6px;
+}
+
+.pdf-links table a.ereader:before {
+    font: 0.8vmin/0.5em sans-serif;
+}
+
+@media only screen and (min-width: 400px) {
+    .pdf-links table a.twocol:before,
+    .pdf-links table a.twocol:after {
+        font: 1vmin/0.6em sans-serif;
+    }
+}
+
+
+.pdf-links table a.twocol:before,
+.pdf-links table a.twocol:after {
+    width: 38%;
+}
+.pdf-links table a.landscape:before,
+.pdf-links table a.landscape:after {
+    height: 80%;
+}
+
+.pdf-links table a.twocol:before {right: 0;}
+.pdf-links table a.twocol:after {left: 0;}
+
+
+/* Section - Component: Poppers */
+
+.popper {
+    font-size: 0.9em;
+    max-height: 45vh;
+    max-width: 80vw;
+    border-radius: 4px;
+    z-index: 2;
+    border: 1px solid #8888;
+    box-shadow: #8888 0 0.1em 1em 0;
+    background: #FFF;;
+    color: #000;
+    opacity: 0;
+    transition: opacity 300ms;
+    will-change: opacity;
+}
+
+.dark .popper {
+    background: #000;
+    color: #FFF;
+    box-shadow: #8888 0 0.1em 2em 0;
+}
+.popper-wrap {
+    max-width: 40em;
+    max-height: 45vh;
+    overflow-y: auto;
+    margin: 2px 0;
+}
+
+.popper table,
+.popper ul,
+.popper ol,
+.popper p {
+    margin: 1em;
+}
+.popper a.footnote-backref {
+    display: none;
+}
+
+.popper .arrow {
+    /* This increases the hover target just a bit to the link. */
+    padding: 11px 0;
+    margin-top: -10px;
+    margin-bottom: -10px;
+}
+.popper .arrow,
+.popper .arrow::before {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    z-index: -1;
+}
+.popper .arrow::before {
+    content: '';
+    background: #FFF;
+    border: 1px solid #8888;
+    border-width: 1px 1px 0 0;
+    box-shadow: #888 3px -3px 6px -5px;
+}
+
+.dark .popper .arrow::before {
+    background: #000;
+    box-shadow: #888 2px -2px 6px -2px;
+}
+
+.popper[data-popper-placement^='top'] .arrow {bottom: -11px;}
+.popper[data-popper-placement^='bottom'] .arrow {top: -12px;}
+
+.popper[data-popper-placement^='top'] .arrow::before {transform: rotate(135deg);}
+.popper[data-popper-placement^='bottom'] .arrow::before {transform: rotate(315deg);}
+
+
+
+/* Section - Content */
+
+.content > .codehilite {
+    margin: 1em 0;
+}
+
+img.bob,
+.content img {
+    display: block;
+    max-width: 100%;
+    margin: 1em auto;
+    filter: none;
+}
+
+.dark img.bob,
+.dark .content img {
+    filter: invert(1);
+}
+
+
+/* Section - Component: Admonitions */
+
+.admonition p.admonition-title {
+    margin: 0 0 1em -0.25px;
+}
+
+blockquote, .admonition {
+    box-shadow: 0px 0px 6px #DDD;
+}
+.dark blockquote, .dark .admonition {
+    box-shadow: 0px 0px 6px #666;
+}
+
+
+/* Section - Responsive Layout */
+
+body {
+  width: 100%;
+  height: 100%;
+}
+
+#top {
+    top: 0;
+    position: absolute;
+    width: 0;
+    height: 0;
+    visibility: hidden;
+}
+.content {
+    padding: 20px 10px;
+}
+
 
 /*
 
@@ -218,7 +542,6 @@ body {
     }
 }
 
-
 /* nav and menu on left */
 
 @media only screen and (min-width: 1200px) {
@@ -245,30 +568,6 @@ body {
     }
 }
 
-
-/* Dark Styles*/
-
-.dark a {
-    color: #9CF;
-}
-.dark a:visited {
-    color: #DBF;
-}
-
-.dark .nav a {
-    color: #FFF;
-}
-.dark .toc li a:hover,
-.dark .toc li a.active {
-    background: #555;
-}
-
-.dark img.bob,
-.dark img
-{
-    filter: invert(1);
-}
-
 /* Increase font size to maintain approx. constant line length. */
 
 @media only screen and (min-width: 500px) {
@@ -292,11 +591,11 @@ body {
 }
 
 @media only screen and (min-width: 700px) {
-    body {line-height: 1.55em;}
+    body {line-height: 1.65em;}
 }
 
 @media only screen and (min-width: 750px) {
-    body {line-height: 1.65em;}
+    body {line-height: 1.75em;}
 }
 
 @media only screen and (min-width: 850px) {
@@ -324,55 +623,8 @@ body {
         max-width: 100%;
         overflow-x: auto;
     }
-    .table-wrap table {
-        white-space: pre;
-    }
 }
 
-
-/* Header */
-
-.header img {
-    width: 32px;
-    height: 32px;
-    padding: 4px;
-}
-.header div {
-    position: absolute;
-    display: block;
-    font-size: 24px;
-    font-family: lp-enriqueta;
-    left: 100px;
-    width: calc(100% - 200px);
-    text-align: center;
-    vertical-align: middle;
-    line-height: 40px;
-    top: 4px;
-}
-
-.header {
-    top: 0;
-    border-bottom: 1px solid #888;
-    box-shadow: 0px -30px 20px 20px;
-    /* header disabled for now (maybe permanently) */
-    display: none;
-}
-
-/* Menu */
-
-.header,
-.menu {
-    padding: 8px;
-    line-height: 0;
-    will-change: transform;
-    transition: transform 300ms;
-    transform: none;
-}
-.menu {
-    bottom: 0;
-    border-top: 1px solid #888;
-    box-shadow: 0px 30px 20px 20px;
-}
 
 .wrapper {
     margin-bottom: 60px;
@@ -397,15 +649,6 @@ a.footnote-ref:before {
     visibility: hidden;
 }
 
-h1 a, h2 a, h3 a, h4 a, h5 a,
-h1 a:visited, h2 a:visited, h3 a:visited, h4 a:visited, h5 a:visited {
-    color: black;
-}
-.dark h1 a, .dark h2 a, .dark h3 a, .dark h4 a, .dark h5 a,
-.dark h1 a:visited, .dark h2 a:visited, .dark h3 a:visited, .dark h4 a:visited, .dark h5 a:visited {
-    color: white;
-}
-
 @media only screen and (max-width: 1199px) {
     .header.offscreen,
     .menu.offscreen {
@@ -415,6 +658,8 @@ h1 a:visited, h2 a:visited, h3 a:visited, h4 a:visited, h5 a:visited {
     .header.offscreen {transform: translate3d(0, -100%, 0); }
     .menu.offscreen {transform: translate3d(0, 100%, 0); }
 }
+
+/* Section  - Menu Icons */
 
 .menu {
     text-align: center;
@@ -451,7 +696,8 @@ h1 a:visited, h2 a:visited, h3 a:visited, h4 a:visited, h5 a:visited {
     }
 }
 
-.menu > div > span {
+.menu > div > span,
+.menu > div > a {
     display: inline-block;
     width: 50px;
     height: 50px;
@@ -462,11 +708,11 @@ h1 a:visited, h2 a:visited, h3 a:visited, h4 a:visited, h5 a:visited {
 .menu-icon > span {background: #292929;}
 .dark .menu-icon > span {background: #CCC;}
 
-.menu > div > span:hover {
+.menu > div > :hover {
     cursor: pointer;
     background: #999;
 }
-.dark .menu > div > span:hover {
+.dark .menu > div > :hover {
     background: #666;
 }
 
@@ -616,218 +862,4 @@ h1 a:visited, h2 a:visited, h3 a:visited, h4 a:visited, h5 a:visited {
     margin-top: -2px;
 }
 
-.dark .menu .scroll-to-top span {
-    border-bottom: 15px solid #CCC;
-}
-
-/* PDF Download Dialog*/
-
-.pdf-links table,
-.pdf-links tr,
-.pdf-links td,
-.pdf-links th {
-    border-width: 0;
-    background: none;
-}
-.pdf-links td {
-    text-align: center;
-}
-
-.pdf-links th {
-    vertical-align: middle;
-}
-
-.pdf-links {
-    position: fixed;
-    top: 130px;
-    left: 50%;
-    transform: translate(-50%, 0);
-    margin: 0 auto;
-    z-index: 2;
-
-    padding: 20px;
-    background: white;
-    display: none;
-    opacity: 0;
-
-    box-shadow: #8885 0px 0px 8px 2px;
-    transition: opacity 250ms;
-    will-change: opactiy;
-    border: 1px solid #888;
-    border-radius: 2px;
-}
-.dark .pdf-links {
-    background: black;
-}
-
-.pdf-links.active {
-    opacity: 1;
-}
-
-.pdf-links table a:hover {background: #DDD; }
-.pdf-links table a:hover span {background: #DDD; }
-.dark .pdf-links table a:hover {background: #444; }
-.dark .pdf-links table a:hover span {background: #444; }
-
-.pdf-links .a4.portrait {width: calc(2.10 * 6vmin); height: calc(2.96 * 6vmin);}
-.pdf-links .a5.portrait {width: calc(1.48 * 6vmin); height: calc(2.10 * 6vmin);}
-.pdf-links .a6.portrait {width: calc(1.05 * 6vmin); height: calc(1.48 * 6vmin);}
-.pdf-links .ereader {width: calc(0.90 * 6vmin); height: calc(1.20 * 6vmin);}
-.pdf-links .a4.portrait {min-width: calc(2.10 * 35px); min-height: calc(2.96 * 35px);}
-.pdf-links .a5.portrait {min-width: calc(1.48 * 35px); min-height: calc(2.10 * 35px);}
-.pdf-links .a6.portrait {min-width: calc(1.05 * 35px); min-height: calc(1.48 * 35px);}
-.pdf-links .ereader {min-width: calc(0.90 * 35px); min-height: calc(1.20 * 35px);}
-
-.pdf-links .a4.landscape {width: calc(2.96 * 6vmin); height: calc(2.10 * 6vmin);}
-.pdf-links .a5.landscape {width: calc(2.10 * 6vmin); height: calc(1.48 * 6vmin);}
-.pdf-links .a6.landscape {width: calc(1.48 * 6vmin); height: calc(1.05 * 6vmin);}
-.pdf-links .a4.landscape {min-width: calc(2.96 * 35px); min-height: calc(2.10 * 35px);}
-.pdf-links .a5.landscape {min-width: calc(2.10 * 35px); min-height: calc(1.48 * 35px);}
-.pdf-links .a6.landscape {min-width: calc(1.48 * 35px); min-height: calc(1.05 * 35px);}
-
-.pdf-links .letter.portrait {width: calc(2.16 * 6vmin); height: calc(2.79 * 6vmin);}
-.pdf-links .half-letter.portrait {width: calc(1.40 * 6vmin); height: calc(2.16 * 6vmin);}
-.pdf-links .letter.portrait {min-width: calc(2.16 * 35px); min-height: calc(2.79 * 35px);}
-.pdf-links .half-letter.portrait {min-width: calc(1.40 * 35px); min-height: calc(2.16 * 35px);}
-
-.pdf-links .letter.landscape {width: calc(2.79 * 6vmin); height: calc(2.16 * 6vmin);}
-.pdf-links .half-letter.landscape {width: calc(2.16 * 6vmin); height: calc(1.40 * 6vmin);}
-.pdf-links .letter.landscape {min-width: calc(2.79 * 35px); min-height: calc(2.16 * 35px);}
-.pdf-links .half-letter.landscape {min-width: calc(2.16 * 35px); min-height: calc(1.40 * 35px);}
-
-.pdf-links {
-    text-align: center;
-}
-.pdf-links a {
-    position: relative;
-    display: inline-block;
-    cursor: pointer;
-    vertical-align: middle;
-    background: #FFF;
-    color: #000;
-}
-.dark .pdf-links a {
-    font-size: 1.5em;
-    color: #FFF;
-    background: #222;
-    border-color: #FFF;
-}
-.pdf-links table a {
-    border: 1px solid #000;
-}
-
-.pdf-links table a.ereader:before,
-.pdf-links table a.portrait:before,
-.pdf-links table a.twocol:before,
-.pdf-links table a.twocol:after {
-    z-index: 2;
-    top: 0;
-    position: absolute;
-    font: 1vmin/0.8em sans-serif;
-    text-align: justify;
-    content: "– — – — – – – — – — – – – — – — – – — –– — – –– – — – — – – – — – — – – — –– — – – — – – — – – — – — — – – — – — – — – — – — – — – — —– — – — – – — –– — – – — – – — – – — – — — – – — – — – — – — – — – — – — —– — – — – – — –– — – – — – – — – – — – — — – – — – — – — – — – — – — – — — – — – — – – – — – — – – – — – — – – — –– — – –– – — – — – – – — – — – – — –– — – – — – – — – – — – — — – – — – — – — – — – — – — – — —– — – — – – — –– — – – — – – — – – — – — — – – — – — – — – — – — – — – — —– — – — – – — –– — – – — – – — – – — – — — – – — – — – — – — – — – — – — – — – — – – – — – — – – – — – — – – — –– — – –– – — – — – – – — – — – – — –– — – – — – – — – – — – — — – – — – — – — – — – — – — – — —– — – — – – — –– — – – — – – — – – — – — — – – — – — – — – — – — – — – — —– — – — – – — –– — – – — – – — – – — – — — – – — – — – — – — – — – — – — — – — – — – – – — – — – – – — – — – – — –– — – –– – — – — – – – — – — – – — –– — – – — – – — – – — – — — – – — – — – — – — – — – — – — —– — – — – – — –– — – – — – – — – – — – — — – – — – — – — – — – — – — – — —– — – — – – — –– — – – — – – — – – — – — — – – — – — – — – — – — – — – — ——";
-    color: #555;
-    overflow: hidden;
-    display: block;
-    height: 88%;
-    margin: 8%;
-}
-
-.pdf-links .ereader {
-    border-radius: 4px;
-    border: 1px solid #888;
-    border-width: 6px 6px 15px 6px;
-}
-
-.pdf-links table a.ereader:before {
-    font: 0.8vmin/0.5em sans-serif;
-}
-
-@media only screen and (min-width: 400px) {
-    .pdf-links table a.twocol:before,
-    .pdf-links table a.twocol:after {
-        font: 1vmin/0.6em sans-serif;
-    }
-}
-
-
-.pdf-links table a.twocol:before,
-.pdf-links table a.twocol:after {
-    width: 38%;
-}
-.pdf-links table a.landscape:before,
-.pdf-links table a.landscape:after {
-    height: 80%;
-}
-
-.pdf-links table a.twocol:before {right: 0;}
-.pdf-links table a.twocol:after {left: 0;}
-
-.popper {
-    font-size: 0.9em;
-    max-height: 45vh;
-    max-width: 80vw;
-    border-radius: 4px;
-    z-index: 2;
-    border: 1px solid #8888;
-    box-shadow: #8888 0 0.1em 1em 0;
-    background: #FFF;;
-    color: #000;
-    opacity: 0;
-    transition: opacity 300ms;
-    will-change: opacity;
-}
-
-.dark .popper {
-    background: #000;
-    color: #FFF;
-    box-shadow: #8888 0 0.1em 2em 0;
-}
-.popper-wrap {
-    max-width: 40em;
-    max-height: 45vh;
-    overflow-y: auto;
-    margin: 2px 0;
-}
-
-.popper table,
-.popper ul,
-.popper ol,
-.popper p {
-    margin: 1em;
-}
-.popper a.footnote-backref {
-    display: none;
-}
-
-.popper .arrow {
-    /* This increases the hover target just a bit to the link. */
-    padding: 11px 0;
-    margin-top: -10px;
-    margin-bottom: -10px;
-}
-.popper .arrow,
-.popper .arrow::before {
-    position: absolute;
-    width: 20px;
-    height: 20px;
-    z-index: -1;
-}
-.popper .arrow::before {
-    content: '';
-    background: #FFF;
-    border: 1px solid #8888;
-    border-width: 1px 1px 0 0;
-    box-shadow: #888 3px -3px 6px -5px;
-}
-
-.dark .popper .arrow::before {
-    background: #000;
-    box-shadow: #888 2px -2px 6px -2px;
-}
-
-.popper[data-popper-placement^='top'] .arrow {bottom: -11px;}
-.popper[data-popper-placement^='bottom'] .arrow {top: -12px;}
-
-.popper[data-popper-placement^='top'] .arrow::before {transform: rotate(135deg);}
-.popper[data-popper-placement^='bottom'] .arrow::before {transform: rotate(315deg);}
+.dark .menu .scroll-to-top span {border-bottom: 15px solid #CCC;}

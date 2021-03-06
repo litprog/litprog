@@ -33,6 +33,8 @@ public/
 .litprog.index
 package-lock.json
 doc/
+htmldump/
+scratch/
 
 # PyInstaller
 #  Usually these files are written by a python script from a template

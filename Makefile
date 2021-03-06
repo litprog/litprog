@@ -63,8 +63,7 @@ pycalver_docs: ../pycalver/README.html ../pycalver/README_booklet.pdf
 ## Generate Litprog Documentation
 
 ## Default target
-.PHONY: it
-it:
+doc/11_overview.html: lit_v3/11_overview.md src/litprog/static/*
 	PYTHONPATH=src/:vendor/:$$PYTHONPATH \
 		$(DEV_ENV)/bin/litprog \
 			build -v lit_v3/11_overview.md --html doc/

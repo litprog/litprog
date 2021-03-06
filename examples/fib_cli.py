@@ -1,6 +1,7 @@
 #!/usr/bin/env python
+import os, sys, math, time
+import contextlib
 from typing import Tuple, List, Dict, Set, Sequence
-import sys
 __doc__ = f"""Usage: python {__file__} [--help] [--pretty] <n>..."""
 def fib(n: int) -> int:
     if n < 2:
@@ -22,7 +23,7 @@ def pretty_print_fibs(ns: Sequence[int]) -> None:
     for i, (n, fib_n) in enumerate(zip(ns, fibs)):
         in_str = f"fib({n:>{pad_n}})"
         res_str = f"{fib_n:>{pad_fib_n}}"
-        print(f"{in_str} => {res_str}", end ="  ")
+        print(f"{in_str} => {res_str}", end="  ")
         if (i + 1) % 3 == 0:
             print()
 ParamsAndFlags = Tuple[List[str], Set[str]]

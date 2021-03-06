@@ -10,19 +10,9 @@ pre {
 }
 
 @media print {
-    code {
-        font-family: "Iosevka Term SS05", monospace;
-    }
-
     pre {
-        font-family: "Iosevka Term SS05", monospace;
         line-height: 1.25em;
     }
-}
-
-div.codehilite {
-    margin-top: -1.5em;
-    padding-right: 0.5em;
 }
 
 div.codehilite pre {

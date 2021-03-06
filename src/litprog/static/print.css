@@ -2,6 +2,12 @@
 @media print {
     body, .wrapper {
         color: #000;
+        font-weight: 400;
+        font-family: "Bitter", sans-serif;
+    }
+    h1, h2, h3, h4 {
+        font-family: "Enriqueta", sans-serif;
+        page-break-after: avoid;
     }
     p, blockquote, ul, ol {
         orphans: 3;
@@ -20,6 +26,10 @@
         padding: 0.07em 0.20em 0.14em 0.20em;
     }
 
+    p + div.codehilite {
+        margin-top: -1.5em;
+    }
+
     div.codehilite pre {
         margin-left: -1em;
         border-right: 0;
@@ -27,11 +37,32 @@
         padding: 0;
     }
 
-    .content ol, .content ul {
+    blockquote, .admonition {
+        border-right: 0.3pt solid #DDD;
+        border-bottom: 0.3pt solid #DDD;
+    }
+
+    .admonition.info .admonition-title:after,
+    .admonition.note .admonition-title:after {
+        background-image: url('info.svg');
+    }
+
+    .admonition.warn .admonition-title:after,
+    .admonition.warning .admonition-title:after {
+        background-image: url('warn.svg');
+    }
+
+    .admonition.error .admonition-title:after,
+    .admonition.danger .admonition-title:after {
+        background-image: url('danger.svg');
+    }
+
+    .content > ol, .content > ul {
         /* Hack: I can't figure out where weasyprint adds all its margin,
           this hack just drags it back over again.
         */
         margin-left: -2em;
+        padding-inline-end: 2em;
     }
 
     body {
@@ -120,13 +151,13 @@
 
     @page {
         @top-left {
-            font-family: lp-bitter, Bitter, serif;
+            font-family: "Enriqueta", sans-serif;
             font-size: 8.5pt;
             margin: 0;
             white-space: pre;
         }
         @top-right {
-            font-family: lp-bitter, Bitter, serif;
+            font-family: "Enriqueta", sans-serif;
             font-size: 8.5pt;
             margin: 0;
             white-space: pre;

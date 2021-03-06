@@ -1,13 +1,13 @@
 (function () {
 "strict";
 
-let menuIcon = document.querySelector(".menu-icon")
-let navPanel = document.querySelector(".nav")
+var menuIcon = document.querySelector(".menu-icon")
+var navPanel = document.querySelector(".nav")
 
-let loadingStart = Date.now()
-let lastInteraction = Date.now()
+var loadingStart = Date.now()
+var lastInteraction = Date.now()
 
-let navState = {
+var navState = {
     isOpen: false,
 }
 
@@ -25,7 +25,7 @@ function toggleNav() {
 
 
 function onInteraction(node, func) {
-  const debounced = function(evt) {
+  var debounced = function(evt) {
       // console.log("tap", evt.type, func.name, Date.now() - lastInteraction)
       if (Date.now() - lastInteraction > 300) {
           func(evt)
@@ -47,21 +47,21 @@ onInteraction(menuIcon, (evt) => {
 })
 
 
-let scrollTopIcon = document.querySelector(".scroll-to-top")
+// var scrollTopIcon = document.querySelector(".scroll-to-top")
 
-onInteraction(scrollTopIcon, (evt) => {
-    lastInteraction = Date.now()
-    window.scroll({top: 0})
-    evt.preventDefault()
-})
+// onInteraction(scrollTopIcon, (evt) => {
+//     lastInteraction = Date.now()
+//     window.scroll({top: 0})
+//     evt.preventDefault()
+// })
 
 function closeNavIfLinkClicked(evt) {
-    let navTgt = evt.target.closest(".nav")
+    var navTgt = evt.target.closest(".nav")
     if (!navTgt) return
-    let aTgt = evt.target.closest("a")
+    var aTgt = evt.target.closest("a")
     if (!aTgt) return
-    let headlineId = aTgt.href.split("#")[1]
-    let headline = document.querySelector("#" + headlineId)
+    var headlineId = aTgt.href.split("#")[1]
+    var headline = document.querySelector("#" + headlineId)
     if (headline) {
         toggleNav()
         // HACK to supress menu hide effect (as if scrolling)
@@ -73,8 +73,8 @@ function closeNavIfLinkClicked(evt) {
 
 onInteraction(document.querySelector(".nav"), closeNavIfLinkClicked)
 
-let contrastIcon = document.querySelector(".toggle-contrast")
-let darkOverlay = document.querySelector(".dark-overlay")
+var contrastIcon = document.querySelector(".toggle-contrast")
+var darkOverlay = document.querySelector(".dark-overlay")
 
 onInteraction(contrastIcon, (evt) => {
     lastInteraction = Date.now()
@@ -93,14 +93,15 @@ onInteraction(contrastIcon, (evt) => {
             darkOverlay.style.opacity = "0";
             setTimeout(function () {
                 darkOverlay.style.display = "none";
-            }, 350);
-        }, 350);
+            }, 400);
+        }, 400);
     }, 20);
     evt.preventDefault()
 })
 
-let fallbackTheme = matchMedia('(prefers-color-scheme: dark)').matches ? "dark" : "light"
-let selectedTheme = localStorage.getItem("litprog_theme") || fallbackTheme;
+// NOTE (mb 2021-02-25): Each page also has an inline script
+var fallbackTheme = matchMedia('(prefers-color-scheme: dark)').matches ? "dark" : "light"
+var selectedTheme = localStorage.getItem("litprog_theme") || fallbackTheme;
 
 if (selectedTheme == "dark") {
     document.body.classList.add("dark")
@@ -108,9 +109,9 @@ if (selectedTheme == "dark") {
     document.body.classList.remove("dark")
 }
 
-let pdfIcon = document.querySelector(".print-icon")
-let pdfLinks = document.querySelector(".pdf-links")
-let clickTimetout = -1;
+var pdfIcon = document.querySelector(".print-icon")
+var pdfLinks = document.querySelector(".pdf-links")
+var clickTimetout = -1;
 
 function togglePdfLinks() {
     clearTimeout(clickTimetout)
@@ -125,32 +126,32 @@ function togglePdfLinks() {
 
 onInteraction(pdfIcon, togglePdfLinks)
 
-let navScrollerNode = document.querySelector(".nav-scroller")
-let tocNode = document.querySelector(".toc")
-let headingNodes = document.querySelectorAll("h1, h2, h3, h4, h5")
-let navLinkNodes = document.querySelectorAll(".toc a")
+var navScrollerNode = document.querySelector(".nav-scroller")
+var tocNode = document.querySelector(".toc")
+var headingNodes = document.querySelectorAll("h1, h2, h3, h4, h5")
+var navLinkNodes = document.querySelectorAll(".toc a")
 
-let navLinkNodesByHash = {}
+var navLinkNodesByHash = {}
 for (var i = 0; i < navLinkNodes.length; i++) {
-    let href = navLinkNodes[i].href
-    let hrefAnchor = href.slice(href.indexOf("#"))
+    var href = navLinkNodes[i].href
+    var hrefAnchor = href.slice(href.indexOf("#"))
     navLinkNodesByHash[hrefAnchor] = navLinkNodes[i]
 }
 
-let setActiveNavTimeout = 0
-let activeNavNode = null
+var setActiveNavTimeout = 0
+var activeNavNode = null
 
 function setActiveNav() {
-    let wrapperOffset = document.querySelector(".wrapper").offsetTop
+    var wrapperOffset = document.querySelector(".wrapper").offsetTop
     // A heading is considered active if it is the first one
     // on screen or the first higher than the middle of the screen
     // (because there may not be a heading on the screen.
-    let minActiveY = window.pageYOffset
-    let maxActiveY = window.pageYOffset + window.innerHeight / 2
+    var minActiveY = window.pageYOffset
+    var maxActiveY = window.pageYOffset + window.innerHeight / 2
 
     for (var i = 0; i < headingNodes.length; i++) {
-        let headingNode = headingNodes[i]
-        let headingOffset = headingNode.offsetTop + wrapperOffset
+        var headingNode = headingNodes[i]
+        var headingOffset = headingNode.offsetTop + wrapperOffset
 
         if (headingOffset < minActiveY) {continue}
 
@@ -161,7 +162,7 @@ function setActiveNav() {
             var headingHash = "#" + headingNodes[i - 1].getAttribute("id")
         }
 
-        let newActiveNav = navLinkNodesByHash[headingHash];
+        var newActiveNav = navLinkNodesByHash[headingHash];
 
         if (activeNavNode == newActiveNav) {return}
 
@@ -171,22 +172,38 @@ function setActiveNav() {
         activeNavNode = newActiveNav
         newActiveNav.classList.add("active")
 
-        let relOffsetTop = newActiveNav.offsetTop - tocNode.offsetTop
-        let scrollTop = navScrollerNode.scrollTop
-        let scrollBottom = scrollTop + 2 * navScrollerNode.offsetHeight / 3
+        var relOffsetTop = newActiveNav.offsetTop - tocNode.offsetTop
+        var scrollTop = navScrollerNode.scrollTop
+        var scrollBottom = scrollTop + 2 * navScrollerNode.offsetHeight / 3
         if (!(scrollTop < relOffsetTop && relOffsetTop < scrollBottom)) {
-            navScrollerNode.scrollTop = Math.max(0, relOffsetTop - navScrollerNode.offsetHeight / 2)
+            var navTop = Math.max(0, relOffsetTop - navScrollerNode.offsetHeight / 2)
+            navScrollerNode.scrollTop = navTop;
         }
         break
+    }
+    if (activeNavNode) {
+        var navLinkNodes = document.querySelectorAll(".toc a")
+        var isAfterActive = false
+        for (var i = 0; i < navLinkNodes.length; i++) {
+            var navLinkNode = navLinkNodes[i];
+            if (navLinkNode === activeNavNode) {
+                isAfterActive = true;
+            }
+            if (isAfterActive) {
+                navLinkNode.classList.remove("blur")
+            } else {
+                navLinkNode.classList.add("blur")
+            }
+        }
     }
 }
 
 setActiveNav()
 
-let headerNode = document.querySelector(".header")
-let menuNode = document.querySelector(".menu")
+var headerNode = document.querySelector(".header")
+var menuNode = document.querySelector(".menu")
 
-let prevScrollY = -1;
+var prevScrollY = -1;
 setTimeout(function() {prevScrollY = window.pageYOffset}, 1000)
 
 function setMenuVis(vis) {
@@ -223,9 +240,9 @@ window.addEventListener("scroll", (evt) => {
     }
 
     // if deltaY is positive then we're scrolling down
-    let deltaY = window.pageYOffset - prevScrollY
-    let hasScrolledUp = deltaY < -20 || window.pageYOffset == 0
-    let hasScrolledDown = deltaY > 50
+    var deltaY = window.pageYOffset - prevScrollY
+    var hasScrolledUp = deltaY < -20 || window.pageYOffset == 0
+    var hasScrolledDown = deltaY > 50
     if (hasScrolledUp) setMenuVis(true)
     if (hasScrolledDown) setMenuVis(false)
 
@@ -239,7 +256,7 @@ window.addEventListener("scroll", (evt) => {
     setMenuVis(window.pageYOffset < 10 || deltaY < 0)
 })
 
-let contentNode = document.querySelector(".content")
+var contentNode = document.querySelector(".content")
 
 contentNode.addEventListener('click', (evt) => {
     if (pdfLinks.classList.contains("active") && !evt.target.closest(".pdf-links")) {
@@ -248,17 +265,17 @@ contentNode.addEventListener('click', (evt) => {
     }
 })
 
-let activeTarget = null;
-let activePopper = null;
-let activePopperNode = null;
-let popperDestroyTimeout = null;
+var activeTarget = null;
+var activePopper = null;
+var activePopperNode = null;
+var popperDestroyTimeout = null;
 
 document.body.addEventListener("mousemove", (evt) => {
     if (evt.target.nodeName == "#text") {
         return
     }
 
-    let isPopper = !!evt.target.closest(".popper")
+    var isPopper = !!evt.target.closest(".popper")
     if (isPopper) {
         // keep active
         if (popperDestroyTimeout != null) {
@@ -274,14 +291,14 @@ document.body.addEventListener("mousemove", (evt) => {
     //  - Internal link preview (less wrong marks these with °)
     //  - Function definition preview
 
-    let isFnote = evt.target.classList.contains("footnote-ref")
-    let isAltFnote = isFnote && activeTarget != evt.target
+    var isFnote = evt.target.classList.contains("footnote-ref")
+    var isAltFnote = isFnote && activeTarget != evt.target
 
     if (!isFnote || isAltFnote) {
         // hide the current popper
         if (activePopper && (isAltFnote || popperDestroyTimeout == null)) {
-            let popperDestroyer = ((popper, popperNode) => () => {
-                let popperCleanup = () => {
+            var popperDestroyer = ((popper, popperNode) => () => {
+                var popperCleanup = () => {
                     popper.destroy()
                     document.body.removeChild(popperNode)
                 }
@@ -313,9 +330,9 @@ document.body.addEventListener("mousemove", (evt) => {
         return
     }
 
-    let footnoteNum = new RegExp("[0-9]+").exec(evt.target.innerText)[0]
-    let footnoteNode = document.querySelector(`.footnote > ol > li:nth-child(${footnoteNum})`)
-    let popperNode = document.createElement("div")
+    var footnoteNum = new RegExp("[0-9]+").exec(evt.target.innerText)[0]
+    var footnoteNode = document.querySelector(`.footnote > ol > li:nth-child(${footnoteNum})`)
+    var popperNode = document.createElement("div")
     popperNode.setAttribute("footnote-number", footnoteNum)
     popperNode.classList.add("popper")
     popperNode.innerHTML = (
