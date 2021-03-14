@@ -56,7 +56,7 @@ if is_lib3to6_fix_required:
 # because our code to load static files is naive
 zip_safe = False
 
-version = "2020.1001-alpha"
+version = "2021.1002-alpha"
 
 setuptools.setup(
     name="litprog",

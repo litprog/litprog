@@ -227,7 +227,7 @@ _opt_verbose = click.option('-v', '--verbose', count=True, help="Control log lev
 
 
 @click.group()
-@click.version_option(version="2020.1001-alpha")
+@click.version_option(version="2021.1002-alpha")
 @_opt_verbose
 def cli(verbose: int = 0) -> None:
     """CLI for litprog."""
