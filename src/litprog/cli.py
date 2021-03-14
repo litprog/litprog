@@ -122,7 +122,15 @@ SELECTED_FORMATS = [
 ]
 
 
-DEFAULT_CONCURRENCY = max(4, len(os.sched_getaffinity(0)))
+def _num_cpus() -> int:
+    try:
+        # pylint: disable=no-member;    not available on all platforms
+        return len(os.sched_getaffinity(0))
+    except AttributeError:
+        return os.cpu_count()
+
+
+DEFAULT_CONCURRENCY = max(2, _num_cpus())
 
 
 def _build(
