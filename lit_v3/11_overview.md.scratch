@@ -1,48 +1,25 @@
+after the specified file has been updated[^fnote_redo]
 
-### The `requires` and `provides` Declaration
-
-So far every process was independent of every other. In principle the process could have been executed in any order, or indeed concurrently. If an `exec` or `run` has a dependency on another, then they must be declared with the `require: <filename>` directive.
-
-!!! aside "Why, oh why, does every tool need a new build system?!"
-
-    In my defense, I don't feel that I'm reinventing the wheel, rather I'm reimplementing an existing and vernerable wheel called `make`. If you are familiar with make, it should be easy for yout to learn the build system of LitProg.
-
-    Even if this were reinventing the wheel, since output generated earlier phases of a LitProg build can be used by later phases (for example test results can be shown in output documents), it makes sense to have the build system be integrated and not separate.
-
-    Many large programs use a build system to produce the final artifacts, such as binaries or packages. Documenting how to produce these artifacts should at least be possible, otherwise there is a thick curtain behind which the author will be tempted can hide all kinds of magic.
-
-!!! aside "redo: mtime dependencies done right"
-
-    [@apenwarr][href_twitter_apenwarr] has written enough about the [pitfalls of detecting changes using mtime comparison][href_apenwarr_mtime]. LitProg takes the recommended apporoach of keeping a database/index of files and falling back on content hashing only as an optimization when file system metadata cannot be relied upon to determine if a dependency has changed.
-
+[^fnote_redo]: [@apenwarr][href_twitter_apenwarr] has written enough about the [pitfalls of detecting changes using mtime comparison][href_apenwarr_mtime]. For now, LitProg will detect changes based on mtime changes alone. In future it will hopefully take the recommended approach: Keeping a database/index of files and fall back on content hashing only as an optimization when file system metadata cannot be relied upon to determine if a dependency has changed.
 
 [href_twitter_apenwarr]: https://twitter.com/apenwarr
+
 [href_apenwarr_mtime]: https://apenwarr.ca/log/20181113
 
 
-For illustration, I'll introduce a build script which processes the `examples/fib_cli.py` file (which is an output generated in phase 2 of `litprog build`) and writes `examples/fib_cli_compat.py`. This new file can be run on even with a Python 2 interpreter.
+
+To illustrate, I'll introduce a build script which processes the `examples/fib_cli.py` file (which is an output generated in phase 2 of `litprog build`). This block writes `examples/fib_cli_compat.py` which can be run with a Python 2 interpreter.
 
 ```bash
-# file: examples/build_cli_compat.sh
+# exec: bash
+# requires: examples/fib_cli.py
 python3 -m lib3to6 examples/fib_cli.py \
     > examples/fib_cli_compat.py
-chmod +x examples/fib_cli_compat.py
-```
-
-```bash
-# exec: bash examples/build_cli_compat.sh
-```
-
-
-```bash
-# run: python2 --version
-! Python 2.7.18
-# exit: 0
 ```
 
 ```bash
 # run: python2 examples/fib_cli_compat.py 22
-# require: examples/fib_cli_compat.py
+# requires: examples/fib_cli_compat.py
 ! Traceback (most recent call last):
 !   File "examples/fib_cli_compat.py", line 7, in <module>
 !     from typing import Tuple, List, Dict, Set, Sequence
@@ -73,3 +50,5 @@ fib(12) =>  144  fib(19) => 4181  fib(20) => 6765
 These examples are intended as a quick overview, but there is much more to be said about the how each of these primitives can be used and misused.
 
 
+
+[^fnote_good_enough_docs]: The documentation should be good enough for practical use. The effort devoted to the quality of the various artifacts corresponds to the use cases I anticipate. The PDF/print output is presumed to be used primarily as linearly read reference material. This means, it is draft quality rather than print quality as the files are intended for a few people to review, rather than for widespread publication. A feature of such output might be to annotate each definition with page numbers where it is used and vis-versa to annotate each usage with a page number for its definition. I've not put in the effort to do that, if you're diving that deep into the material, you should use the HTML, the Markdown source or the generated code, where you have proper jump to definition and search.
