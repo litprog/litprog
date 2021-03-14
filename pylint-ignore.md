@@ -23,11 +23,44 @@ The recommended approach to using `pylint-ignore` is:
 
 # Overview
 
- - [W0511: fixme (22x)](#w0511-fixme)
- - [W0613: unused-argument (1x)](#w0613-unused-argument)
+ - [W0511: fixme (25x)](#w0511-fixme)
 
 
 # W0511: fixme
+
+## File src/litprog/common.py - Line 34 - W0511 (fixme)
+
+- `message: TODO (mb 2021-02-26): These ids are not namespaced (yet)`
+- `author : Manuel Barkhau <mbarkhau@gmail.com>`
+- `date   : 2021-03-13T20:48:00`
+
+```
+  23: class SessionBlockOptions(typ.NamedTuple):
+  ...
+  32:     directive: str
+  33:
+> 34:     # TODO (mb 2021-02-26): These ids are not namespaced (yet)
+  35:     #   see litprog.build._namespaced_lp_id and litprog.parse.MarkdownFile.block_namespace()
+  36:     provides_id         : typ.Optional[str]
+```
+
+
+## File src/litprog/cli.py - Line 91 - W0511 (fixme)
+
+- `message: TODO (mb 2021-01-01): support globs`
+- `author : Manuel Barkhau <mbarkhau@gmail.com>`
+- `date   : 2021-03-13T20:48:00`
+
+```
+  75: def _iter_markdown_filepaths(input_paths: InputPaths) -> typ.Iterable[pl.Path]:
+  ...
+  89:                     if glob_path.is_file():
+  90:                         yield glob_path
+> 91:                 # TODO (mb 2021-01-01): support globs
+  92:             else:
+  93:                 logger.warning(f"Invalid path: '{path_str}'")
+```
+
 
 ## File src/litprog/pdf_util.py - Line 106 - W0511 (fixme)
 
@@ -46,359 +79,357 @@ The recommended approach to using `pylint-ignore` is:
 ```
 
 
-## File src/litprog/html_postproc.py - Line 143 - W0511 (fixme)
+## File src/litprog/cli.py - Line 111 - W0511 (fixme)
 
-- `message: TODO: Fix this cludge. For some reason, the`
+- `message: TODO (mb 2021-01-28): These should be parsed from the front matter`
 - `author : Manuel Barkhau <mbarkhau@gmail.com>`
-- `date   : 2020-12-11T15:37:25`
+- `date   : 2021-03-13T20:48:00`
 
 ```
-  121: def iter_wrapped_lines(
-  ...
-  141:                 if line_part.startswith("<code"):
-  142:                     tag_end_idx = line_part.index(">")
-> 143:                     # TODO: Fix this cludge. For some reason, the
-  144:                     #   first line is indented by less than a full
-  145:                     #   space and I have no idea why.
+  109:
+  110:
+> 111: # TODO (mb 2021-01-28): These should be parsed from the front matter
+  112: SELECTED_FORMATS = [
+  113:     # 'print_a4',
 ```
 
 
-## File src/litprog/build.py - Line 149 - W0511 (fixme)
-
-- `message: # TODO: There may a bug here that relates to the order`
-- `author : Manuel Barkhau <mbarkhau@gmail.com>`
-- `date   : 2020-12-11T15:37:25`
-
-```
-  147: #                         new_content = new_content.replace(name, const_val)
-  148: #
-> 149: #                 # TODO: There may a bug here that relates to the order
-  150: #                 #   of expanding blocks. Since the addable_val is based
-  151: #                 #   on block.inner_content, there may be issues with
-```
-
-
-## File src/litprog/build.py - Line 172 - W0511 (fixme)
-
-- `message: # TODO (mb 2020-06-01): maybe use for lp_include_match`
-- `author : Manuel Barkhau <mbarkhau@gmail.com>`
-- `date   : 2020-12-11T15:37:25`
-
-```
-  170:
-  171:
-> 172: # # TODO (mb 2020-06-01): maybe use for lp_include_match
-  173: # def find_include(block_contents: typ.List[str], include_directive: parse.Directive) -> typ.Optional[str]:
-  174: #     query = include_directive.value.strip()
-```
-
-
-## File src/litprog/build.py - Line 189 - W0511 (fixme)
+## File src/litprog/build.py - Line 117 - W0511 (fixme)
 
 - `message: TODO: this should be part of the parsing of all directives`
 - `author : Manuel Barkhau <mbarkhau@gmail.com>`
 - `date   : 2020-12-11T15:37:25`
 
 ```
-  187:
-  188:
-> 189: # TODO: this should be part of the parsing of all directives
-  190: def _parse_prefix(directive: parse.Directive) -> str:
-  191:     val = directive.value.strip()
+  115:
+  116:
+> 117: # TODO: this should be part of the parsing of all directives
+  118: def _parse_prefix(directive: parse.Directive) -> str:
+  119:     val = directive.value.strip()
 ```
 
 
-## File src/litprog/pdf_booklet.py - Line 207 - W0511 (fixme)
+## File src/litprog/vcs.py - Line 142 - W0511 (fixme)
 
-- `message: TODO: option for center spacing`
+- `message: TODO (mb 2021-01-21): better parsing of changed filename`
+- `author : Manuel Barkhau <mbarkhau@gmail.com>`
+- `date   : 2021-03-13T20:48:00`
+
+```
+  132: def _parse_change(change_args: typ.Sequence[str]) -> Change:
+  ...
+  140:         del_rel       = len(change_args[3] or "")
+  141:
+> 142:     # TODO (mb 2021-01-21): better parsing of changed filename
+  143:     #    '{static => src/litprog/static}/pdf_modal.css',
+  144:     return Change(
+```
+
+
+## File src/litprog/html_postproc.py - Line 156 - W0511 (fixme)
+
+- `message: TODO: Fix this cludge. For some reason, the`
 - `author : Manuel Barkhau <mbarkhau@gmail.com>`
 - `date   : 2020-12-11T15:37:25`
 
 ```
-  170: def _init_output_parameters(media_box: MediaBox, rescale: float) -> OutputParameters:
+  132: def iter_wrapped_lines(
   ...
-  205:     trim_x      = 0.5 * out_width  * trim_factor
-  206:     trim_y      = 0.6 * out_height * trim_factor
-> 207:     # TODO: option for center spacing
-  208:     center_spacing = out_width * 0.005
-  209:     center_spacing = center_margin
+  154:                 if add_initial_linebreak and line_part.startswith("<code"):
+  155:                     tag_end_idx = line_part.index(">")
+> 156:                     # TODO: Fix this cludge. For some reason, the
+  157:                     #   first line is indented by less than a full
+  158:                     #   space and I have no idea why.
 ```
 
 
-## File src/litprog/build.py - Line 211 - W0511 (fixme)
+## File src/litprog/pdf_booklet.py - Line 176 - W0511 (fixme)
 
-- `message: TODO (mb 2020-12-11): What was the intention for the depth variable?`
+- `message: TODO (mb 2021-03-04): Can we figure out the bounds of the inner content`
 - `author : Manuel Barkhau <mbarkhau@gmail.com>`
-- `date   : 2020-12-11T16:09:46`
+- `date   : 2021-03-13T20:48:00`
 
 ```
-  205: def _get_include_loop(
+  174:
+  175: def _init_output_parameters(media_box: MediaBox, out_sheet_format: str) -> OutputParameters:
+> 176:     # TODO (mb 2021-03-04): Can we figure out the bounds of the inner content
+  177:     #   and scale + translate each page to be in a well defined content box
+  178:     #   in the output page?
+```
+
+
+## File src/litprog/vcs.py - Line 201 - W0511 (fixme)
+
+- `message: TODO (mb 2021-01-28): Check if project path should be parameterized.`
+- `author : Manuel Barkhau <mbarkhau@gmail.com>`
+- `date   : 2021-03-13T20:48:00`
+
+```
+  199:     def __init__(self, name: str, subcommands: typ.Dict[str, str] = None):
+  200:         self.name = name
+> 201:         # TODO (mb 2021-01-28): Check if project path should be parameterized.
+  202:         self.project_path = pl.Path(os.getcwd()).absolute()
+  203:
+```
+
+
+## File src/litprog/cache.py - Line 238 - W0511 (fixme)
+
+- `message: TODO (mb 2021-03-05):`
+- `author : Manuel Barkhau <mbarkhau@gmail.com>`
+- `date   : 2021-03-13T20:48:00`
+
+```
+  236:
+  237:
+> 238: # TODO (mb 2021-03-05):
+  239:
+  240: # dctx = zstandard.ZstdDecompressor()
+```
+
+
+## File src/litprog/html_postproc.py - Line 308 - W0511 (fixme)
+
+- `message: TODO: get language from project metadata`
+- `author : Manuel Barkhau <mbarkhau@gmail.com>`
+- `date   : 2021-03-13T20:48:00`
+
+```
+  306:
+  307: def _shyphenate_html(soup: bs4.BeautifulSoup) -> None:
+> 308:     # TODO: get language from project metadata
+  309:     dic = pyphen.Pyphen(lang="en_US")
+  310:
+```
+
+
+## File src/litprog/build.py - Line 356 - W0511 (fixme)
+
+- `message: TODO (mb 2020-12-30): These line numbers appear to be wrong,`
+- `author : Manuel Barkhau <mbarkhau@gmail.com>`
+- `date   : 2021-03-13T20:48:00`
+
+```
+  329: def _iter_block_errors(orig_ctx: parse.Context, build_ctx: parse.Context) -> typ.Iterable[str]:
   ...
-  209:     depth          : int = 0,
-  210: ) -> typ.List[str]:
-> 211:     # TODO (mb 2020-12-11): What was the intention for the depth variable?
-  212:
-  213:     if root_id is None:
+  354:                     rel_line_no += 1
+  355:
+> 356:                 # TODO (mb 2020-12-30): These line numbers appear to be wrong,
+  357:                 #   I think for recursive dep directives in particular.
+  358:                 line_no       = elem.first_line + rel_line_no
 ```
 
 
-## File src/litprog/html_postproc.py - Line 246 - W0511 (fixme)
-
-- `message: TODO: Maybe wrap all consecutive headlines ?`
-- `author : Manuel Barkhau <mbarkhau@gmail.com>`
-- `date   : 2020-12-11T15:37:25`
-
-```
-  220: def _wrap_firstpara(html_text: HTMLText) -> typ.Iterable[HTMLText]:
-  ...
-  244:         yield preceeding_text
-  245:
-> 246:         # TODO: Maybe wrap all consecutive headlines ?
-  247:         tag_match = tag_re.search(remaining_text)
-  248:         if tag_match is None:
-```
-
-
-## File src/litprog/pdf_booklet.py - Line 262 - W0511 (fixme)
-
-- `message: TODO: option for page scale`
-- `author : Manuel Barkhau <mbarkhau@gmail.com>`
-- `date   : 2020-12-11T15:37:25`
-
-```
-  260:
-  261: def create(in_path: pl.Path, out_path: typ.Optional[pl.Path] = None) -> pl.Path:
-> 262:     # TODO: option for page scale
-  263:     # rescale = 1.33
-  264:     rescale = 1.00
-```
-
-
-## File src/litprog/gen_docs.py - Line 303 - W0511 (fixme)
+## File src/litprog/gen_docs.py - Line 403 - W0511 (fixme)
 
 - `message: TODO: copy only ttf for print target`
 - `author : Manuel Barkhau <mbarkhau@gmail.com>`
 - `date   : 2020-12-11T15:37:25`
 
 ```
-  262: def gen_html(ctx: parse.Context, html_dir: pl.Path) -> None:
+  397: def _write_static_files(captured_static_paths: StaticPaths, html_dir: pl.Path) -> None:
   ...
-  301:
-  302:     # copy/update static dependencies
-> 303:     # TODO: copy only ttf for print target
-  304:     #       copy only woff for screen target
-  305:     out_static_dir = html_dir / "static"
+  401:         shutil.copy(src_path_str, tgt_path_str)
+  402:
+> 403:     # TODO: copy only ttf for print target
+  404:     #       copy only woff for screen target
+  405:     out_static_dir = html_dir / "static"
 ```
 
 
-## File src/litprog/html_postproc.py - Line 304 - W0511 (fixme)
+## File src/litprog/build.py - Line 412 - W0511 (fixme)
 
-- `message: # TODO: parse language`
+- `message: TODO (mb 2020-12-17): Allow override/configuration`
 - `author : Manuel Barkhau <mbarkhau@gmail.com>`
-- `date   : 2020-12-11T15:37:25`
+- `date   : 2021-03-13T20:48:00`
 
 ```
-  302:
-  303: # def _shyphenate_html(html_text: HTMLText) -> typ.Iterable[HTMLText]:
-> 304: #     # TODO: parse language
-  305: #     dic = pyphen.Pyphen(lang="en_US")
-  306:
+  410:
+  411: def _get_default_command(block: parse.Block) -> typ.Optional[str]:
+> 412:     # TODO (mb 2020-12-17): Allow override/configuration
+  413:     lang = block.info_string.strip()
+  414:     if lang == 'python':
 ```
 
 
-## File src/litprog/html_postproc.py - Line 374 - W0511 (fixme)
+## File src/litprog/build.py - Line 415 - W0511 (fixme)
 
-- `message: TODO: parse language`
+- `message: TODO (mb 2020-12-18): sys.executable to work with pypy?`
 - `author : Manuel Barkhau <mbarkhau@gmail.com>`
-- `date   : 2020-12-11T15:37:25`
+- `date   : 2021-03-13T20:48:00`
 
 ```
-  372:
-  373: def _shyphenate_html(soup: bs4.BeautifulSoup) -> None:
-> 374:     # TODO: parse language
-  375:     dic = pyphen.Pyphen(lang="en_US")
-  376:
-```
-
-
-## File src/litprog/parse.py - Line 434 - W0511 (fixme)
-
-- `message: TODO (mb 2020-06-02): Why do we .strip() here ?`
-- `author : Manuel Barkhau <mbarkhau@gmail.com>`
-- `date   : 2020-12-12T15:53:20`
-
-```
-  420:     def _init_plain_block(self, elem_index: int, elem: MarkdownElement, info_string: str) -> Block:
+  411: def _get_default_command(block: parse.Block) -> typ.Optional[str]:
   ...
-  432:             [],
-  433:             elem.content,
-> 434:             # TODO (mb 2020-06-02): Why do we .strip() here ?
-  435:             inner_content.strip(),
-  436:             inner_content.strip(),
+  413:     lang = block.info_string.strip()
+  414:     if lang == 'python':
+> 415:         # TODO (mb 2020-12-18): sys.executable to work with pypy?
+  416:         return "python3"
+  417:     elif lang in ("bash", "shell"):
 ```
 
 
-## File src/litprog/build.py - Line 530 - W0511 (fixme)
+## File src/litprog/gen_docs.py - Line 476 - W0511 (fixme)
+
+- `message: TODO (mb 2021-01-21): cover page with title and author(s)`
+- `author : Manuel Barkhau <mbarkhau@gmail.com>`
+- `date   : 2021-03-13T20:48:00`
+
+```
+  467: def gen_pdf(
+  ...
+  474:         pdf_dir.mkdir(parents=True)
+  475:
+> 476:     # TODO (mb 2021-01-21): cover page with title and author(s)
+  477:     #   timeline for whole project
+  478:
+```
+
+
+## File src/litprog/build.py - Line 505 - W0511 (fixme)
 
 - `message: TODO: coloring`
 - `author : Manuel Barkhau <mbarkhau@gmail.com>`
 - `date   : 2020-12-11T15:37:25`
 
 ```
-  528:
-  529: def _parse_capture_output(capture: Capture, opts: SessionBlockOptions) -> str:
-> 530:     # TODO: coloring
-  531:     # if "\u001b" in capture.stderr:
-  532:     #     stderr = capture.stderr
+  503:
+  504: def _parse_capture_output(capture: session.Capture, opts: common.SessionBlockOptions) -> str:
+> 505:     # TODO: coloring
+  506:     # if "\u001b" in capture.stderr:
+  507:     #     stderr = capture.stderr
 ```
 
 
-## File src/litprog/html_postproc.py - Line 585 - W0511 (fixme)
+## File src/litprog/parse.py - Line 550 - W0511 (fixme)
+
+- `message: TODO (mb 2020-06-02): Why do we .strip() here ?`
+- `author : Manuel Barkhau <mbarkhau@gmail.com>`
+- `date   : 2020-12-12T15:53:20`
+
+```
+  536:     def _init_plain_block(self, elem: MarkdownElement, info_string: str) -> Block:
+  ...
+  548:             [],
+  549:             elem.content,
+> 550:             # TODO (mb 2020-06-02): Why do we .strip() here ?
+  551:             inner_content.strip(),
+  552:             inner_content.strip(),
+```
+
+
+## File src/litprog/html_postproc.py - Line 606 - W0511 (fixme)
 
 - `message: TODO: split code blocks`
 - `author : Manuel Barkhau <mbarkhau@gmail.com>`
 - `date   : 2020-12-11T15:37:25`
 
 ```
-  583:
-  584: def postproc4print(html_res: md2html.HTMLResult, fmt: str) -> HTMLText:
-> 585:     # TODO: split code blocks
-  586:     # - add ids to headlines
-  587:     # - collect links and insert superscript (footnote links)
+  604:
+  605: def postproc4print(html_res: md2html.HTMLResult, fmt: str, block_linenos: BlockLinenos) -> HTMLText:
+> 606:     # TODO: split code blocks
+  607:     # - add ids to headlines
+  608:     # - collect links and insert superscript (footnote links)
 ```
 
 
-## File src/litprog/parse.py - Line 604 - W0511 (fixme)
+## File src/litprog/build.py - Line 651 - W0511 (fixme)
 
-- `message: TODO: encoding from config`
+- `message: TODO: limit output using max_bytes and max_lines`
 - `author : Manuel Barkhau <mbarkhau@gmail.com>`
 - `date   : 2020-12-11T15:37:25`
 
 ```
-  602:
-  603: def _parse_md_elements(md_path: pl.Path) -> typ.List[MarkdownElement]:
-> 604:     # TODO: encoding from config
-  605:     with md_path.open(mode='r', encoding="utf-8") as fobj:
-  606:         content = fobj.read()
-```
-
-
-## File src/litprog/build.py - Line 621 - W0511 (fixme)
-
-- `message: TODO: limit output using lp_max_bytes and lp_max_lines`
-- `author : Manuel Barkhau <mbarkhau@gmail.com>`
-- `date   : 2020-12-11T15:37:25`
-
-```
-  573: def _process_command_block(
+  611: def _process_isession(
   ...
-  619:         raise SystemExit(1)
-  620:     else:
-> 621:         # TODO: limit output using lp_max_bytes and lp_max_lines
-  622:         # TODO: output escaping/fence style change and errors
-  623:         return capture
+  649:
+  650:     if exit_status == opts.expected_exit_status:
+> 651:         # TODO: limit output using max_bytes and max_lines
+  652:         # TODO: output escaping/fence style change and errors
+  653:         return capture
 ```
 
 
-## File src/litprog/build.py - Line 622 - W0511 (fixme)
+## File src/litprog/build.py - Line 652 - W0511 (fixme)
 
 - `message: TODO: output escaping/fence style change and errors`
 - `author : Manuel Barkhau <mbarkhau@gmail.com>`
 - `date   : 2020-12-11T15:37:25`
 
 ```
-  573: def _process_command_block(
+  611: def _process_isession(
   ...
-  620:     else:
-  621:         # TODO: limit output using lp_max_bytes and lp_max_lines
-> 622:         # TODO: output escaping/fence style change and errors
-  623:         return capture
-  624:
+  650:     if exit_status == opts.expected_exit_status:
+  651:         # TODO: limit output using max_bytes and max_lines
+> 652:         # TODO: output escaping/fence style change and errors
+  653:         return capture
+  654:     else:
 ```
 
 
-## File src/litprog/build.py - Line 685 - W0511 (fixme)
+## File src/litprog/build.py - Line 760 - W0511 (fixme)
 
-- `message: TODO: Immutable datastructures`
+- `message: TODO (mb 2021-03-04): _task_results and _cache are somewhat redundant.`
+- `author : Manuel Barkhau <mbarkhau@gmail.com>`
+- `date   : 2021-03-13T20:48:00`
+
+```
+  745:     def __init__(
+  ...
+  758:         self._task_results       = []
+  759:
+> 760:         # TODO (mb 2021-03-04): _task_results and _cache are somewhat redundant.
+  761:         #   It might be possible/reasonable to always rely on the _cache to lookup
+  762:         #   the capture of a task, even one that was just executed.
+```
+
+
+## File src/litprog/parse.py - Line 769 - W0511 (fixme)
+
+- `message: TODO: encoding from config`
 - `author : Manuel Barkhau <mbarkhau@gmail.com>`
 - `date   : 2020-12-11T15:37:25`
 
 ```
-  682: def build(
-  ...
-  683:     orig_ctx: parse.Context, exitfirst: bool = False, in_place_update: bool = False
-  684: ) -> parse.Context:
-> 685:     # TODO: Immutable datastructures
-  686:     #   parse.Context, parse.MarkdownFile
-  687:     build_ctx = orig_ctx.copy()
+  767:
+  768: def _parse_md_elements(md_path: pl.Path) -> MarkdownElements:
+> 769:     # TODO: encoding from config
+  770:     with md_path.open(mode='r', encoding="utf-8") as fobj:
+  771:         content = fobj.read()
 ```
 
 
-## File src/litprog/build.py - Line 689 - W0511 (fixme)
-
-- `message: TODO: mark build as running`
-- `author : Manuel Barkhau <mbarkhau@gmail.com>`
-- `date   : 2020-12-11T15:37:25`
-
-```
-  682: def build(
-  ...
-  687:     build_ctx = orig_ctx.copy()
-  688:
-> 689:     # TODO: mark build as running
-  690:     build_start = time.time()
-  691:
-```
-
-
-## File src/litprog/build.py - Line 700 - W0511 (fixme)
+## File src/litprog/build.py - Line 931 - W0511 (fixme)
 
 - `message: TODO (mb 2020-06-03): print context of block`
 - `author : Manuel Barkhau <mbarkhau@gmail.com>`
 - `date   : 2020-12-11T15:37:25`
 
 ```
-  682: def build(
+  916: def build(
   ...
-  698:         expanded_files = list(_iter_expanded_files(build_ctx.files))
-  699:     except BlockError as err:
-> 700:         # TODO (mb 2020-06-03): print context of block
-  701:         contents = err.include_contents or [err.block.content]
-  702:         for content in contents:
+  929:         expanded_files = list(_iter_expanded_files(build_ctx.files))
+  930:     except BlockError as err:
+> 931:         # TODO (mb 2020-06-03): print context of block
+  932:         contents = err.include_contents or [err.block.content]
+  933:         for content in contents:
 ```
 
 
-## File src/litprog/build.py - Line 723 - W0511 (fixme)
+## File src/litprog/build.py - Line 954 - W0511 (fixme)
 
-- `message: TODO: Dependency graph of some kind so we can order`
+- `message: TODO (mb 2021-01-02): Atomicity guarantees`
 - `author : Manuel Barkhau <mbarkhau@gmail.com>`
-- `date   : 2020-12-11T15:37:25`
+- `date   : 2021-03-13T20:48:00`
 
 ```
-  682: def build(
+  916: def build(
   ...
-  721:     _dump_files(build_ctx)
-  722:
-> 723:     # TODO: Dependency graph of some kind so we can order
-  724:     #   process execution.
-  725:     doc_ctx = orig_ctx.copy()
-```
-
-
-# W0613: unused-argument
-
-## File src/litprog/html_postproc.py - Line 398 - W0613 (unused-argument)
-
-- `message: Unused argument 'soup'`
-- `author : Manuel Barkhau <mbarkhau@gmail.com>`
-- `date   : 2020-12-11T15:37:25`
-
-```
-  396:
-  397:
-> 398: def _add_sentence_spacing(soup: bs4.BeautifulSoup) -> None:
-  399:     lang = "en"
-  400:     if lang != 'en':
+  952:     _dump_files(build_ctx)
+  953:
+> 954:     # TODO (mb 2021-01-02): Atomicity guarantees
+  955:     #   - Write new files to temp directory
+  956:     #   - Only update if original mtimes are still the same
 ```
 
 

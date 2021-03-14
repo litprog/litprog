@@ -97,8 +97,7 @@ def _gen_captured_lines(
 def _read_loop(
     sp_output_pipe: typ.IO[bytes],
     captured_lines: typ.List[RawCapturedLine],
-    encoding      : str  = "utf-8",
-    debug_log     : bool = False,
+    encoding      : str = "utf-8",
 ) -> None:
     raw_lines = iter(sp_output_pipe.readline, b'')
     for captured_line in _gen_captured_lines(raw_lines, encoding=encoding):
@@ -112,13 +111,10 @@ class CapturingThread(typ.NamedTuple):
 
 def _start_reader(
     sp_output_pipe: typ.IO[bytes],
-    encoding      : str  = "utf-8",
-    debug_log     : bool = False,
+    encoding      : str = "utf-8",
 ) -> CapturingThread:
     captured_lines: typ.List[RawCapturedLine] = []
-    read_loop_thread = threading.Thread(
-        target=_read_loop, args=(sp_output_pipe, captured_lines, encoding, debug_log)
-    )
+    read_loop_thread = threading.Thread(target=_read_loop, args=(sp_output_pipe, captured_lines, encoding))
     read_loop_thread.start()
     return CapturingThread(read_loop_thread, captured_lines)
 
@@ -187,8 +183,8 @@ class InteractiveSession:
         _enc = encoding
 
         self._in_cl  = []
-        self._out_ct = _start_reader(self._stdout, _enc, self.debug_log)
-        self._err_ct = _start_reader(self._stderr, _enc, self.debug_log)
+        self._out_ct = _start_reader(self._stdout, _enc)
+        self._err_ct = _start_reader(self._stderr, _enc)
 
     def send(self, input_str: str, delay: float = 0) -> None:
         self._in_cl.append(RawCapturedLine(time.time(), input_str))

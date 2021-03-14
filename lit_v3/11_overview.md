@@ -1,5 +1,13 @@
 # Introduction to LitProg
 
+!!! warning "WIP: Work in Progress"
+
+    This is very much incomplete. Probably half of it needs to either
+    be cut, or at least moved to another chapter.
+
+    I am currently dogfooding LitProg on a separate project before attempting a self-hosted implementation.
+
+
 LitProg is a [Markdown][href_wiki_markdown] processor for [Literate Programming (LP)][href_wiki_litprog].
 
 [href_wiki_markdown]: https://en.wikipedia.org/wiki/Markdown
@@ -83,10 +91,11 @@ I don't know if Naur is correct in his pessimism about documentation.  He may we
 
 ## Narratives of Programs
 
-The idea of Literate Programming is to change your main focus as a programmer from writing for the compiler or interpreter, toward your readers.  Change the main focus from the code and how it is parsed by a machine, toward your human readers, who will want to understand *why* you wrote the code the way you did.  If you cannot or will not justify the existence of your program, then your unfortunate readers will be like Sherlock Holmes, trying to piece together from morsels of evidence, how anything fits together.  If they cannot find such a justification, they may well resort to adding kludge after kludge, to hack together a cancerous growth, that is incoherent with the original theories upon which the program was based.
+The idea of Literate Programming is to direct your focus as a programmer more toward your human readers and less to the compiler or interpreter.  Change the main focus from the code and how it is parsed by a machine, toward your human readers, who will want to understand *why* you wrote the code the way you did.  If you cannot or will not justify the existence of your program, then your unfortunate readers will be like Sherlock Holmes, trying to piece together from morsels of evidence, how anything fits together.  If they cannot find such a justification, they may well resort to adding kludge after kludge, hacking together a cancerous growth, that is incoherent with the original theories upon which the program was based.
 
 With LitProg, your program doesn't have to be loose collection of source files with a structure that is either implicit or only apparent after understanding a build system, and only after chasing down recursive levels of imports.  Instead you can structure your program in a way that makes most sense for your readers.  You can write documentation, diagrams, code and tests in whatever order makes the most sense for people who want to understand the "why" of your program.
 
+TANSTAFL
 
 ## Building, Block by Block
 
@@ -667,10 +676,10 @@ with timeit("fast"): fast_fib(20)
 
 ```shell
 # out
-slow     0.180 ms
-slow     1.079 ms
-slow     7.079 ms
-fast     0.024 ms
+slow     0.509 ms
+slow     1.010 ms
+slow     6.796 ms
+fast     0.023 ms
 fast     0.008 ms
 fast     0.007 ms
 # exit: 0
@@ -753,7 +762,7 @@ Finally after we have prepared all our code, we can write it to disk...
 
 ```bash
 # run: python3 examples/fib_cli.py --help
-Usage: python examples/fib_cli.py [--help] [--pretty] <n>...
+Usage: python /home/mbarkhau/foss/litprog/examples/fib_cli.py [--help] [--pretty] <n>...
 # exit: 0
 ```
 
@@ -836,8 +845,8 @@ assert os.path.exists(svg_path) and mtime(svg_path) >= mtime(csv_path)
 
 ```python
 # exec: python3
-# dep: imports, slow_fib
 # def: gen_fib_durations_csv
+# dep: imports, slow_fib
 # timeout: 60
 def csv_lines() -> List[str]:
     for n in range(22):

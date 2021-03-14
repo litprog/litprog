@@ -1,20 +1,20 @@
 +++
-title         = "LitProg"
-lang          = "en-US"
-subtitle      = "Practical Literate Programming"
-repo_url      = "https://github.com/litprog/litprog/"
-authors       = [
+title    = "LitProg"
+subtitle = "Practical Literate Programming"
+lang     = "en-US"
+repo_url = "https://github.com/litprog/litprog/"
+authors  = [
     "Manuel Barkhau <mbarkhau@gmail.com>"
 ]
-description  = "A Literate Programming tool using extended Markdown."
-keywords     = [
+description = "A Literate Programming tool using extended Markdown."
+keywords    = [
     "literate programming",
     "markdown",
     "litprog",
 ]
 
 copyright     = "2019-2021 Manuel Barkhau - MIT License"
-copyright_url = "https://gitlab.com/litprog/litprog/-/blob/master/LICENSE"
+copyright_url = "https://github.com/litprog/litprog/blob/master/LICENSE"
 
 [configuration]
 concurrent = true

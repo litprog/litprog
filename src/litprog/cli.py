@@ -3,6 +3,7 @@
 #
 # Copyright (c) 2018-2020 Manuel Barkhau (mbarkhau@gmail.com) - MIT License
 # SPDX-License-Identifier: MIT
+import os
 import sys
 import glob
 import shutil
@@ -111,7 +112,7 @@ def _get_md_paths(input_paths: InputPaths) -> typ.List[pl.Path]:
 SELECTED_FORMATS = [
     # 'print_a4',
     # 'print_letter',
-    'print_ereader',
+    # 'print_ereader',
     'print_a5',
     'print_booklet_a4',
     # 'print_halfletter',
@@ -121,23 +122,29 @@ SELECTED_FORMATS = [
 ]
 
 
+DEFAULT_CONCURRENCY = max(4, len(os.sched_getaffinity(0)))
+
+
 def _build(
     input_paths    : InputPaths,
     html           : typ.Optional[str],
     pdf            : typ.Optional[str],
-    exitfirst      : bool,
-    in_place_update: bool,
-    concurrency    : int,
+    exitfirst      : bool = False,
+    in_place_update: bool = False,
+    cache_enabled  : bool = True,
+    concurrency    : int  = DEFAULT_CONCURRENCY,
 ) -> None:
+    build_opts = lp_build.BuildOptions(
+        exitfirst=exitfirst,
+        in_place_update=in_place_update,
+        cache_enabled=cache_enabled,
+        concurrency=concurrency,
+    )
+
     md_paths = _get_md_paths(input_paths)
 
     parse_ctx = lp_parse.parse_context(md_paths)
-    built_ctx = lp_build.build(
-        parse_ctx,
-        exitfirst=exitfirst,
-        in_place_update=in_place_update,
-        concurrency=concurrency,
-    )
+    built_ctx = lp_build.build(parse_ctx, build_opts)
 
     logger.info("build completed")
 
@@ -157,7 +164,8 @@ def _build(
     html_dir = pl.Path(html)
 
     # pylint: disable=import-outside-toplevel ; lazy import since we don't always need it
-    #   if we wor to eagerly import this, then it would slow down every cli invokation
+    #   if we were to eagerly import this, then it would slow down every cli invokation,
+    #   even those which don't generate --html or --pdf output.
     import litprog.gen_docs as lp_gen_docs
 
     lp_gen_docs.gen_html(built_ctx, html_dir)
@@ -196,15 +204,15 @@ _opt_in_place = click.option(
 _opt_concurrency = click.option(
     '-n',
     "--concurrency",
-    default=lp_build.DEFAULT_CONCURRENCY,
+    default=DEFAULT_CONCURRENCY,
     help="Number of concurrent processes to execute.",
 )
 
-_opt_no_cache = click.option(
-    "--no-cache",
+_opt_cache_enabled = click.option(
+    "--cache-enabled/--no-cache",
     is_flag=True,
-    default=False,
-    help="Ignore block result cache/rerun all blocks.",
+    default=True,
+    help="Enable/disable block result cache. Default: enabled",
 )
 
 _opt_verbose = click.option('-v', '--verbose', count=True, help="Control log level. -vv for debug level.")
@@ -225,7 +233,7 @@ def cli(verbose: int = 0) -> None:
 @_opt_existfirst
 @_opt_in_place
 @_opt_concurrency
-@_opt_no_cache
+@_opt_cache_enabled
 @_opt_verbose
 def build(
     input_paths    : InputPaths,
@@ -233,12 +241,12 @@ def build(
     pdf            : typ.Optional[str],
     exitfirst      : bool = False,
     in_place_update: bool = False,
-    concurrency    : int  = lp_build.DEFAULT_CONCURRENCY,
-    no_cache       : bool = False,
+    concurrency    : int  = DEFAULT_CONCURRENCY,
+    cache_enabled  : bool = True,
     verbose        : int  = 0,
 ) -> None:
     _configure_logging(verbose)
-    _build(input_paths, html, pdf, exitfirst, in_place_update, concurrency)
+    _build(input_paths, html, pdf, exitfirst, in_place_update, cache_enabled, concurrency)
 
 
 @cli.command()
@@ -248,7 +256,7 @@ def build(
 @_opt_existfirst
 @_opt_in_place
 @_opt_concurrency
-@_opt_no_cache
+@_opt_cache_enabled
 @_opt_verbose
 def watch(
     input_paths    : InputPaths,
@@ -256,8 +264,8 @@ def watch(
     pdf            : typ.Optional[str],
     exitfirst      : bool = False,
     in_place_update: bool = False,
-    concurrency    : int  = lp_build.DEFAULT_CONCURRENCY,
-    no_cache       : bool = False,
+    concurrency    : int  = DEFAULT_CONCURRENCY,
+    cache_enabled  : bool = True,
     verbose        : int  = 0,
 ) -> None:
     _configure_logging(verbose)
@@ -268,7 +276,7 @@ def watch(
 
     # initial build
     try:
-        _build(input_paths, html, pdf, exitfirst, in_place_update, concurrency)
+        _build(input_paths, html, pdf, exitfirst, in_place_update, cache_enabled, concurrency)
     except lp_build.BlockExecutionError:
         pass
 
@@ -276,7 +284,7 @@ def watch(
 
     def _build_cb(changes) -> None:
         try:
-            _build(input_paths, html, pdf, exitfirst, in_place_update, concurrency)
+            _build(input_paths, html, pdf, exitfirst, in_place_update, cache_enabled, concurrency)
         except lp_build.BlockExecutionError:
             pass
         # refresh mtimes after build, as they may have changed in the meantime

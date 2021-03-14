@@ -273,19 +273,18 @@ def wrap_content_html(
 
 
 def _deep_update(src: typ.Dict, dest: typ.Dict) -> None:
-    for k, src_v in src.items():
+    for key, src_v in src.items():
         if isinstance(src_v, dict):
-            dest_v = dest.get(k, {})
+            dest_v = dest.get(key, {})
             _deep_update(src=src_v, dest=dest_v)
-            dest[k] = dest_v
+            dest[key] = dest_v
         else:
-            dest[k] = src_v
+            dest[key] = src_v
 
 
-def _init_meta(output_dir: pl.Path, file_metas: typ.List[Metadata]) -> Metadata:
+def _init_meta(file_metas: typ.List[Metadata]) -> Metadata:
     build_tt = time.localtime()
     meta: Metadata = {
-        # TODO (mb 2021-01-08): parse from front matter
         'litprog_version'   : __version__,
         'build_timestamp'   : time.strftime("%a %Y-%m-%d %H:%M:%S %Z", build_tt),
         'vcs_name'          : "",
@@ -422,7 +421,7 @@ def gen_html(ctx: parse.Context, html_dir: pl.Path) -> None:
     md_file: parse.MarkdownFile
 
     file_metas = [md_file.parse_front_matter_meta() for md_file in ctx.files]
-    cur_meta   = _init_meta(html_dir, file_metas)
+    cur_meta   = _init_meta(file_metas)
 
     captured_static_paths: StaticPaths = set()
 
@@ -474,13 +473,11 @@ def gen_pdf(
     if not pdf_dir.exists():
         pdf_dir.mkdir(parents=True)
 
-    # TODO (mb 2021-01-06): This should probably
-    #   be more unified with gen_html.
     # TODO (mb 2021-01-21): cover page with title and author(s)
     #   timeline for whole project
 
     file_metas = [md_file.parse_front_matter_meta() for md_file in ctx.files]
-    cur_meta   = _init_meta(pdf_dir, file_metas)
+    cur_meta   = _init_meta(file_metas)
 
     all_md_texts = []
     block_linenos: typ.List[typ.Tuple[int, int]] = []

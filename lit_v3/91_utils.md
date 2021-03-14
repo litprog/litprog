@@ -9,7 +9,7 @@ Round to `n` significant digits.
 
 ```python
 # def: sig_round
-# dep: imports
+import math
 
 def sig_round(val: float, n: int = 3) -> float:
     if n <= 1:
@@ -61,12 +61,4 @@ for _ in range(1000):
     # print(f"{val=:<28} {n=} {sig_val=:<9} {eps=:18.9f} {delta=:18.9f}")
     assert abs(val - sig_val) < eps
     assert len(sig_val_str) <= n
-```
-
-
-## Appendix
-
-```python
-# def: imports
-import math
 ```

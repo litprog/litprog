@@ -4,15 +4,12 @@
     background: #BBB;
 }
 
-html {
-  scroll-behavior: smooth;
-}
-
 /* Section - Theme */
 
 body {
     background: #FBFAFA;
     color: #000;
+    /* hyphens: auto; */
 }
 
 body.dark, body.dark .wrapper {
@@ -85,10 +82,10 @@ body .dark-overlay {
 .nav-scroller {
     overflow-x: hidden;
     overflow-y: scroll;
+    overscroll-behavior: contain;
     height: 100vh;
     width: 260px;
     padding-right: 25px;
-    scroll-behavior: smooth;
 }
 
 .nav-scroller > .toc {
@@ -99,25 +96,40 @@ body .dark-overlay {
     /* room so elements aren't hidden by menu */
     padding-bottom: 90px;
 }
+
+.toc ul {
+    margin-left: 5px;
+}
+
 .toc li {
     font-weight: normal;
     line-height: 1.3em;
     padding: 0;
     margin: 0;
 }
-.toc li a {
+.toc li a, .toc li li a {
     display: inline-block;
-    width: 175px;
-    padding: 4px 25px 4px 30px;
-    text-indent: -1.2em;
+    width: 215px;
+    padding: 4px 5px 4px 20px;
+    text-indent: -15px;
+}
+.toc li li li a {
+    width: 200px;
+    padding: 4px 5px 4px 30px;
+    text-indent: -30px;
+}
+.toc li li li li a {
+    width: 185px;
+    padding: 4px 5px 4px 40px;
+    text-indent: -35px;
 }
 .toc > ul > li > a {
     margin-top: 0.8em;
 }
 
 .toc a.active {text-decoration: underline;}
-.toc a.blur {color: #404040;}
-.dark .toc a.blur {color: #DDD;}
+.toc a.blur {color: #555;}
+.dark .toc a.blur {color: #BBB;}
 .toc a.active {color: #000;}
 .dark .toc a.active {color: #FFF;}
 
@@ -129,11 +141,6 @@ body .dark-overlay {
     background: #555;
 }
 
-.toc > ul > li > a,
-.toc > ul > li > ul:first-child > li > a {
-    font-weight: bold;
-}
-
 .toc > ul > li {
     margin: 0;
     margin-left: 1em;
@@ -141,8 +148,7 @@ body .dark-overlay {
 
 .toc ul {
     padding-inline-start: 0;
-    margin-left: 8px;
-    border-left: 2px solid #8888;
+    /*border-left: 2px dotted #888;*/
     margin-top: 2px;
     margin-bottom: 0.3em;
 }
@@ -150,6 +156,17 @@ body .dark-overlay {
 .toc > ul {
     margin: 0;
     border: none;
+}
+
+.toc > ul > li > a,
+.toc > ul > li > ul:first-child > li > a {
+    font-weight: bold;
+}
+
+.toc > ul ul ul ul li {
+    margin-top: -2px;
+    font-size: 85%;
+    line-height: 1.2em;
 }
 
 .header, .menu, .nav {
@@ -586,16 +603,12 @@ body {
 }
 
 @media only screen and (min-width: 650px) {
-    body {font-size: 18px; line-height: 1.55em;}
+    body {font-size: 18px; line-height: 1.5em;}
     div.codehilite pre {font-size: 17px;}
 }
 
 @media only screen and (min-width: 700px) {
-    body {line-height: 1.65em;}
-}
-
-@media only screen and (min-width: 750px) {
-    body {line-height: 1.75em;}
+    body {line-height: 1.6em;}
 }
 
 @media only screen and (min-width: 850px) {

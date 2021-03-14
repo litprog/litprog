@@ -1,5 +1,6 @@
 FROM registry.gitlab.com/mbarkhau/litprog/base
 
+ADD lit_v3/ lit_v3/
 ADD src/ src/
 ADD stubs/ stubs/
 ADD test/ test/

@@ -52,7 +52,7 @@ def init_manifest_entry(
 
     capture_data   = session.dumps_capture(capture)
     capture_size   = len(capture_data)
-    capture_digest = hashlib.blake2s(capture_data).hexdigest()
+    capture_digest = hashlib.sha1(capture_data).hexdigest()
 
     blk       = task.block
     task_info = f"@{blk.first_line:>6}"
@@ -132,7 +132,7 @@ class ResultCache:
     requires_by_provide_id: typ.Dict[str, typ.List[str]]
     manifest              : typ.List[ManifestEntry]
 
-    def __init__(self, manifest_text: str, tasks: typ.List[common.BlockTask]) -> None:
+    def __init__(self, manifest_text: str) -> None:
         self.task_keys_by_provide_id = {}
         self.requires_by_provide_id  = {}
 
@@ -142,12 +142,12 @@ class ResultCache:
             self.task_keys_by_provide_id[entry.task_key] = entry.task_key
 
     def task_key(self, task: common.BlockTask) -> str:
-        requires_digest = hashlib.blake2s()
+        requires_digest = hashlib.sha1()
 
         requires_digest.update(task.block.namespace.encode("utf-8"))
         if task.opts.directive == 'run':
-            requires_digest.update(task.opts.command.encode("utf-8"))
-            for maybe_path in shlex.split(task.opts.command):
+            requires_digest.update(task.command.encode("utf-8"))
+            for maybe_path in shlex.split(task.command):
                 if os.path.exists(maybe_path):
                     mtime = os.stat(maybe_path).st_mtime
                     requires_digest.update(str(mtime).encode("utf-8"))
@@ -157,7 +157,7 @@ class ResultCache:
         for require_id in sorted(task.opts.requires_ids):
             requires_digest.update(require_id.encode("utf-8"))
             # For any require, there MUST have previously have been a
-            #   call of ResultCache._set_capturestate for the
+            #   call of ResultCache._reset_task_keys for the
             #   corresponding block with the def/provide. This means
             #   that task_keys_by_provide_id must be populated.
             task_key = self.task_keys_by_provide_id[require_id]
@@ -171,11 +171,10 @@ class ResultCache:
         for requires_id in self.requires_by_provide_id.get(provides_id, []):
             self.invalidate_requires(requires_id)
 
-    def _set_capturestate(
+    def _reset_task_keys(
         self,
-        task   : common.BlockTask,
-        entry  : ManifestEntry,
-        capture: session.Capture,
+        task : common.BlockTask,
+        entry: ManifestEntry,
     ) -> None:
         provides_id = task.opts.provides_id
         if provides_id is None:
@@ -190,7 +189,7 @@ class ResultCache:
         task_key = self.task_key(task)
         entry, capture_data = init_manifest_entry(task, task_key, capture)
         self.write_capture(entry, capture_data)
-        self._set_capturestate(task, entry, capture)
+        self._reset_task_keys(task, entry)
 
     def write_capture(self, entry: ManifestEntry, capture_data: CaptureData) -> None:
         raise NotImplementedError("MUST be implemented by subclass.")
@@ -215,12 +214,25 @@ class ResultCache:
         if capture_data is None:
             return None
 
-        capture = session.loads_capture(capture_data)
-        self._set_capturestate(task, entry, capture)
-        return capture
+        self._reset_task_keys(task, entry)
+        return session.loads_capture(capture_data)
 
     def flush(self) -> None:
         raise NotImplementedError("MUST be implemented by subclass.")
+
+
+class DummyCache(ResultCache):
+    def __init__(self) -> None:
+        super().__init__(manifest_text="")
+
+    def read_capture(self, entry: ManifestEntry) -> typ.Optional[CaptureData]:
+        pass
+
+    def write_capture(self, entry: ManifestEntry, capture_data: CaptureData) -> None:
+        pass
+
+    def flush(self) -> None:
+        pass
 
 
 # TODO (mb 2021-03-05):
@@ -240,6 +252,33 @@ def _decompress(data: bytes) -> bytes:
     return data
 
 
+def parse_cache_id(md_files: MarkdownFiles) -> str:
+    """Parse identifier that is unique to the project of the md_files.
+
+    Special consideration is be given to
+    derived the cache_id in a machine independent way.
+
+    This leaves open the option of using redis to reuse
+    cache results built on other machines.
+    """
+
+    prefix          = "unknown_project"
+    project_id_data = b"unknown_project"
+
+    for md_file in md_files:
+        meta = md_file.parse_front_matter_meta()
+        if 'repo_url' in meta:
+            url             = meta['repo_url']
+            prefix          = url.replace("/", "_").replace(":", "_")
+            project_id_data = url.encode("utf-8")
+        elif prefix == "unknown_project" and 'title' in meta:
+            prefix          = meta['title'].lower().replace(" ", "_")
+            project_id_data = meta['title'].encode("utf-8")
+
+    project_id_hash = hashlib.sha1(project_id_data).hexdigest()
+    return prefix + "_" + project_id_hash
+
+
 class LocalResultCache(ResultCache):
 
     _manifest_file: pl.Path
@@ -249,13 +288,15 @@ class LocalResultCache(ResultCache):
     def __init__(
         self,
         orig_files: MarkdownFiles,
-        tasks     : typ.List[common.BlockTask],
     ) -> None:
-        if not config.CACHE_DIR.exists():
-            config.CACHE_DIR.mkdir()
+        cache_subdir = parse_cache_id(orig_files)
+        cache_dir    = config.CACHE_DIR / cache_subdir
 
-        self._manifest_file = config.CACHE_DIR / f"build_cache.manifest_v{SERIAL_VERSION_ID}"
-        self._data_file     = config.CACHE_DIR / "build_cache.dat"
+        if not cache_dir.exists():
+            cache_dir.mkdir()
+
+        self._manifest_file = cache_dir / f"build_cache.manifest_v{SERIAL_VERSION_ID}"
+        self._data_file     = cache_dir / "build_cache.db"
 
         self._db = shelve.open(str(self._data_file))
 
@@ -265,7 +306,7 @@ class LocalResultCache(ResultCache):
         else:
             manifest_text = ""
 
-        super().__init__(manifest_text, tasks)
+        super().__init__(manifest_text)
 
     def write_capture(self, entry: ManifestEntry, capture_data: CaptureData) -> None:
         self.manifest.append(entry)
@@ -294,9 +335,6 @@ class LocalResultCache(ResultCache):
 
         self._db.close()
 
-
-# TODO (mb 2021-03-05): Redis based cache might be interesting to avoid going to disk
-#   and also to speed up builds in organizations.
 
 # class RedisResultCache(ResultCache):
 #     pass

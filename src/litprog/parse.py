@@ -47,6 +47,20 @@ FrontMatterMetadata = typ.Dict[str, typ.Any]
 
 DEFAULT_FRONT_MATTER_META = {'lang': "en-US", 'title': "-"}
 
+VALID_METADATA_KEYS = {
+    'author',
+    'copyright',
+    'copyright_url',
+    'description',
+    'favicon_url',
+    'keywords',
+    'lang',
+    'logo_url',
+    'project_name',
+    'repo_url',
+    'title',
+}
+
 
 FRONT_MATTER_PATTERN = r"^(\+\+\+|\-\-\-)$"
 
@@ -177,7 +191,7 @@ LANGUAGE_COMMENT_PATTERNS = {
 }
 
 
-def _re(pattern: str, flags: int = 0) -> typ.Pattern:
+def _re(pattern: str, flags: int = re.MULTILINE) -> typ.Pattern:
     return re.compile(pattern, flags=flags)
 
 
@@ -326,7 +340,7 @@ class Block(typ.NamedTuple):
 #   explicit references to the def of an exec block. This would
 #   be similar to requires.
 
-VALID_NAMES = {
+VALID_DIRECTIVES = {
     'language',
     # block composition
     'def',
@@ -345,7 +359,6 @@ VALID_NAMES = {
     #   association of input/output as long as output
     #   is always captured by the time the delay passes.
     'input_delay',
-    'hide',
     'proc_info',
     'out_prefix',
     'err_prefix',
@@ -354,8 +367,7 @@ VALID_NAMES = {
     # file generation
     'file',
     # build system
-    'requires',
-    # 'cache_key_files',    # comma separated globs to invalidate block
+    'requires',  # comma separated globs for ids to invalidate block
     # 'cache'   # yes|once|never
     # 'stateful',
     # 'pure',
@@ -366,27 +378,43 @@ VALID_NAMES = {
 }
 
 
-def has_directive(line: str, language: typ.Optional[str]) -> bool:
+VALID_NOARG_DIRECTIVES  = {'exec', 'out', 'debug'}
+VALID_ARG_DIRECTIVES    = VALID_DIRECTIVES - {'out', 'debug'}
+VALID_INLINE_DIRECTIVES = {'dep', 'include'}
+
+
+assert VALID_INLINE_DIRECTIVES < VALID_ARG_DIRECTIVES
+assert VALID_NOARG_DIRECTIVES  < VALID_DIRECTIVES
+
+
+def get_line_directive(line: str, language: typ.Optional[str], is_prelude: bool) -> typ.Optional[str]:
     if language is None:
         comment_text = line
     else:
         comment_start_re, comment_end_re = LANGUAGE_COMMENT_REGEXES[language]
         start_match = comment_start_re.search(line)
         if start_match is None:
-            return False
+            return None
 
         comment_text = line[start_match.end() :]
         end_match    = comment_end_re.search(comment_text)
         if end_match is None:
-            return False
+            return None
 
     comment_text = comment_text.strip()
+    if is_prelude:
+        if comment_text in VALID_NOARG_DIRECTIVES:
+            return comment_text
 
-    for name in VALID_NAMES:
-        if comment_text.startswith(name):
-            return True
+        for name in VALID_ARG_DIRECTIVES:
+            if comment_text.startswith(name + ":"):
+                return name
+    else:
+        for name in VALID_INLINE_DIRECTIVES:
+            if comment_text.startswith(name + ":"):
+                return name
 
-    return False
+    return None
 
 
 def _parse_directive(directive_text: str, raw_text: str) -> Directive:
@@ -398,7 +426,7 @@ def _parse_directive(directive_text: str, raw_text: str) -> Directive:
         name  = directive_text.strip()
         value = ""
 
-    if name in VALID_NAMES:
+    if name in VALID_DIRECTIVES:
         return Directive(name, value, raw_text)
     else:
         errmsg = f"Invalid directive '{name}'"
@@ -533,7 +561,8 @@ class MarkdownFile:
         inner_chunks      = []
         includable_chunks = []
 
-        rest = rest_content
+        is_prelude = True
+        rest       = rest_content
         while rest:
             start_match = comment_start_re.search(rest)
 
@@ -542,12 +571,17 @@ class MarkdownFile:
                 includable_chunks.append(rest)
                 break
 
-            chunk = rest[: start_match.start()]
-            if chunk:
-                inner_chunks.append(chunk)
-                includable_chunks.append(chunk)
+            prefix_chunk = rest[: start_match.start()]
+            if prefix_chunk:
+                inner_chunks.append(prefix_chunk)
+                includable_chunks.append(prefix_chunk)
 
-            rest      = rest[start_match.end() :]
+            rest = rest[start_match.end() :]
+
+            if prefix_chunk.strip() and is_prelude:
+                # prelude ends if there is non-whitespace before a comment
+                is_prelude = False
+
             end_match = comment_end_re.search(rest)
             if end_match is None:
                 comment_text = rest
@@ -560,7 +594,9 @@ class MarkdownFile:
             assert raw_text in elem.content
 
             comment_text = comment_text.strip()
-            if has_directive(comment_text, language=None):
+
+            directive_name = get_line_directive(comment_text, language=None, is_prelude=is_prelude)
+            if directive_name:
                 directive = _parse_directive(comment_text, raw_text)
                 directives.append(directive)
                 inner_chunks.append(raw_text)
@@ -625,7 +661,8 @@ class MarkdownFile:
                 yield elem.first_line, num_lines
 
     def parse_front_matter_meta(self) -> FrontMatterMetadata:
-        # NOTE (mb 2021-03-05): lazy load yaml and toml modules to speed up cli
+        # pylint: disable=import-outside-toplevel;
+        #   to speed up cli, lazy load modules: yaml and toml
 
         metadata = DEFAULT_FRONT_MATTER_META.copy()
         if len(self.elements) > 0 and self.elements[0].md_type == MD_FRONT_MATTER:
@@ -641,8 +678,11 @@ class MarkdownFile:
             else:
                 raise RuntimeError("Invalid front matter")
 
-            # TODO (mb 2021-01-31): Better validation
-            #   - Check that only known keys and corresponding values are used
+            for key, val in metadata.items():
+                if key not in VALID_METADATA_KEYS:
+                    errmsg = f"Invalid key Markdown front matter: {key}={val}"
+                    raise KeyError(errmsg)
+
             metadata.update(meta)
         return metadata
 
@@ -664,6 +704,9 @@ class MarkdownFile:
 
     def __repr__(self) -> str:
         return f"litprog.parse.MarkdownFile(\"{self.md_path}\")"
+
+    def __hash__(self) -> int:
+        return hash(self.md_path)
 
 
 def _iter_raw_md_elements(content: str) -> typ.Iterable[_RawMarkdownElement]:

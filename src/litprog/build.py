@@ -39,8 +39,6 @@ TERM_COLORS = {
 
 DEFUALT_TIMEOUT = 9.0
 
-DEFAULT_CONCURRENCY = max(4, len(os.sched_getaffinity(0)))
-
 MarkdownFiles = typ.Iterable[parse.MarkdownFile]
 
 # The expanded files are structurally no different, it's just that
@@ -88,97 +86,10 @@ def get_directive(
         return found[0]
 
 
-def has_directive(block: parse.Block, name: str) -> bool:
-    return get_directive(block, name, missing_ok=True) is not None
-
-
 def iter_directives(block: parse.Block, name: str) -> typ.Iterable[parse.Directive]:
     for directive in block.directives:
         if directive.name == name:
             yield directive
-
-
-# NOTE (mb 2021-02-11): Constant expanion/macros, abandoned for now.
-#
-# CONSTANT_RE = re.compile(r"`const:\s*(?P<name>\w+)\s*=(?P<value>.*)`")
-#
-#
-# class ConstItem(typ.NamedTuple):
-#     decl_path: pl.Path
-#     name     : str
-#     value    : str
-#
-#
-# def _parse_constants(build_ctx: parse.Context) -> typ.List[ConstItem]:
-#     constants: typ.List[ConstItem] = []
-#     for md_file in build_ctx.files:
-#         decl_path = md_file.md_path
-#         for elem in md_file.elements:
-#             for match in CONSTANT_RE.finditer(elem.content):
-#                 name  = match.group('name')
-#                 value = match.group('value')
-#                 constants.append(ConstItem(decl_path, name, value))
-#
-#     # Expand longer constants first, so constants that
-#     # are substrings of others don't clobber the longer
-#     # constant. This is not an ideal solution, but since
-#     # we are restricted to textual replacement with any
-#     # conceivable language this may be adequate.
-#     constants.sort(key=lambda item: len(item.name))
-#
-#     return constants
-#
-#
-# def _expand_constants(build_ctx: parse.Context) -> parse.Context:
-#     constants = _parse_constants(build_ctx)
-#
-#     done = False
-#     while not done:
-#         done         = True
-#         new_md_files = []
-#         for md_file in build_ctx.files:
-#             cur_path = md_file.md_path
-#
-#             new_elements = list(md_file.elements)
-#
-#             for block in md_file.iter_blocks():
-#                 new_content = block.content
-#                 for decl_path, name, const_val in constants:
-#                     namespace   = decl_path.name[: -len(decl_path.suffix)]
-#                     new_content = new_content.replace(name, const_val)
-#                     if decl_path == cur_path:
-#                         new_content = new_content.replace(name, const_val)
-#
-#                 # TODO: There may a bug here that relates to the order
-#                 #   of expanding blocks. Since the addable_val is based
-#                 #   on block.inner_content, there may be issues with
-#                 #   recursive includes
-#
-#                 if new_content == block.content:
-#                     continue
-#
-#                 done = False
-#
-#                 elem = md_file.elements[block.elem_index]
-#                 new_elements[block.elem_index] = parse.MarkdownElement(
-#                     elem.md_path, elem.first_line, elem.elem_index, elem.md_type, new_content, None
-#                 )
-#
-#             new_md_file = parse.MarkdownFile(md_file.md_path, new_elements)
-#             new_md_files.append(new_md_file)
-#
-#         build_ctx = parse.Context(new_md_files)
-#
-#     return build_ctx
-
-
-# # TODO (mb 2020-06-01): maybe use for include_match
-# def find_include(block_contents: typ.List[str], include_directive: parse.Directive) -> typ.Optional[str]:
-#     query = include_directive.value.strip()
-#     for content in block_contents:
-#         if query in content:
-#             return content
-#     return None
 
 
 def _match_indent(directive_text: str, include_val: str) -> str:
@@ -511,63 +422,7 @@ def _get_default_command(block: parse.Block) -> typ.Optional[str]:
         return None
 
 
-def _parse_session_block_options(block: parse.Block) -> typ.Optional[common.SessionBlockOptions]:
-    exec_directive = get_directive(block, 'exec')
-    run_directive  = get_directive(block, 'run')
-    out_directive  = get_directive(block, 'out')
-
-    command          : typ.Optional[str]
-    is_stdin_writable: bool
-
-    if exec_directive:
-        directive         = 'exec'
-        command           = exec_directive.value or _get_default_command(block)
-        is_stdin_writable = True
-    elif run_directive:
-        directive         = 'run'
-        command           = run_directive.value
-        is_stdin_writable = True
-    elif out_directive:
-        directive         = 'out'
-        command           = None
-        is_stdin_writable = False
-    else:
-        return None
-
-    provides_id: typ.Optional[str] = None
-    provides_directive = get_directive(block, 'def')
-    if provides_directive:
-        provides_id = provides_directive.value.strip()
-        provides_id = _namespaced_lp_id(block, provides_id)
-
-    requires = get_directive(block, 'requires')
-    if requires:
-        requires_ids = {_namespaced_lp_id(block, req_id) for req_id in requires.value.split(",")}
-    else:
-        requires_ids = set()
-
-    debug_directive = get_directive(block, 'debug')
-    if debug_directive:
-        is_debug     = True
-        debug_prefix = _parse_prefix(debug_directive) or "{lineno:>3}: "
-    else:
-        is_debug     = False
-        debug_prefix = "{lineno:>3}: "
-
-    timeout = get_directive(block, 'timeout')
-    if timeout is None:
-        timeout_val = DEFUALT_TIMEOUT
-    else:
-        timeout_val = float(timeout.value)
-
-    input_delay = get_directive(block, 'input_delay')
-    if input_delay is None:
-        input_delay_val = 0.0
-    else:
-        input_delay_val = float(input_delay.value)
-
-    keepends = True
-
+def _parse_format_options(block: parse.Block) -> common.FormatOptions:
     default_err_fmt = "\u001b[" + TERM_COLORS['red'] + "m{0}\u001b[0m"
 
     out_fmt = _parse_out_fmt(block, 'out_color', "{0}")
@@ -582,27 +437,67 @@ def _parse_session_block_options(block: parse.Block) -> typ.Optional[common.Sess
     else:
         info_fmt = info_directive.value
 
-    expect = get_directive(block, 'expect')
+    return common.FormatOptions(
+        out=out_fmt,
+        err=err_fmt,
+        info=info_fmt,
+        out_prefix=_parse_prefix(out_prefix) if out_prefix else "",
+        err_prefix=_parse_prefix(err_prefix) if err_prefix else "! ",
+    )
 
-    expected_exit_status = 0 if expect is None else int(expect.value)
+
+def _parse_session_block_options(block: parse.Block) -> typ.Optional[common.SessionBlockOptions]:
+    exec_directive = get_directive(block, 'exec')
+    run_directive  = get_directive(block, 'run')
+    out_directive  = get_directive(block, 'out')
+
+    command: typ.Optional[str]
+
+    if exec_directive:
+        directive = 'exec'
+        command   = exec_directive.value or _get_default_command(block)
+    elif run_directive:
+        directive = 'run'
+        command   = run_directive.value
+    elif out_directive:
+        directive = 'out'
+        command   = None
+    else:
+        return None
+
+    _provides    = get_directive(block, 'def')
+    _debug       = get_directive(block, 'debug')
+    _requires    = get_directive(block, 'requires')
+    _input_delay = get_directive(block, 'input_delay')
+    _timeout     = get_directive(block, 'timeout')
+    _expect      = get_directive(block, 'expect')
+
+    provides_id : typ.Optional[str] = None
+    if _provides:
+        provides_id = _provides.value.strip()
+        provides_id = _namespaced_lp_id(block, provides_id)
+
+    if _requires:
+        requires_ids = {_namespaced_lp_id(block, req_id) for req_id in _requires.value.split(",")}
+    else:
+        requires_ids = set()
+
+    timeout_val          = float(_timeout.value    ) if _timeout else DEFUALT_TIMEOUT
+    input_delay_val      = float(_input_delay.value) if _input_delay else 0.0
+    expected_exit_status = int(_expect.value) if _expect else 0
 
     return common.SessionBlockOptions(
         command=command,
         directive=directive,
         provides_id=provides_id,
         requires_ids=requires_ids,
-        is_stdin_writable=is_stdin_writable,
-        is_debug=is_debug,
-        keepends=keepends,
         timeout=timeout_val,
         input_delay=input_delay_val,
-        debug_prefix=debug_prefix,
         expected_exit_status=expected_exit_status,
-        out_fmt=out_fmt,
-        err_fmt=err_fmt,
-        info_fmt=info_fmt,
-        out_prefix=_parse_prefix(out_prefix) if out_prefix else "",
-        err_prefix=_parse_prefix(err_prefix) if err_prefix else "! ",
+        is_stdin_writable=directive in ('exec', 'run'),
+        is_debug=bool(_debug),
+        keepends=True,
+        fmt=_parse_format_options(block),
     )
 
 
@@ -611,18 +506,18 @@ def _parse_capture_output(capture: session.Capture, opts: common.SessionBlockOpt
     # if "\u001b" in capture.stderr:
     #     stderr = capture.stderr
     # elif stderr.strip():
-    #     stderr = opts.err_fmt.format(capture.stderr)
+    #     stderr = opts.fmt.err.format(capture.stderr)
 
     output_lines = []
     for captured_line in capture.lines:
         if captured_line.is_err:
-            if opts.err_prefix:
-                line_val = opts.err_prefix + captured_line.line
+            if opts.fmt.err_prefix:
+                line_val = opts.fmt.err_prefix + captured_line.line
             else:
                 line_val = captured_line.line
         else:
-            if opts.out_prefix:
-                line_val = opts.out_prefix + captured_line.line
+            if opts.fmt.out_prefix:
+                line_val = opts.fmt.out_prefix + captured_line.line
             else:
                 line_val = captured_line.line
         output_lines.append(line_val.rstrip())
@@ -632,8 +527,8 @@ def _parse_capture_output(capture: session.Capture, opts: common.SessionBlockOpt
     if not output.endswith("\n"):
         output += "\n"
 
-    if opts.info_fmt != 'none':
-        output += opts.info_fmt.format(
+    if opts.fmt.info != 'none':
+        output += opts.fmt.info.format(
             **{
                 'exit'   : capture.exit_status,
                 'time'   : capture.runtime,
@@ -713,44 +608,29 @@ def _init_command(opts: common.SessionBlockOptions) -> typ.Tuple[Tempfile, Comma
         return (None, command)
 
 
-def _process_command_block(
-    block    : parse.Block,
-    opts     : common.SessionBlockOptions,
-    exitfirst: bool = False,
+def _process_isession(
+    block      : parse.Block,
+    opts       : common.SessionBlockOptions,
+    command    : str,
+    stdin_lines: typ.List[str],
 ) -> session.Capture:
-    tmp, command = _init_command(opts)
-
     _cmd = command if len(command) < 40 else (command[:40] + "...")
 
     logmsg = f"Line {block.first_line:>5} of {block.md_path} - {opts.directive} {_cmd}"
     logger.info(logmsg)
 
-    if opts.is_stdin_writable:
-        stdin_lines = block.inner_content.splitlines(opts.keepends)
-    else:
-        stdin_lines = []
-
-    if tmp:
-        tmp_text = "".join(stdin_lines)
-        tmp_data = tmp_text.encode("utf-8")
-        tmp.file.write(tmp_data)
-
     isession = _init_isession(opts, command)
 
-    try:
-        if tmp is None and opts.directive == 'exec':
-            for line in stdin_lines:
-                isession.send(line, delay=opts.input_delay)
+    for line in stdin_lines:
+        isession.send(line, delay=opts.input_delay)
 
+    try:
         exit_status = isession.wait(timeout=opts.timeout)
     except Exception as ex:
         logger.error(f"Error processing '{command}': {ex}")
         sys.stdout.write("".join(isession.iter_stdout()))
         sys.stderr.write("".join(isession.iter_stderr()))
         raise
-    finally:
-        if tmp:
-            os.unlink(tmp.name)
 
     runtime_ms = round(isession.runtime * 1000)
 
@@ -759,13 +639,13 @@ def _process_command_block(
     else:
         exit_info = f"{exit_status} != {opts.expected_exit_status}"
 
-    lines   = isession.output_lines()
-    capture = session.Capture(command, exit_status, isession.runtime, lines)
-
     if runtime_ms < 500:
         logger.debug(f"{logmsg:<90} time: {runtime_ms:>6}ms  exit: {exit_info}")
     else:
         logger.info(f"{logmsg:<90} time: {runtime_ms:>6}ms  exit: {exit_info}")
+
+    lines   = isession.output_lines()
+    capture = session.Capture(command, exit_status, isession.runtime, lines)
 
     if exit_status == opts.expected_exit_status:
         # TODO: limit output using max_bytes and max_lines
@@ -779,6 +659,33 @@ def _process_command_block(
             raise BlockExecutionError()
 
 
+def _process_command_block(
+    block: parse.Block,
+    opts : common.SessionBlockOptions,
+) -> session.Capture:
+    tmp, command = _init_command(opts)
+
+    if opts.is_stdin_writable:
+        stdin_lines = block.inner_content.splitlines(opts.keepends)
+    else:
+        stdin_lines = []
+
+    if tmp:
+        tmp_text = "".join(stdin_lines)
+        tmp_data = tmp_text.encode("utf-8")
+        tmp.file.write(tmp_data)
+        stdin_lines = []
+
+    if opts.directive != 'exec':
+        stdin_lines = []
+
+    try:
+        return _process_isession(block, opts, command, stdin_lines)
+    finally:
+        if tmp:
+            os.unlink(tmp.name)
+
+
 def _iter_task_blocks(md_file: parse.MarkdownFile) -> typ.Iterable[common.TaskBlockOpts]:
     for block in md_file.iter_blocks():
         opts = _parse_session_block_options(block)
@@ -787,20 +694,21 @@ def _iter_task_blocks(md_file: parse.MarkdownFile) -> typ.Iterable[common.TaskBl
 
 
 def _iter_block_tasks(md_file: parse.MarkdownFile) -> typ.Iterable[common.BlockTask]:
-    block_opts = list(_iter_task_blocks(md_file))
-    for i, (block, opts) in enumerate(block_opts):
+    taskblockopt_items = list(_iter_task_blocks(md_file))
+    for i, (block, opts) in enumerate(taskblockopt_items):
         capture_index = -1
 
-        if i + 1 < len(block_opts):
-            next_block, next_opts = block_opts[i + 1]
+        if i + 1 < len(taskblockopt_items):
+            next_block, next_opts = taskblockopt_items[i + 1]
             if next_opts.directive == 'out':
                 capture_index = next_block.elem_index
 
-        if opts.command:
+        command = opts.command
+        if command:
             if opts.directive == 'run':
                 capture_index = block.elem_index
 
-            yield common.BlockTask(md_file.md_path, block, opts, capture_index)
+            yield common.BlockTask(md_file.md_path, command, block, opts, capture_index)
 
 
 class MarkdownFileResult(typ.NamedTuple):
@@ -812,13 +720,21 @@ class MarkdownFileResult(typ.NamedTuple):
 FilesItem = typ.Tuple[parse.MarkdownFile, parse.MarkdownFile]
 
 
+class BuildOptions(typ.NamedTuple):
+
+    exitfirst      : bool
+    in_place_update: bool
+    cache_enabled  : bool
+    concurrency    : int
+
+
 class Runner:
 
     orig_files : MarkdownFiles
     build_files: MarkdownFiles
-    exitfirst  : bool
-    concurrency: int
-    results    : typ.List[MarkdownFileResult]
+    opts       : BuildOptions
+
+    results: typ.List[MarkdownFileResult]
 
     _file_items_by_path: typ.Dict[pl.Path, FilesItem]
     _all_tasks         : typ.List[common.BlockTask]
@@ -830,15 +746,13 @@ class Runner:
         self,
         orig_files : MarkdownFiles,
         build_files: MarkdownFiles,
-        exitfirst  : bool = False,
-        concurrency: int  = DEFAULT_CONCURRENCY,
+        opts       : BuildOptions,
     ) -> None:
         self.orig_files  = orig_files
         self.build_files = build_files
-        self.exitfirst   = exitfirst
-        self.concurrency = concurrency
-        self.results     = []
+        self.opts        = opts
 
+        self.results             = []
         self._file_items_by_path = {}
         self._all_tasks          = []
         self._task_results       = []
@@ -851,14 +765,19 @@ class Runner:
             self._file_items_by_path[md_file.md_path] = (orig_md_file, md_file)
             self._all_tasks.extend(_iter_block_tasks(md_file))
 
-        # TODO (mb 2021-03-04): --no-cache option
-        #   self._cache = cache.DummyCache()
-        self._cache = cache.LocalResultCache(self.orig_files, self._all_tasks)
+        if self.opts.cache_enabled:
+            self._cache = cache.LocalResultCache(self.orig_files)
+        else:
+            self._cache = cache.DummyCache()
 
     def _run_task(self, task: common.BlockTask) -> None:
-        cached_capture = self._cache.get_capture(task)
+        if self.opts.cache_enabled:
+            cached_capture = self._cache.get_capture(task)
+        else:
+            cached_capture = None
+
         if cached_capture is None:
-            capture = _process_command_block(task.block, task.opts, exitfirst=self.exitfirst)
+            capture = _process_command_block(task.block, task.opts)
             self._cache.update(task, capture)
         else:
             capture = cached_capture
@@ -879,7 +798,7 @@ class Runner:
             header_lines = [
                 line
                 for line in elem.content.splitlines(task.opts.keepends)
-                if line.startswith("```") or parse.has_directive(line, language="shell")
+                if line.startswith("```") or parse.get_line_directive(line, language="shell", is_prelude=True)
             ]
 
             last_line   = header_lines.pop()
@@ -935,7 +854,7 @@ class Runner:
         logger.info(f"Completed tasks: {num_completed} of {len(self._all_tasks)}")
 
     def start(self) -> None:
-        if self.concurrency == 1 or self.exitfirst:
+        if self.opts.concurrency == 1 or self.opts.exitfirst:
 
             def submit(task: common.BlockTask) -> Future:
                 future: Future = Future()
@@ -945,7 +864,7 @@ class Runner:
 
             self._start(submit)
         else:
-            with ThreadPoolExecutor(max_workers=self.concurrency) as executor:
+            with ThreadPoolExecutor(max_workers=self.opts.concurrency) as executor:
 
                 def submit(task: common.BlockTask) -> Future:
                     return executor.submit(self._run_task, task)
@@ -959,17 +878,46 @@ class Runner:
         pass
 
 
-def build(
-    orig_ctx       : parse.Context,
-    exitfirst      : bool = False,
-    in_place_update: bool = False,
-    concurrency    : int  = DEFAULT_CONCURRENCY,
-) -> parse.Context:
-    # TODO: Immutable datastructures
-    #   parse.Context, parse.MarkdownFile
-    build_ctx = orig_ctx.copy()
+def _run_subprocs(orig_ctx: parse.Context, opts: BuildOptions, runner: Runner) -> parse.Context:
+    runner.start()
+    runner.wait()
 
-    # TODO: mark build as running
+    doc_ctx = orig_ctx.copy()
+
+    for file_idx, md_file_result in enumerate(runner.results):
+        if not any(md_file_result.updated_elements):
+            continue
+
+        md_path = md_file_result.orig_md_file.md_path
+
+        # phase 6. rewrite output blocks
+        orig_elements = list(md_file_result.orig_md_file.elements)
+        new_elements  = list(orig_elements)  # copy
+        for elem in md_file_result.updated_elements:
+            orig_elem = orig_elements[elem.elem_index]
+            assert 'out' in orig_elem.content or 'run' in orig_elem.content
+            new_elements[elem.elem_index] = elem
+
+        new_md_file = parse.MarkdownFile(md_path, new_elements)
+        if opts.in_place_update:
+            new_file_content = str(new_md_file)
+            with new_md_file.md_path.open(mode="w", encoding="utf-8") as fobj:
+                fobj.write(new_file_content)
+
+            logger.info(f"Updated {new_md_file.md_path}")
+        else:
+            logger.info(f"Update skipped for {new_md_file.md_path} (use -i/--in-place-update)")
+
+        doc_ctx.files[file_idx] = new_md_file
+
+    return doc_ctx
+
+
+def build(
+    orig_ctx: parse.Context,
+    opts    : BuildOptions,
+) -> parse.Context:
+    build_ctx   = orig_ctx.copy()
     build_start = time.time()
 
     try:
@@ -1003,44 +951,14 @@ def build(
     #   may use the newly created files.
     _dump_files(build_ctx)
 
-    doc_ctx = orig_ctx.copy()
-
     # TODO (mb 2021-01-02): Atomicity guarantees
     #   - Write new files to temp directory
     #   - Only update if original mtimes are still the same
 
     # phase 5. run sub-processes
-    runner = Runner(orig_ctx.files, build_ctx.files, exitfirst, concurrency)
-    runner.start()
-    runner.wait()
-
-    for file_idx, md_file_result in enumerate(runner.results):
-        if not any(md_file_result.updated_elements):
-            continue
-
-        md_path = md_file_result.orig_md_file.md_path
-
-        # phase 6. rewrite output blocks
-        orig_elements = list(md_file_result.orig_md_file.elements)
-        new_elements  = list(orig_elements)  # copy
-        for elem in md_file_result.updated_elements:
-            orig_elem = orig_elements[elem.elem_index]
-            assert 'out' in orig_elem.content or 'run' in orig_elem.content
-            new_elements[elem.elem_index] = elem
-
-        new_md_file = parse.MarkdownFile(md_path, new_elements)
-        if in_place_update:
-            new_file_content = str(new_md_file)
-            with new_md_file.md_path.open(mode="w", encoding="utf-8") as fobj:
-                fobj.write(new_file_content)
-
-            logger.info(f"Updated {new_md_file.md_path}")
-        else:
-            logger.info(f"Update skipped for {new_md_file.md_path} (use -i/--in-place-update)")
-
-        doc_ctx.files[file_idx] = new_md_file
-
-    duration = time.time() - build_start
-    logger.info(f"Build finished after {duration:9.3f}sec")
-
-    return doc_ctx
+    runner = Runner(orig_ctx.files, build_ctx.files, opts)
+    try:
+        return _run_subprocs(orig_ctx, opts, runner)
+    finally:
+        duration = time.time() - build_start
+        logger.info(f"Build finished after {duration:9.3f}sec")

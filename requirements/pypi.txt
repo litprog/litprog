@@ -24,9 +24,6 @@ PyPDF2
 toml
 PyYAML
 
-pandas
-matplotlib
-
 # for block result caching
 redis
 zstandard

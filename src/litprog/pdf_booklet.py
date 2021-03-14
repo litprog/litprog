@@ -210,7 +210,7 @@ def _init_output_parameters(media_box: MediaBox, out_sheet_format: str) -> Outpu
     _ow_mm = round(out_sheet_width    / PT_PER_MM)
     _oh_mm = round(out_sheet_height   / PT_PER_MM)
     logger.info("OutputParameters")
-    logger.info(f"    scale: {scale:5.3f}x")
+    logger.info(f"    scale: {scale:5.2f}x")
     logger.info(f"    in : {_iw_mm}mm x {_ih_mm}mm -> {_sw_mm}mm x {_sh_mm}mm (2x)")
     logger.info(f"    out: {_ow_mm}mm x {_oh_mm}mm")
 
@@ -219,62 +219,6 @@ def _init_output_parameters(media_box: MediaBox, out_sheet_format: str) -> Outpu
         scale,
         out_sheet_width,
         out_sheet_height,
-        pad_x,
-        pad_y,
-        pad_center,
-    )
-
-
-def _old_init_output_parameters(media_box: MediaBox, out_sheet_format: str) -> OutputParameters:
-    in_page_width  = float(media_box.getWidth())
-    in_page_height = float(media_box.getHeight())
-
-    in_format_id = get_format_id(in_page_width, in_page_height)
-    if in_format_id is None:
-        PAPER_FORMATS_PT[out_sheet_format]
-        in_page_width_mm  = round(in_page_width  / PT_PER_MM)
-        in_page_height_mm = round(in_page_height / PT_PER_MM)
-
-        errmsg = f"Unknown page format: {in_page_width_mm}mm x {in_page_height_mm}mm"
-        raise ValueError(errmsg)
-
-    rescale = 1.0
-
-    (out_format_id, page_order, center_margin) = BOOKLET_FORMAT_MAPPING[in_format_id]
-    logger.info(f"Converting 2x{in_format_id} -> {out_format_id}")
-
-    out_width, out_height = PAPER_FORMATS_PT[out_format_id]
-
-    scale_w = round((out_width / 2) / in_page_width, 2)
-    scale_h = round(out_height / in_page_height, 2)
-    scale   = min(scale_h, scale_w)
-    logger.info(f"scale={scale} scale_w={scale_w} scale_h={scale_h}")
-    scale = scale_h
-    if scale < 1:
-        logger.info(f"scaling down by {1/scale:5.2f}x")
-    elif scale > 1:
-        logger.info(f"scaling up by {scale}x")
-
-    rescale_pct = 100 * (1 - rescale)
-    if rescale < 1:
-        logger.info(f"adding padding of {abs(rescale_pct):3.2f}%")
-    elif rescale > 1:
-        logger.info(f"trimming by {abs(rescale_pct):5.2f}%")
-
-    scale = scale * rescale
-
-    trim_factor = (rescale - 1) / 2
-    pad_x       = -0.5 * out_width  * trim_factor
-    pad_y       = -0.6 * out_height * trim_factor
-    # TODO: option for center spacing
-    pad_center = out_width * 0.005
-    pad_center = center_margin
-
-    return OutputParameters(
-        page_order,
-        scale,
-        out_width,
-        out_height,
         pad_x,
         pad_y,
         pad_center,
@@ -309,7 +253,7 @@ def _create_sheets(
 
         tzero = time.time()
 
-        if out_coords.scale == 1:
+        if abs(out_coords.scale - 1) < 0.01:
             out_sheet.mergeTranslatedPage(in_page, tx=translate_x, ty=translate_y, expand=False)
         else:
             out_sheet.mergeScaledTranslatedPage(
@@ -334,7 +278,7 @@ def create(
     max_sheets = MAX_BOOKLET_SHEETS
 
     if out_path is None:
-        ext          = "".join(in_path.suffixes)
+        ext          = in_path.suffixes[-1]
         out_filename = (in_path.name[: -len(ext)] + "_booklet") + ext
         _out_path    = in_path.parent / out_filename
     else:
@@ -368,6 +312,8 @@ def create(
 
         with _out_path.open(mode="wb") as out_fobj:
             output.write(out_fobj)
+
+    logger.info(f"Wrote to '{_out_path}'")
 
     return _out_path
 

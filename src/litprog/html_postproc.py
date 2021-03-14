@@ -253,123 +253,6 @@ def _iter_postproc_content_html(
     yield content_html[last_end_idx:]
 
 
-# TODO (mb 2021-01-05): This can probably be removed
-#
-#   It appears that WeasyPrint avoids orphaned headlines
-#   already, so this isn't needed there. The only case this
-#   might make sense is when printing using the browser,
-#   where an orphaned headline is often a problem.
-
-
-# def _wrap_firstpara(html_text: HTMLText) -> typ.Iterable[HTMLText]:
-#     # Wrap headlines with their next sibling to avoid
-#     #   orphaned headlines at the bottom of a page.
-
-#     headline_re    = re.compile(r"\<(h\d)[^>]*\>.*?\<\/\1\>")
-#     tag_re         = re.compile(r"\<(\w+)[^>]*\>.*\<\/\1\>")
-#     remaining_text = html_text
-#     while remaining_text:
-#         headline_match = headline_re.search(remaining_text)
-#         if headline_match is None:
-#             yield remaining_text
-#             return
-
-#         headline_start, headline_end = headline_match.span()
-#         headline_text   = remaining_text[headline_start:headline_end]
-#         preceeding_text = remaining_text[:headline_start]
-#         remaining_text  = remaining_text[headline_end:]
-
-#         yield preceeding_text
-
-#         # TODO: Maybe wrap all consecutive headlines ?
-#         tag_match = tag_re.search(remaining_text)
-#         if tag_match is None:
-#             yield headline_text
-#             yield remaining_text
-#             return
-
-#         tag_start, tag_end = tag_match.span()
-#         tag_text        = remaining_text[tag_start:tag_end]
-#         preceeding_text = remaining_text[:tag_start]
-#         remaining_text  = remaining_text[tag_end:]
-
-#         yield '<div class="firstpara">'
-#         yield headline_text
-#         yield preceeding_text
-#         yield tag_text
-#         yield "</div>"
-
-
-# TEXT_TAG_BEGIN_RE = re.compile(r"\<(span|b|a|em|i|sub|sup|strong|small|big)( [^\>]*)?\>")
-
-
-# def _iter_html_parts(
-#     html_text: HTMLText, begin_tag_re: typ.Pattern
-# ) -> typ.Iterable[typ.Tuple[HTMLText, str, HTMLText]]:
-#     remaining_html = html_text
-#     while remaining_html:
-#         begin_match = begin_tag_re.search(remaining_html)
-#         if begin_match is None:
-#             yield remaining_html, "", ""
-#             return
-
-#         begin_lidx, begin_ridx = begin_match.span()
-#         prelude = remaining_html[:begin_ridx]
-
-#         tag_name   = begin_match.group(1)
-#         end_tag_re = re.compile(r"\<\/" + tag_name + r"\>")
-#         end_match  = end_tag_re.search(remaining_html, begin_ridx)
-#         assert end_match is not None
-#         end_lidx, end_ridx = end_match.span()
-
-#         inner = remaining_html[begin_ridx:end_lidx]
-
-#         end_tag = remaining_html[end_lidx:end_ridx]
-
-#         yield (prelude, inner, end_tag)
-
-#         remaining_html = remaining_html[end_ridx:]
-
-
-# def _shyphenate_text(dic: pyphen.Pyphen, text: str) -> str:
-#     if len(text) < 5:
-#         return text
-#     else:
-#         return " ".join(dic.inserted(word, hyphen=SOFT_HYPHEN) for word in text.split(" "))
-
-
-# def _shyphenate_html(html_text: HTMLText) -> typ.Iterable[HTMLText]:
-#     # TODO: parse language
-#     dic = pyphen.Pyphen(lang="en_US")
-
-#     def _iter_shyphenated(content_text: HTMLText) -> typ.Iterable[HTMLText]:
-#         html_parts = _iter_html_parts(content_text, TEXT_TAG_BEGIN_RE)
-#         for prelude, text, end_tag in html_parts:
-#             yield prelude
-#             yield _shyphenate_text(dic, text)
-#             yield end_tag
-
-#     text_tag_begin_re = re.compile(r"\<(p|li)( [^\>]*)?\>")
-
-#     # print()
-#     html_parts = _iter_html_parts(html_text, text_tag_begin_re)
-#     for prelude, content, end_tag in html_parts:
-#         is_katex = "katex" in content
-#         if is_katex:
-#             print(prelude)
-#             print("???????????????????ßßßß")
-#             print(content)
-#             print(">>>>>>>>>>>>>>>>>>>>>>")
-#             print("".join(_iter_shyphenated(content)))
-#             print("???????????????????ßßßß")
-#             print(end_tag)
-#         yield prelude
-#         yield "".join(_iter_shyphenated(content))
-#         yield end_tag
-#         assert not is_katex
-
-
-SOFT_HYPHEN = "\u00AD"
 SOFT_HYPHEN = "&shy;"
 
 
@@ -386,6 +269,10 @@ WORD_RE = re.compile(r"\w+", flags=re.UNICODE)
 
 
 def _iter_shyphenated(dic: pyphen.Pyphen, text: str) -> typ.Iterable[str]:
+    # NOTE (mb 2021-03-11): While all browsers now (2021 finally!)
+    #   have support for "hyphens: auto;", I need to evaluate which
+    #   performs better. Superficially the manuall hyphenation here
+    #   seemed to work better.
     text = text.replace("\u00AD", "").replace("&shy;", "")
 
     prev_end = 0
@@ -418,45 +305,47 @@ def _shyphenate(dic: pyphen.Pyphen, text: str) -> str:
 
 
 def _shyphenate_html(soup: bs4.BeautifulSoup) -> None:
-    # TODO: parse language
+    # TODO: get language from project metadata
     dic = pyphen.Pyphen(lang="en_US")
 
     elements = it.chain(soup.find_all("p"), soup.find_all("li"))
     for elem in elements:
         for part in elem.contents:
             is_nav_string = isinstance(part, bs4.element.NavigableString)
-            is_text_elem  = is_nav_string or (part.name in INLINE_TAG_NAMES and part.string)
-            if not is_text_elem:
-                continue
+            is_text_elem  = not is_nav_string and part.name in INLINE_TAG_NAMES and part.string
+            if is_nav_string or is_text_elem:
+                if is_text_elem:
+                    classes  = part.attrs.get('class', ())
+                    is_katex = "katex" in classes or "katex-display" in classes
+                    if part.name == 'span' and is_katex:
+                        continue
 
-            if not is_nav_string:
-                classes  = part.attrs.get('class', ())
-                is_katex = "katex" in classes or "katex-display" in classes
-                if part.name == 'span' and is_katex:
-                    continue
-
-            shyphenated = _shyphenate(dic, str(part.string))
-            # NOTE: Ugh! So much wrapping just to avoid escaping.
-            #   If we don't do this though, we'll get "&shy;" -> "&amp;shy;"
-            shy_text = bs4.BeautifulSoup(io.StringIO(shyphenated), PARSER_MODULE)
-            part.string.replace_with(shy_text)
+                shyphenated = _shyphenate(dic, str(part.string))
+                # NOTE: Ugh! So much wrapping just to avoid escaping.
+                #   If we don't do this though, we'll get "&shy;" -> "&amp;shy;"
+                shy_text = bs4.BeautifulSoup(io.StringIO(shyphenated), PARSER_MODULE)
+                part.string.replace_with(shy_text)
 
 
-def _add_sentence_spacing(soup: bs4.BeautifulSoup) -> None:
-    lang = "en"
-    if lang != 'en':
-        return
-
-    # NOTE: Not implemented because, meh. Seems to be going the way of the dodo.
-    #   https://en.wikipedia.org/wiki/Sentence_spacing_studies
-    #
-    #   If we were to implement this, the least bad option seems to be adding two
-    #   spaces and using "white-space: pre-wrap;". Using &emsp; or &ensp; lead to
-    #   distracting rags if the line is broken directly after the period. Using two
-    #   spaces increases the distance between the period and the next word, but
-    #   it's maybe a bit more than what is done by latex
-    #
-    # para_text, _ = re.subn(r"([\.?!]) ([A-Z])", r"\1  \2", para_text)
+# NOTE 2019-12-31: Not implemented because, meh. Seems to be going the way of
+#   the dodo. https://en.wikipedia.org/wiki/Sentence_spacing_studies
+#
+#   This is more important for monospace text. It seems if this were to be
+#   implemented, it would be much more important to do it on the input
+#   markdown than for the output html, which uses a proportional font.
+#
+#   If we were to implement this, the least bad option seems to be adding two
+#   spaces and using "white-space: pre-wrap;". Using &emsp; or &ensp; lead to
+#   distracting rags if the line is broken directly after the period. Using two
+#   spaces increases the distance between the period and the next word, but
+#   it's maybe a bit more than what is done by latex
+#
+# def _add_sentence_spacing(soup: bs4.BeautifulSoup) -> None:
+#     # pylint: disable= ;
+#     lang = "en"
+#     if lang != 'en':
+#         return
+#     # para_text, _ = re.subn(r"([\"]?[\.?!][\"]?) ([A-Z])", r"\1&emsp;\2", para_text)
 
 
 def _add_code_scrollers(soup: bs4.BeautifulSoup) -> None:
@@ -529,9 +418,7 @@ def _add_heading_links(soup: bs4.BeautifulSoup) -> None:
             heading.string.wrap(a_tag)
 
 
-def _add_heading_numbers_screen(
-    content_soup: bs4.BeautifulSoup, nav_soup: bs4.BeautifulSoup, heading_prefix: str = ""
-) -> None:
+def _add_heading_numbers_screen(content_soup: bs4.BeautifulSoup, nav_soup: bs4.BeautifulSoup) -> None:
 
     numbers_by_hashlink: typ.Dict[str, str] = {
         node['href'].split("#", 1)[-1]: node.text.split(" ", 1)[0] for node in nav_soup.select("a")
@@ -703,9 +590,9 @@ def postproc4screen(
 
     _add_heading_numbers_screen(content_soup, nav_soup)
     _add_figure_numbers(content_soup)
+    # _add_sentence_spacing(content_soup)
     _add_heading_links(content_soup)
     _shyphenate_html(content_soup)
-    _add_sentence_spacing(content_soup)
     _add_code_scrollers(content_soup)
     _update_footnote_refs(content_soup)
     _add_footnotes_header(content_soup)
@@ -736,13 +623,14 @@ def postproc4print(html_res: md2html.HTMLResult, fmt: str, block_linenos: BlockL
     )
     html_text = "".join(html_chunks)
 
-    soup = bs4.BeautifulSoup(html_text, PARSER_MODULE)
-    _add_heading_numbers_print(soup, html_res.toc_tokens)
-    _add_figure_numbers(soup)
-    _update_footnote_refs(soup)
-    _add_footnotes_header(soup)
-    _add_footer_links(soup, fmt)
-    _split_code_blocks(soup)
-    html_text = str(soup)
+    content_soup = bs4.BeautifulSoup(html_text, PARSER_MODULE)
+    _add_heading_numbers_print(content_soup, html_res.toc_tokens)
+    # _add_sentence_spacing(content_soup)
+    _add_figure_numbers(content_soup)
+    _update_footnote_refs(content_soup)
+    _add_footnotes_header(content_soup)
+    _add_footer_links(content_soup, fmt)
+    _split_code_blocks(content_soup)
+    html_text = str(content_soup)
 
     return html_text

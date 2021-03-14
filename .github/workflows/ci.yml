@@ -11,6 +11,13 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
+    - name: pango + cairo
+      run:
+        apt-get update
+        apt-get install --yes \
+          gcc build-essential shared-mime-info libffi-dev \
+          libcairo2 libpango-1.0-0 libpangocairo-1.0-0 libgdk-pixbuf2.0-0
+
     - name: Cache Conda Envs
       uses: actions/cache@v2
       with:

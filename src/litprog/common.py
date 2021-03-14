@@ -10,6 +10,16 @@ import pathlib as pl
 from . import parse
 
 
+class FormatOptions(typ.NamedTuple):
+
+    out : str
+    err : str
+    info: str
+
+    out_prefix: str
+    err_prefix: str
+
+
 class SessionBlockOptions(typ.NamedTuple):
     """A Session Block based on an 'exec', 'run' or 'out' directive.
 
@@ -25,20 +35,15 @@ class SessionBlockOptions(typ.NamedTuple):
     #   see litprog.build._namespaced_lp_id and litprog.parse.MarkdownFile.block_namespace()
     provides_id         : typ.Optional[str]
     requires_ids        : typ.Set[str]
-    is_stdin_writable   : bool
-    is_debug            : bool
-    keepends            : bool
     timeout             : float
     input_delay         : float
-    debug_prefix        : str
     expected_exit_status: int
 
-    out_fmt : str
-    err_fmt : str
-    info_fmt: str
+    is_stdin_writable: bool
+    is_debug         : bool
+    keepends         : bool
 
-    out_prefix: str
-    err_prefix: str
+    fmt: FormatOptions
 
 
 class TaskBlockOpts(typ.NamedTuple):
@@ -51,6 +56,7 @@ ElemIndex = int
 
 class BlockTask(typ.NamedTuple):
     md_path: pl.Path
+    command: str
     block  : parse.Block
     opts   : SessionBlockOptions
     # block to which the captured output belongs

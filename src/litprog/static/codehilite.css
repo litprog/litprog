@@ -6,12 +6,12 @@ p > code {background-color: #CCC4;}
 
 pre {
     font-family: "lp-iosevka", "Iosevka Term SS05", monospace;
-    line-height: 1.25em;
+    line-height: 1.2em;
 }
 
 @media print {
     pre {
-        line-height: 1.25em;
+        line-height: 1.2em;
     }
 }
 

@@ -42,3 +42,7 @@ pytest
 #
 # https://anaconda.org/conda-forge/go
 # go
+
+numpy
+pandas
+matplotlib

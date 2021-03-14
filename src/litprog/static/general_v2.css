@@ -189,7 +189,7 @@ blockquote, .admonition {
     border-style: solid;
 
     width: calc(100% - 20px);
-    margin: 0.5em auto;
+    margin: 1.5em auto;
     padding: 0 0 0.3em 0;
 }
 
