@@ -20,7 +20,7 @@ DEVELOPMENT_PYTHON_VERSION := python=3.9
 # - pypy2.7
 # - pypy3.5
 # - pypy3.6
-SUPPORTED_PYTHON_VERSIONS := python=3.9 pypy3.6
+SUPPORTED_PYTHON_VERSIONS := python=3.9
 
 include Makefile.bootstrapit.make
 

@@ -53,7 +53,7 @@ Code Quality/CI:
 [pypi_img]: https://img.shields.io/badge/PyPI-wheels-green.svg
 [pypi_ref]: https://pypi.org/project/litprog/#files
 
-[downloads_img]: https://pepy.tech/badge/litprog
+[downloads_img]: https://pepy.tech/badge/litprog/month
 [downloads_ref]: https://pepy.tech/project/litprog
 
 [version_img]: https://img.shields.io/badge/CalVer-2020.1001--alpha-blue.svg

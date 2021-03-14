@@ -7,12 +7,49 @@
 #   base       : the final image containing only the required environment files,
 #                and none of the infrastructure required to generate them.
 
-FROM registry.gitlab.com/mbarkhau/bootstrapit/env_builder AS builder
+# root
+FROM debian:buster-slim as base
 
-# gcc required for cmarkgfm on python3.8
-# https://github.com/theacodes/cmarkgfm/issues/22
-RUN apt-get update
-RUN apt-get install -y gcc
+ENV LC_ALL=C.UTF-8
+ENV LANG=C.UTF-8
+ENV LANGUAGE en_US.UTF-8
+
+ENV SHELL /bin/bash
+
+RUN apt-get --yes install
+# required for weasyprint: cairo, pango etc
+RUN apt-get update && \
+    apt-get install --yes bash make sed grep gawk curl git bzip2 unzip \
+    ca-certificates \
+    gcc build-essential shared-mime-info libffi-dev \
+    libcairo2 libpango-1.0-0 libpangocairo-1.0-0 libgdk-pixbuf2.0-0
+
+
+ENV CONDA_DIR /opt/conda
+ENV PATH $CONDA_DIR/bin:$PATH
+
+# The latest version of conda can be newer than the latest
+# version for which an installer is available. Further
+# down we invoke "conda update --all" to update to the lates
+# version. This Marker is incremented when we know such an
+# update was published and want to update the image.
+ENV MINICONDA_VERSION_MARKER 4.8.2
+ENV MINICONDA Miniconda3-latest-Linux-x86_64.sh
+ENV MINICONDA_URL https://repo.continuum.io/miniconda/$MINICONDA
+
+RUN curl -L "$MINICONDA_URL" --silent -o miniconda3.sh && \
+    /bin/bash miniconda3.sh -f -b -p $CONDA_DIR && \
+    rm miniconda3.sh && \
+    /opt/conda/bin/conda clean -tipy && \
+    ln -s /opt/conda/etc/profile.d/conda.sh /etc/profile.d/conda.sh && \
+    echo ". /opt/conda/etc/profile.d/conda.sh" >> ~/.bashrc && \
+    echo "conda activate base" >> ~/.bashrc && \
+    conda update --all --yes && \
+    conda config --set auto_update_conda False
+
+
+FROM base as builder
+
 ADD requirements/ requirements/
 ADD scripts/ scripts/
 
@@ -44,7 +81,9 @@ RUN conda clean --all --yes && \
     rm -rf /opt/conda/pkgs/
 
 
-FROM registry.gitlab.com/mbarkhau/bootstrapit/root
+FROM base
 
 COPY --from=builder /opt/conda/ /opt/conda/
 COPY --from=builder /vendor/ /vendor
+
+CMD [ "/bin/bash" ]
