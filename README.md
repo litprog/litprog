@@ -13,7 +13,8 @@ Code Quality/CI:
 [![Type Checked with mypy][mypy_img]][mypy_ref]
 [![Code Style: sjfmt][style_img]][style_ref]
 [![Code Coverage][codecov_img]][codecov_ref]
-[![Build Status][build_img]][build_ref]
+[![GitHub CI Status][github_build_img]][github_build_ref]
+[![GitLab CI Status][gitlab_build_img]][gitlab_build_ref]
 
 
 |               Name                  |    role           |  since  | until |
@@ -35,8 +36,11 @@ Code Quality/CI:
 
 [repo_ref]: https://gitlab.com/mbarkhau/litprog
 
-[build_img]: https://gitlab.com/mbarkhau/litprog/badges/master/pipeline.svg
-[build_ref]: https://gitlab.com/mbarkhau/litprog/pipelines
+[github_build_img]: https://github.com/litprog/litprog/workflows/CI/badge.svg
+[github_build_ref]: https://github.com/litprog/litprog/actions?query=workflow%3ACI
+
+[gitlab_build_img]: https://gitlab.com/mbarkhau/litprog/badges/master/pipeline.svg
+[gitlab_build_ref]: https://gitlab.com/mbarkhau/litprog/pipelines
 
 [codecov_img]: https://gitlab.com/mbarkhau/litprog/badges/master/coverage.svg
 [codecov_ref]: https://mbarkhau.gitlab.io/litprog/cov
