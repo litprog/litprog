@@ -127,7 +127,7 @@ def _num_cpus() -> int:
         # pylint: disable=no-member;    not available on all platforms
         return len(os.sched_getaffinity(0))
     except AttributeError:
-        return os.cpu_count()
+        return os.cpu_count() or 1
 
 
 DEFAULT_CONCURRENCY = max(2, _num_cpus())

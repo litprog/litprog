@@ -1,7 +1,7 @@
 # This file is part of the litprog project
 # https://gitlab.com/mbarkhau/litprog
 #
-# Copyright (c) 2019 Manuel Barkhau (mbarkhau@gmail.com) - MIT License
+# Copyright (c) 2019-2020 Manuel Barkhau (mbarkhau@gmail.com) - MIT License
 # SPDX-License-Identifier: MIT
 
 # pylint: disable=protected-access
@@ -64,11 +64,11 @@ out("ok4")
 
 
 def test_integration():
-    session = sut.InteractiveSession(cmd=['python'])
+    session = sut.InteractiveSession(cmd=['python3'])
     for block in [BLOCK_0, BLOCK_1, BLOCK_2]:
         session.send(block)
     retcode = session.wait()
     assert session.stdout == "ok1\nok2ok3"
     assert session.stderr == "moep\n"
     assert retcode        == 0
-    assert session.runtime < 0.2
+    assert session.runtime < 0.5
