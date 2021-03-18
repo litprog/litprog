@@ -4,3 +4,5 @@ include CHANGELOG.md
 include fastentrypoints.py
 include requirements/pypi.txt
 include src/litprog/static/*
+include src/litprog/static/fonts/*
+

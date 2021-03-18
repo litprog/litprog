@@ -865,11 +865,11 @@ with open("examples/fib_durations.csv", mode="w") as fobj:
 ```bash
 # run: bash -c "tail -n 5 examples/fib_durations.csv"
 # requires: gen_fib_durations_csv
-17,1679
-18,2695
-19,4439
-20,7080
-21,11428
+17,370
+18,555
+19,902
+20,1554
+21,2308
 # exit: 0
 ```
 

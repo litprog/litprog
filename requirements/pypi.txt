@@ -8,6 +8,7 @@
 # should see if there is a conda package that suits your needs.
 
 click
+importlib-resources;python_version<="3.8"
 
 Markdown>=3.0
 markdown-svgbob

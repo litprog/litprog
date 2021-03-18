@@ -327,27 +327,6 @@ def _shyphenate_html(soup: bs4.BeautifulSoup) -> None:
                 part.string.replace_with(shy_text)
 
 
-# NOTE 2019-12-31: Not implemented because, meh. Seems to be going the way of
-#   the dodo. https://en.wikipedia.org/wiki/Sentence_spacing_studies
-#
-#   This is more important for monospace text. It seems if this were to be
-#   implemented, it would be much more important to do it on the input
-#   markdown than for the output html, which uses a proportional font.
-#
-#   If we were to implement this, the least bad option seems to be adding two
-#   spaces and using "white-space: pre-wrap;". Using &emsp; or &ensp; lead to
-#   distracting rags if the line is broken directly after the period. Using two
-#   spaces increases the distance between the period and the next word, but
-#   it's maybe a bit more than what is done by latex
-#
-# def _add_sentence_spacing(soup: bs4.BeautifulSoup) -> None:
-#     # pylint: disable= ;
-#     lang = "en"
-#     if lang != 'en':
-#         return
-#     # para_text, _ = re.subn(r"([\"]?[\.?!][\"]?) ([A-Z])", r"\1&emsp;\2", para_text)
-
-
 def _add_code_scrollers(soup: bs4.BeautifulSoup) -> None:
     for elem in soup.find_all('div', {'class': 'codehilite'}):
         scroller = soup.new_tag('div')
@@ -590,7 +569,6 @@ def postproc4screen(
 
     _add_heading_numbers_screen(content_soup, nav_soup)
     _add_figure_numbers(content_soup)
-    # _add_sentence_spacing(content_soup)
     _add_heading_links(content_soup)
     _shyphenate_html(content_soup)
     _add_code_scrollers(content_soup)
@@ -625,7 +603,6 @@ def postproc4print(html_res: md2html.HTMLResult, fmt: str, block_linenos: BlockL
 
     content_soup = bs4.BeautifulSoup(html_text, PARSER_MODULE)
     _add_heading_numbers_print(content_soup, html_res.toc_tokens)
-    # _add_sentence_spacing(content_soup)
     _add_figure_numbers(content_soup)
     _update_footnote_refs(content_soup)
     _add_footnotes_header(content_soup)

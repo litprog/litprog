@@ -7,7 +7,6 @@
 import os
 import sys
 import setuptools
-import pkg_resources
 
 try:
     import fastentrypoints  # noqa
@@ -53,10 +52,14 @@ if is_lib3to6_fix_required:
             ))
 
 
-# because our code to load static files is naive
-zip_safe = False
-
-version = "2021.1002-alpha"
+static_globs = [
+    "static/*",
+    "static/fonts/KaTeX*",
+    "static/fonts/katex.css",
+    "static/fonts/iosevka-term-ss05-regular*",
+    "static/fonts/enriqueta-v10-latin-ext_latin*",
+    "static/fonts/bitter-v17-latin-ext_latin*",
+]
 
 setuptools.setup(
     name="litprog",
@@ -64,7 +67,7 @@ setuptools.setup(
     author="Manuel Barkhau",
     author_email="mbarkhau@gmail.com",
     url="https://gitlab.com/litprog/litprog",
-    version=str(pkg_resources.parse_version(version)),
+    version="2021.1002a0",
     keywords="literate programming markdown litprog",
     description="Literate Programming using Markdown.",
     long_description=long_description,
@@ -72,8 +75,8 @@ setuptools.setup(
     packages=["litprog"],
     package_dir=package_dir,
     include_package_data=True,
-    package_data={"": ["static/*"]},
-    zip_safe=zip_safe,
+    package_data={"": static_globs},
+    zip_safe=True,
     install_requires=install_requires,
     entry_points="""
         [console_scripts]

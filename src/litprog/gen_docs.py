@@ -12,6 +12,11 @@ import pathlib as pl
 
 import jinja2
 
+try:
+    import importlib.resources as importlib_resources
+except ImportError:
+    import importlib_resources
+
 from . import vcs
 from . import parse
 from . import md2html
@@ -69,44 +74,33 @@ PART_PAGE_SIZES = {
     'print_twocol_letter' : "tallcol_letter",
 }
 
-
-STATIC_DIR = pl.Path(__file__).parent / "static"
-FONTS_DIR  = STATIC_DIR.parent.parent.parent / "fonts"
-
 STATIC_DEPS = {
-    STATIC_DIR / "fonts_screen.css",
-    STATIC_DIR / "fonts_print.css",
-    STATIC_DIR / "katex.css",
-    STATIC_DIR / "codehilite.css",
-    STATIC_DIR / "general_v2.css",
-    # STATIC_DIR / "screen_v2.css",
-    STATIC_DIR / "screen_v3.css",
-    # STATIC_DIR / "slideout.js",
-    STATIC_DIR / "popper.js",
-    # STATIC_DIR / "popper.min.js",
-    STATIC_DIR / "app.js",
-    STATIC_DIR / "print.css",
-    STATIC_DIR / "print_a4.css",
-    STATIC_DIR / "print_a5.css",
-    STATIC_DIR / "print_letter.css",
-    STATIC_DIR / "print_ereader.css",
-    STATIC_DIR / "print_halfletter.css",
-    STATIC_DIR / "print_tallcol.css",
-    STATIC_DIR / "print_tallcol_a4.css",
-    STATIC_DIR / "print_tallcol_letter.css",
+    r"static/fonts_screen\.css",
+    r"static/fonts_print\.css",
+    r"static/katex\.css",
+    r"static/codehilite\.css",
+    r"static/general_v2\.css",
+    # r"static/screen_v2\.css",
+    r"static/screen_v3\.css",
+    # r"static/slideout.js",
+    r"static/popper.js",
+    # r"static/popper.min.js",
+    r"static/app.js",
+    r"static/print\.css",
+    r"static/print_a4\.css",
+    r"static/print_a5\.css",
+    r"static/print_letter\.css",
+    r"static/print_ereader\.css",
+    r"static/print_halfletter\.css",
+    r"static/print_tallcol\.css",
+    r"static/print_tallcol_a4\.css",
+    r"static/print_tallcol_letter\.css",
+    r"static/.+\.css",
+    r"static/.+\.svg",
+    r"static/fonts/.+\.woff2",
+    r"static/fonts/.+\.woff",
+    r"static/fonts/.+\.ttf",
 }
-
-STATIC_DEPS.update(STATIC_DIR.glob("*.css"))
-STATIC_DEPS.update(STATIC_DIR.glob("*.svg"))
-STATIC_DEPS.update(FONTS_DIR.glob("*.woff2"))
-STATIC_DEPS.update(FONTS_DIR.glob("*.woff" ))
-STATIC_DEPS.update(FONTS_DIR.glob("*.ttf"  ))
-
-
-def read_static(fname: str) -> str:
-    fpath = STATIC_DIR / fname
-    with fpath.open(mode="r", encoding="utf-8") as fobj:
-        return fobj.read()
 
 
 INDEX_HTML = """
@@ -115,113 +109,6 @@ INDEX_HTML = """
 <head> <meta http-equiv="refresh" content="0; URL='{}'" /> </head>
 <body></body>
 </html>
-"""
-
-
-DEBUG_NAVIGATION_OUTLINE = """
-<div class="toc">
-<ul>
-    <li><a href="">1. Headline</a></li>
-    <li>
-        <a href="">2. Headline</a>
-        <ul>
-            <li><a href="">
-            2.1 Subsection with a longer title than can fit on
-            just one line by itself
-            1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6</a></li>
-            <li><a href="">2.2 Subsection</a></li>
-            <li><a href="">2.3 Subsection</a></li>
-            <li><a href="">2.4 Subsection</a></li>
-        </ul>
-    </li>
-    <li>
-        <a href="">3. Headline</a>
-        <ul>
-            <li><a href="">3.1 Subsection</a></li>
-            <li><a href="">3.2 Subsection</a></li>
-            <li><a href="">3.3 Subsection</a></li>
-            <li><a href="">3.4 Subsection</a></li>
-        </ul>
-    </li>
-    <li>
-        <a href="">4. Headline</a>
-        <ul>
-            <li><a href="">4.1 Subsection</a></li>
-            <li><a href="">4.2 Subsection</a></li>
-            <li><a href="">4.3 Subsection</a></li>
-            <li><a href="">4.4 Subsection</a></li>
-            <li><a href="">4.5 Subsection</a></li>
-            <li><a href="">4.6 Subsection</a></li>
-        </ul>
-    </li>
-    <li>
-        <a href="">5. Headline</a>
-        <ul>
-            <li><a href="">5.1 Subsection</a></li>
-            <li><a href="">5.2 Subsection</a></li>
-            <li><a href="">5.3 Subsection</a></li>
-            <li><a href="">5.4 Subsection</a></li>
-            <li><a href="">5.5 Subsection</a></li>
-            <li><a href="">5.6 Subsection</a></li>
-        </ul>
-    </li>
-    <li>
-        <a href="">6. Headline</a>
-        <ul>
-            <li><a href="">6.1 Subsection</a></li>
-            <li><a href="">6.2 Subsection</a></li>
-            <li><a href="">6.3 Subsection</a></li>
-            <li><a href="">6.4 Subsection</a></li>
-            <li><a href="">6.5 Subsection</a></li>
-            <li><a href="">6.6 Subsection</a></li>
-        </ul>
-    </li>
-    <li>
-        <a href="">7. Headline</a>
-        <ul>
-            <li><a href="">7.1 Subsection</a></li>
-            <li><a href="">7.2 Subsection</a></li>
-            <li><a href="">7.3 Subsection</a></li>
-            <li><a href="">7.4 Subsection</a></li>
-            <li><a href="">7.5 Subsection</a></li>
-            <li><a href="">7.6 Subsection</a></li>
-        </ul>
-    </li>
-    <li>
-        <a href="">8. Headline</a>
-        <ul>
-            <li><a href="">8.1 Subsection</a></li>
-            <li><a href="">8.2 Subsection</a></li>
-            <li><a href="">8.3 Subsection</a></li>
-            <li><a href="">8.4 Subsection</a></li>
-            <li><a href="">8.5 Subsection</a></li>
-            <li><a href="">8.6 Subsection</a></li>
-        </ul>
-    </li>
-    <li>
-        <a href="">4. Headline</a>
-        <ul>
-            <li><a href="">4.1 Subsection</a></li>
-            <li><a href="">4.2 Subsection</a></li>
-            <li><a href="">4.3 Subsection</a></li>
-            <li><a href="">4.4 Subsection</a></li>
-            <li><a href="">4.5 Subsection</a></li>
-            <li><a href="">4.6 Subsection</a></li>
-        </ul>
-    </li>
-    <li>
-        <a href="">4. Headline</a>
-        <ul>
-            <li><a href="">4.1 Subsection</a></li>
-            <li><a href="">4.2 Subsection</a></li>
-            <li><a href="">4.3 Subsection</a></li>
-            <li><a href="">4.4 Subsection</a></li>
-            <li><a href="">4.5 Subsection</a></li>
-            <li><a href="">4.6 Subsection</a></li>
-        </ul>
-    </li>
-</ul>
-</div>
 """
 
 
@@ -259,14 +146,9 @@ def wrap_content_html(
 
     nav = {'outline_html': nav_html} if nav_html else {}
 
-    # nav['outline_html'] = DEBUG_NAVIGATION_OUTLINE
-
     ctx = {'meta': meta, 'fmt': fmt, 'nav': nav, 'content': content_html}
 
-    env = jinja2.Environment(
-        loader=jinja2.FileSystemLoader(str(STATIC_DIR.absolute()))
-        # loader=jinja2.PackageLoader('litprog'),
-    )
+    env    = jinja2.Environment(loader=jinja2.PackageLoader('litprog', package_path="static"))
     tmpl   = env.get_template("template_v2.html")
     result = tmpl.render(**ctx)
     return result
@@ -395,22 +277,36 @@ def _write_screen_html(file_items: typ.List[FileItem], html_dir: pl.Path) -> Non
 
 
 def _write_static_files(captured_static_paths: StaticPaths, html_dir: pl.Path) -> None:
-    # copy/update static dependencies
+    # copy/update static dependencies references in markdown files
     for src_path_str, tgt_path_str in sorted(captured_static_paths):
         # logger.info(f"copy {src_path_str} -> {tgt_path_str}")
         shutil.copy(src_path_str, tgt_path_str)
 
-    # TODO: copy only ttf for print target
-    #       copy only woff for screen target
     out_static_dir = html_dir / "static"
     out_static_dir.mkdir(parents=True, exist_ok=True)
-    for in_fpath in STATIC_DEPS:
-        in_fname     = in_fpath.name
-        out_fpath    = out_static_dir / in_fname
-        is_out_older = not out_fpath.exists() or out_fpath.stat().st_mtime <= in_fpath.stat().st_mtime
-        if is_out_older:
-            # logger.info(f"copy {in_fpath} -> {out_fpath}")
-            shutil.copy(str(in_fpath), str(out_fpath))
+
+    filepaths = {
+        'static'      : list(importlib_resources.contents("litprog.static"      )),
+        "static/fonts": list(importlib_resources.contents("litprog.static.fonts")),
+    }
+
+    for static_fpath in STATIC_DEPS:
+        dirpath, fname = static_fpath.rsplit("/", 1)
+        package = "litprog." + dirpath.replace("/", ".")
+
+        pkg_fname_re = re.compile(fname)
+        for pkg_fname in filepaths[dirpath]:
+            if not pkg_fname_re.match(pkg_fname):
+                continue
+
+            out_fpath    = out_static_dir / pkg_fname
+            if out_fpath.exists():
+                continue
+
+            # logger.info(f"copy {static_fpath} -> {out_fpath}")
+            data    = importlib_resources.read_binary(package, pkg_fname)
+            with out_fpath.open(mode="wb") as fobj:
+                fobj.write(data)
 
 
 def gen_html(ctx: parse.Context, html_dir: pl.Path) -> None:
