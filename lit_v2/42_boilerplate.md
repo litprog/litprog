@@ -9,7 +9,7 @@ All files start with some legal boilerplate. I honestly can't say what legal rel
 # lp: boilerplate::preamble::license_header
 
 # This file is part of the litprog project
-# https://gitlab.com/mbarkhau/litprog
+# https://github.com/litprog/litprog
 #
 # Copyright (c) 2019 Manuel Barkhau (mbarkhau@gmail.com) - MIT License
 # SPDX-License-Identifier: MIT

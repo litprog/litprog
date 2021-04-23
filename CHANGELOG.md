@@ -1,4 +1,4 @@
-# Changelog for https://gitlab.com/mbarkhau/litprog
+# Changelog for https://github.com/litprog/litprog
 
 ## 2020.1001-alpha
 

@@ -1,5 +1,5 @@
 # This file is part of the litprog project
-# https://gitlab.com/mbarkhau/litprog
+# https://github.com/litprog/litprog
 #
 # Copyright (c) 2018-2020 Manuel Barkhau (mbarkhau@gmail.com) - MIT License
 # SPDX-License-Identifier: MIT
@@ -70,7 +70,7 @@ setuptools.setup(
     license="MIT",
     author="Manuel Barkhau",
     author_email="mbarkhau@gmail.com",
-    url="https://gitlab.com/litprog/litprog",
+    url="https://github.com/litprog/litprog",
     version="2021.1003a0",
     keywords="literate programming markdown litprog",
     description="Literate Programming using Markdown.",

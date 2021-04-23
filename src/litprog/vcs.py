@@ -1,10 +1,10 @@
-# This file is part of the pycalver project
-# https://github.com/mbarkhau/pycalver
+# This file is part of the litprog project
+# https://github.com/litprog/litprog
 #
 # Copyright (c) 2018-2020 Manuel Barkhau (mbarkhau@gmail.com) - MIT License
 # SPDX-License-Identifier: MIT
 #
-# bumpver/vcs.py (this file) is based on code from the
+# Originally based on bumpver/vcs.py of https://github.com/mbarkhau/bumpver
 # bumpversion project: https://github.com/peritus/bumpversion
 # Copyright (c) 2013-2014 Filip Noetzel - MIT License
 

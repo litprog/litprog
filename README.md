@@ -34,7 +34,7 @@ Code Quality/CI:
 [](TOC)
 
 
-[repo_ref]: https://gitlab.com/mbarkhau/litprog
+[repo_ref]: https://github.com/litprog/litprog
 
 [github_build_img]: https://github.com/litprog/litprog/workflows/CI/badge.svg
 [github_build_ref]: https://github.com/litprog/litprog/actions?query=workflow%3ACI
