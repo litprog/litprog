@@ -21,9 +21,9 @@
     body.dark, body.dark .wrapper {background: #292929;}
     /*body.gray, body.gray .wrapper {background: #777;}*/
     </style>
-    <link rel="preload" href="/static/bitter-v17-latin-ext_latin-regular.woff2" as="font" type="font/woff2" crossorigin>
-    <link rel="preload" href="/static/bitter-v17-latin-ext_latin-600.woff2" as="font" type="font/woff2" crossorigin>
-    <link rel="preload" href="/static/enriqueta-v10-latin-ext_latin-regular.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="static/bitter-v17-latin-ext_latin-regular.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="static/bitter-v17-latin-ext_latin-600.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="static/enriqueta-v10-latin-ext_latin-regular.woff2" as="font" type="font/woff2" crossorigin>
     <script defer src="static/popper.js"></script>
     <script defer src="static/app.js"></script>
     {% endif %}
@@ -142,18 +142,51 @@
     {% endif %}
     <div class="layout-wrapper">
         {% if fmt.is_web_target %}
-        <div class="nav">
-            <div class="nav-scroller">
-                {{nav.outline_html}}
+            <div class="nav nav-sections">
+                <div class="nav-scroller">
+                    <div class="nav-title">Outline</div>
+                    {{nav.sections_html}}
+                </div>
             </div>
-        </div>
+            {% if nav.chapters_html %}
+            <div class="nav nav-chapters">
+                <div class="nav-scroller">
+                    <div class="nav-title">Chapters</div>
+                    {{nav.chapters_html}}
+                </div>
+            </div>
+            {% endif %}
         {% endif %}
         <div class="wrapper">
             {% if fmt.is_web_target %}
             <div id="top"></div>
             {% endif %}
             <div class="content">
+                {% if fmt.is_web_target %}
+                <div class="chapter-nav chapter-nav-top">
+                    {% if nav.chapter_prev_href %}
+                    <div class="chapter-prev"> <a href="{{nav.chapter_prev_href}}">◄ {{nav.chapter_prev_text}}</a> </div>
+                    {% endif %}
+                    {% if nav.chapter_next_href %}
+                    <div class="chapter-next"> <a href="{{nav.chapter_next_href}}">{{nav.chapter_next_text}} ►</a> </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+
                 {{content}}
+
+
+                {% if fmt.is_web_target %}
+                <div class="chapter-nav chapter-nav-bottom">
+                    {% if nav.chapter_prev_href %}
+                    <div class="chapter-prev"> <a href="{{nav.chapter_prev_href}}">{{nav.chapter_prev_text}}</a> </div>
+                    {% endif %}
+                    {% if nav.chapter_next_href %}
+                    <div class="chapter-next"> <a href="{{nav.chapter_next_href}}"> {{nav.chapter_next_text}}</a> </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+
                 </div>
                 <hr/>
                 <div class="footer">

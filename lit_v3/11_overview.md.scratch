@@ -1,3 +1,22 @@
+
+> The reason that &#91; developers &#93; think the old code is a mess is
+> because of a cardinal, fundamental law of programming: It’s harder
+> to read code than to write it.
+>
+> Joel Spolsky - [Things you should never do][href_joel_neverdo]
+
+[href_joel_neverdo]: https://www.joelonsoftware.com/2000/04/06/things-you-should-never-do-part-i/
+
+[href_green_vs_brown]: https://earthly.dev/blog/brown-green-language/
+
+
+# Main Loop of coding
+
+https://news.ycombinator.com/item?id=26612894
+
+A goal of LitProg is to be suitible for the main loop of coding. The edit/run/debug cycle should be so fast and usable that developers will see it as a tool of choice for many use-cases.
+
+
 after the specified file has been updated[^fnote_redo]
 
 [^fnote_redo]: [@apenwarr][href_twitter_apenwarr] has written enough about the [pitfalls of detecting changes using mtime comparison][href_apenwarr_mtime]. For now, LitProg will detect changes based on mtime changes alone. In future it will hopefully take the recommended approach: Keeping a database/index of files and fall back on content hashing only as an optimization when file system metadata cannot be relied upon to determine if a dependency has changed.
@@ -5,7 +24,6 @@ after the specified file has been updated[^fnote_redo]
 [href_twitter_apenwarr]: https://twitter.com/apenwarr
 
 [href_apenwarr_mtime]: https://apenwarr.ca/log/20181113
-
 
 
 To illustrate, I'll introduce a build script which processes the `examples/fib_cli.py` file (which is an output generated in phase 2 of `litprog build`). This block writes `examples/fib_cli_compat.py` which can be run with a Python 2 interpreter.
@@ -48,7 +66,6 @@ fib(12) =>  144  fib(19) => 4181  fib(20) => 6765
 ```
 
 These examples are intended as a quick overview, but there is much more to be said about the how each of these primitives can be used and misused.
-
 
 
 [^fnote_good_enough_docs]: The documentation should be good enough for practical use. The effort devoted to the quality of the various artifacts corresponds to the use cases I anticipate. The PDF/print output is presumed to be used primarily as linearly read reference material. This means, it is draft quality rather than print quality as the files are intended for a few people to review, rather than for widespread publication. A feature of such output might be to annotate each definition with page numbers where it is used and vis-versa to annotate each usage with a page number for its definition. I've not put in the effort to do that, if you're diving that deep into the material, you should use the HTML, the Markdown source or the generated code, where you have proper jump to definition and search.

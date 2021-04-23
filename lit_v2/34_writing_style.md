@@ -1,5 +1,6 @@
 ### Technical Writing
 
+https://news.ycombinator.com/item?id=26700319
 https://news.ycombinator.com/item?id=20070558
 https://performancejs.com/post/31b361c/13-Tips-for-Writing-a-Technical-Book
 https://zwischenzugs.com/2016/05/15/writing-a-technical-book/

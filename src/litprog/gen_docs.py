@@ -15,7 +15,7 @@ import jinja2
 try:
     import importlib.resources as importlib_resources
 except ImportError:
-    import importlib_resources
+    import importlib_resources  # type: ignore
 
 from . import vcs
 from . import parse
@@ -74,7 +74,7 @@ PART_PAGE_SIZES = {
     'print_twocol_letter' : "tallcol_letter",
 }
 
-STATIC_DEPS = {
+SELECTED_STATIC_DEPS = {
     r"static/fonts_screen\.css",
     r"static/fonts_print\.css",
     r"static/katex\.css",
@@ -132,7 +132,7 @@ def wrap_content_html(
     content_html: HTMLText,
     target      : str,
     meta        : Metadata,
-    nav_html    : typ.Optional[HTMLText] = None,
+    htmls       : typ.Optional[html_postproc.HTMLTexts] = None,
 ) -> HTMLText:
     assert target == 'screen' or target.startswith('print_')
     meta['target'] = target
@@ -144,7 +144,18 @@ def wrap_content_html(
         'is_tallcol_target': "_tallcol_" in target,
     }
 
-    nav = {'outline_html': nav_html} if nav_html else {}
+    nav = {}
+    if htmls:
+        if htmls.chapters:
+            nav['chapters_html'] = htmls.chapters
+        if htmls.sections:
+            nav['sections_html'] = htmls.sections
+        if htmls.chapter_prev_href:
+            nav['chapter_prev_href'] = htmls.chapter_prev_href
+            nav['chapter_prev_text'] = htmls.chapter_prev_text
+        if htmls.chapter_next_href:
+            nav['chapter_next_href'] = htmls.chapter_next_href
+            nav['chapter_next_text'] = htmls.chapter_next_text
 
     ctx = {'meta': meta, 'fmt': fmt, 'nav': nav, 'content': content_html}
 
@@ -261,8 +272,8 @@ def _write_screen_html(file_items: typ.List[FileItem], html_dir: pl.Path) -> Non
         html_fname = md_path.stem + ".html"
         html_fpath = html_dir / html_fname
         logger.info(f"writing '{md_path}' -> '{html_fpath}'")
-        content_html = html_postproc.postproc4screen(html_res, block_linenos, nav_html)
-        wrapped_html = wrap_content_html(content_html, 'screen', meta, nav_html)
+        htmls        = html_postproc.postproc4screen(html_res, block_linenos, nav_html)
+        wrapped_html = wrap_content_html(htmls.content, 'screen', meta, htmls)
         with html_fpath.open(mode="w") as fobj:
             fobj.write(wrapped_html)
 
@@ -276,6 +287,25 @@ def _write_screen_html(file_items: typ.List[FileItem], html_dir: pl.Path) -> Non
             fobj.write(INDEX_HTML.format(inital_url))
 
 
+Package = typ.NewType('Package', str)
+
+
+def _iter_package_paths() -> typ.Iterator[tuple[Package, str]]:
+    available_filepaths = {
+        package: list(importlib_resources.contents(package))
+        for package in ["litprog.static", "litprog.static.fonts"]
+    }
+
+    for static_fpath in SELECTED_STATIC_DEPS:
+        dirpath, fname = static_fpath.rsplit("/", 1)
+        package = Package("litprog." + dirpath.replace("/", "."))
+
+        pkg_fname_re = re.compile(fname)
+        for pkg_fname in available_filepaths[package]:
+            if pkg_fname_re.match(pkg_fname):
+                yield package, pkg_fname
+
+
 def _write_static_files(captured_static_paths: StaticPaths, html_dir: pl.Path) -> None:
     # copy/update static dependencies references in markdown files
     for src_path_str, tgt_path_str in sorted(captured_static_paths):
@@ -285,28 +315,15 @@ def _write_static_files(captured_static_paths: StaticPaths, html_dir: pl.Path) -
     out_static_dir = html_dir / "static"
     out_static_dir.mkdir(parents=True, exist_ok=True)
 
-    filepaths = {
-        'static'      : list(importlib_resources.contents("litprog.static"      )),
-        "static/fonts": list(importlib_resources.contents("litprog.static.fonts")),
-    }
-
-    for static_fpath in STATIC_DEPS:
-        dirpath, fname = static_fpath.rsplit("/", 1)
-        package = "litprog." + dirpath.replace("/", ".")
-
-        pkg_fname_re = re.compile(fname)
-        for pkg_fname in filepaths[dirpath]:
-            if not pkg_fname_re.match(pkg_fname):
+    for package, pkg_fname in _iter_package_paths():
+        out_fpath = out_static_dir / pkg_fname
+        with importlib_resources.path(package, pkg_fname) as in_path:
+            if out_fpath.exists() and in_path.stat().st_mtime < out_fpath.stat().st_mtime:
                 continue
-
-            out_fpath    = out_static_dir / pkg_fname
-            if out_fpath.exists():
-                continue
-
-            # logger.info(f"copy {static_fpath} -> {out_fpath}")
-            data    = importlib_resources.read_binary(package, pkg_fname)
-            with out_fpath.open(mode="wb") as fobj:
-                fobj.write(data)
+            logger.debug(f"copy {in_path} -> {out_fpath}")
+            with in_path.open(mode="rb") as in_fobj:
+                with out_fpath.open(mode="wb") as out_fobj:
+                    shutil.copyfileobj(in_fobj, out_fobj)
 
 
 def gen_html(ctx: parse.Context, html_dir: pl.Path) -> None:
@@ -344,7 +361,7 @@ def gen_html(ctx: parse.Context, html_dir: pl.Path) -> None:
                 tgt_path = html_dir / img_tag.url
                 captured_static_paths.add((str(src_path), str(tgt_path)))
 
-        html_res: md2html.HTMLResult = md2html.md2html(md_text)
+        html_res: md2html.HTMLResult = md2html.md2html(md_text, filename=str(md_file.md_path))
 
         if html_res.raw_html:
             block_linenos = list(md_file.iter_block_linenos())

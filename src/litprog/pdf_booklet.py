@@ -11,7 +11,7 @@ import typing as typ
 import logging
 import pathlib as pl
 
-import PyPDF2 as pdf
+import PyPDF2 as pypdf
 
 logger = logging.getLogger("pdf_booklet")
 
@@ -154,6 +154,8 @@ def get_format_id(
     return None
 
 
+PDFReader = typ.Any
+
 PDFPage = typ.Any
 
 MediaBox = typ.Any
@@ -164,18 +166,26 @@ PageIndexMapping = typ.List[typ.Tuple[int, int]]
 class OutputParameters(typ.NamedTuple):
 
     page_order: str
-    scale     : float
     width     : float
     height    : float
+
+    scale     : float
     pad_x     : float
     pad_y     : float
     pad_center: float
 
 
-def _init_output_parameters(media_box: MediaBox, out_sheet_format: str) -> OutputParameters:
-    # TODO (mb 2021-03-04): Can we figure out the bounds of the inner content
+def _init_output_parameters(reader: PDFReader, out_sheet_format: str) -> OutputParameters:
+    # NOTE (mb 2021-03-04): Can we figure out the bounds of the inner content
     #   and scale + translate each page to be in a well defined content box
     #   in the output page?
+    # NOTE (mb 2021-03-19): Nope, we can't, at least not easilly with PyPDF2.
+    #   A possible alternative is PyMuPDF: https://pymupdf.readthedocs.io/
+
+    # pylint: disable=too-many-locals
+
+    media_box = reader.getPage(0).mediaBox
+
     in_page_width  = float(media_box.getWidth())
     in_page_height = float(media_box.getHeight())
 
@@ -216,9 +226,9 @@ def _init_output_parameters(media_box: MediaBox, out_sheet_format: str) -> Outpu
 
     return OutputParameters(
         'booklet',
-        scale,
         out_sheet_width,
         out_sheet_height,
+        scale,
         pad_x,
         pad_y,
         pad_center,
@@ -227,7 +237,7 @@ def _init_output_parameters(media_box: MediaBox, out_sheet_format: str) -> Outpu
 
 def _create_sheets(
     in_pages            : typ.List[PDFPage],
-    output              : pdf.PdfFileWriter,
+    output              : pypdf.PdfFileWriter,
     out_coords          : OutputParameters,
     half_page_to_in_page: PageIndexMapping,
 ) -> typ.List[PDFPage]:
@@ -284,13 +294,12 @@ def create(
     else:
         _out_path = out_path
 
-    output = pdf.PdfFileWriter()
+    output = pypdf.PdfFileWriter()
 
     with in_path.open(mode="rb") as in_fobj:
-        reader    = pdf.PdfFileReader(in_fobj)
-        media_box = reader.getPage(0).mediaBox
+        reader = pypdf.PdfFileReader(in_fobj)
 
-        output_params = _init_output_parameters(media_box, out_sheet_format)
+        output_params = _init_output_parameters(reader, out_sheet_format)
 
         in_pages = list(reader.pages)
 

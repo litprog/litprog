@@ -3,6 +3,11 @@ include README.md
 include CHANGELOG.md
 include fastentrypoints.py
 include requirements/pypi.txt
-include src/litprog/static/*
-include src/litprog/static/fonts/*
-
+include src/litprog/static/*.js
+include src/litprog/static/*.css
+include src/litprog/static/*.html
+include src/litprog/static/*.svg
+include src/litprog/static/*.png
+include src/litprog/static/fonts/iosevka-term-ss05-regular*
+include src/litprog/static/fonts/enriqueta-v10-latin-ext_latin*
+include src/litprog/static/fonts/bitter-v17-latin-ext_latin*

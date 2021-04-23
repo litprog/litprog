@@ -24,6 +24,7 @@ class HTMLResult(typ.NamedTuple):
     raw_html  : HTMLText
     toc_html  : TocHTML
     toc_tokens: TocTokens
+    filename  : str
 
 
 def init_md_ctx() -> md.Markdown:
@@ -73,7 +74,7 @@ def init_md_ctx() -> md.Markdown:
     return md.Markdown(extensions=extensions, extension_configs=extension_configs)
 
 
-def md2html(md_text: MarkdownText) -> HTMLResult:
+def md2html(md_text: MarkdownText, filename: str = "<markdown_blob>") -> HTMLResult:
     md_ctx        = init_md_ctx()
     raw_html_text = md_ctx.convert(md_text)
-    return HTMLResult(raw_html_text, md_ctx.toc, md_ctx.toc_tokens)  # type: ignore
+    return HTMLResult(raw_html_text, md_ctx.toc, md_ctx.toc_tokens, filename)  # type: ignore

@@ -53,7 +53,11 @@ if is_lib3to6_fix_required:
 
 
 static_globs = [
-    "static/*",
+    "*.js",
+    "*.css",
+    "*.html",
+    "*.svg",
+    "*.png",
     "static/fonts/KaTeX*",
     "static/fonts/katex.css",
     "static/fonts/iosevka-term-ss05-regular*",
@@ -72,15 +76,15 @@ setuptools.setup(
     description="Literate Programming using Markdown.",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    packages=["litprog"],
+    packages=['litprog'],
     package_dir=package_dir,
     include_package_data=True,
-    package_data={"": static_globs},
+    package_data={'litprog': static_globs},
     zip_safe=True,
     install_requires=install_requires,
     entry_points="""
         [console_scripts]
-        litprog=litprog.cli:cli
+        lit=litprog.cli:cli
     """,
 
     # See https://pypi.python.org/pypi?%3Aaction=list_classifiers

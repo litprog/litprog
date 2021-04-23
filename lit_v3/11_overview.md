@@ -86,7 +86,16 @@ Naur is not optimistic that such theories can be captured in artifacts at all, a
 
 [href_naur_patb]: https://pages.cs.wisc.edu/~remzi/Naur.pdf
 
-I don't know if Naur is correct in his pessimism about documentation.  He may well be.  To the extent that such artifacts *can* be created however, to the extent that theories *can* be captured effectively, the Literate Programming paradigm is worth a shot.  The goal of LitProg is to reduce, as much as possible, the friction to create artifacts that represent the full program, including its theories, not just its code.  The goal is to help new programmers to gain full ownership of the programs they inherit, be it as users or as maintainers.  The goal is to reduce the effort to communicate the essence of a program, so that later programmers can understand it just as well as the original authors.
+I don't know if Naur is correct in his pessimism about documentation.  He may well be.  To the extent that such artifacts *can* be created however, to the extent that theories *can* be captured effectively, the Literate Programming paradigm is worth a shot.  The goal of LitProg is to reduce, as much as possible, the friction to create artifacts that represent the full program, including its theories, not just its code.  The goal is to help new programmers to gain full ownership of the programs they inherit, be it as users or as maintainers.  The goal is to reduce the effort to communicate the essence of a program, so that later programmers can understand it just as well as the original authors[^fnote_green_vs_brown].
+
+[^fnote_green_vs_brown]:
+    Incidentally, a [recent blog article][href_green_vs_brown] made the distinction between programming languages that are "green" vs "brown". This may have less to do with the languages themselves as much as the fact that a new programming language also implies green field development, whereas an old language may imply an existing codebase.
+
+    To write new code is more easy than to modify unfamiliar existing code. This leads to a positive association with the new "green" programming language compared to the old "brown" programming language, even though this may have nothing to do with the merrits of the languages themselves.
+
+    It will be interesting to see programmers have the same dread of working with a project that uses LitProg, or if such projects will have a more enduring perception as "green".
+
+[href_green_vs_brown]: https://earthly.dev/blog/brown-green-language/
 
 
 ## Narratives of Programs
@@ -270,7 +279,7 @@ LitProg directives are written using the comment syntax of the programming langu
     It is often seen critically, to embed programming constructs inside comments and rightfully so. Considering the context of LitProg however, where programmers have Markdown available to them for documentation and don't need to resort as much to comments, I think this repurposing of the comment syntax is a reasonable compromise:
 
     1. It allows existing code/syntax highlight and formatting tools to work, without having to implement anything specific to LitProg.
-    2. Only specific directives at the beginning of a code block are parsed. All other comments are ignored, so you can continue to use comments for other uses, as you deem appropriate.
+    2. Only comments with LitProg specific directives are parsed. All other comments are ignored, so you can continue to use comments for other uses, as you deem appropriate.
 
 
 The previous block can be referenced either as `slow_fib` or `overview.slow_fib`. The namespace `overview` is derived from the filename `11_overview.md`. The normalization of the filename removes the file extension as well as any leading digits and underscores. Within the `11_overview.md` file, the shorter reference `slow_fib` is valid, but from other Markdown files, you must use the fully qualified name `overview.slow_fib`.
@@ -378,7 +387,7 @@ for i in range(9):
     print(fib(i), end=" ")
 ```
 
-The output of a process is always captured but that output is only made visible by using an `out` directive.
+The output of a process is always captured but is only made visible in a subsequent block with an `out` directive.
 
 ```shell
 # out
@@ -410,6 +419,18 @@ By this point I hope you can see, that LitProg allows you to write:
 These can all be combined in a way that allows you to create a narrative that makes the most sense to understand your program.
 
 
+## Interlude on Motivation
+
+By now you have had a taste of how LitProg works, so I'd like to interject some comments on why you might want to use LitProg.
+
+
+### In-Place Updates of Fenced Blocks
+
+Validating that a program is correct, is not only important to communicate to readers, it is also part and parcel of the programming workflow. Most programmers are the first that want to know if their program is working or broken. Generating HTML/PDF documentation takes a bit of time and switching back and forth between a browser/pdf viewer and a code editor would introduce some friction into the programming workflow. To avoid this friction, LitProg can instead do in-place updates to the original Markdown files. The output that is captured during a build is inserted into the Markdown text. This works well for editors that detect and automatically reload files that have changed. When using `'litprog watch'` programmers can simply hit save and see the updated output of their program appear directly in their text editor.
+
+This approach also has the advantage that output of the most recent execution and viewing the Markdown files on github/gitlab/bitbucket can give a good idea of what the generated documentation will look like. Reviewing the diff of a commit can also demonstrate the behavioral change caused by a change in the source code, rather than looking at the output of a separate log file.
+
+
 !!! warning "The Pitfalls of Rewriting Input Files"
 
     Modifying the Markdown files as they are being edited by a programmer can cause some issues. These issues are similar to those encountered when using code formatters that do in-place updates of source code files: What happens if the file is edited again before the in-place update is completed?
@@ -438,18 +459,6 @@ These can all be combined in a way that allows you to create a narrative that ma
     This behaviour means that readers can be sure that the output they are reading is identical to what was originally captured.
 
 
-## Interlude on Motivation
-
-By now you have had a taste of how LitProg works, so I'd like to interject some comments on why you might want to use LitProg.
-
-
-### In-Place Updates of Fenced Blocks
-
-Validating that a program is correct, is not only important to communicate to readers, it is also part and parcel of the programming workflow. Most programmers are the first that want to know if their program is working or broken. Generating HTML/PDF documentation takes a bit of time and switching back and forth between a browser/pdf viewer and a code editor would introduce some friction into the programming workflow. To avoid this friction, LitProg can instead do in-place updates to the original Markdown files. The output that is captured during a build is inserted into the Markdown text. This works well for editors that detect and automatically reload files that have changed. When using `'litprog watch'` programmers can simply hit save and see the updated output of their program appear directly in their text editor.
-
-This approach also has the advantage that output of the most recent execution and viewing the Markdown files on github/gitlab/bitbucket can give a good idea of what the generated documentation will look like. Reviewing the diff of a commit can also demonstrate the behavioral change caused by a change in the source code, rather than looking at the output of a separate log file.
-
-
 ### Programmer Workflow
 
 A critical goal of LitProg is to integrate well with the existing workflows of programmers. You as a programmer should be able to stay in your code editor most of the time. You should be able to use git, github and any existing build systems or tooling. You should be able to focus on your ideas, your code, your narrative and your writing, rather than on document layout, typesetting or an unfamiliar and markup language.
@@ -463,7 +472,7 @@ Now I know what you're thinking: "I *already* don't spend any time on document l
 
 - If your program is a one-off script, almost certainly LitProg isn't the right choice.
 - If your program is trivial and nobody other than you will ever work on it, then any effort to create a narrative will be wasted.
-- If you are still exploring your problem domain and can't even begin to explain your program, then it may well be fine to put off the LP approach, until you have a better understanding yourself.
+- If you are still exploring your problem domain and can't even begin to explain your program, then it may well be fine to put off the LP approach, until you better understand it.
 
 Not all software needs to satisfy lofty goals of being understandable and demonstrably correct.
 

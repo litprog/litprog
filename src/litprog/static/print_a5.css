@@ -7,8 +7,8 @@
     }
     body {
         /* A5 - for A4 and US-Letter booklets */
-        font-size: 8.5pt;
-        line-height: 1.55em;
+        font-size: 9.5pt;
+        line-height: 1.5em;
     }
     img {
         max-width: calc(148mm - 24mm);

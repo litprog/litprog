@@ -68,7 +68,8 @@ h1, h2, h3, h4 {
     text-align: left;
     font-weight: normal;
     letter-spacing: -0.02em;
-    margin-top: 2em;
+    margin-top: 1.2em;
+    margin-bottom: 0.6em;
 }
 
 h1:first-child {
@@ -129,7 +130,7 @@ li p:last-child {margin-bottom: 0;}
 table {
     border-collapse: collapse;
     text-align: left;
-    margin-bottom: 1em;
+    margin: 1em auto;
 }
 
 .content tbody tr:nth-child(2n + 1) {background: #F6F6F6;}
@@ -182,24 +183,15 @@ body {
 blockquote p:last-child {margin: 0;}
 
 blockquote, .admonition {
-    font-size: 0.95em;
-    line-height: 1.65em;
-    color: #333;
+    line-height: 1.5em;
+    color: #222;
     border-width: 0 0 0 5px;
     border-style: solid;
-
-    width: calc(100% - 20px);
-    margin: 1.5em auto;
-    padding: 0 0 0.3em 0;
 }
 
 blockquote li, .admonition li,
 blockquote p, .admonition p {
-    line-height: 1.65em;
-}
-
-blockquote {
-    padding: 0.3em 0;
+    line-height: 1.5em;
 }
 
 .dark blockquote, .dark .admonition {
@@ -214,10 +206,30 @@ blockquote > ul, .admonition > ol,
     padding: 0 2em 0 2em;
 }
 
+/* Fix padding on admonitions without titles. */
+blockquote p:first-child,
+.admonition p:first-child {
+    padding-top: 1em;
+}
+
 .admonition p.admonition-title {
-    padding: 0.3em 1em;
     color: #000;
     font-size: 1.05em;
+    padding: 0.3em 1em;
+    margin: 0 0 0.8em -0.25px;
+}
+
+blockquote {
+    padding: 0.3em 0;
+}
+blockquote, .admonition {
+    margin: 1.5em auto;
+    padding: 0 0 0.8em 0;
+    width: calc(100% - 20px);
+}
+
+.admonition p:last-child {
+    margin-bottom: 0;
 }
 
 .dark .admonition p.admonition-title {

@@ -26,12 +26,8 @@ h1 a:visited, h2 a:visited, h3 a:visited, h4 a:visited, h5 a:visited {
     color: white;
 }
 
-.dark a {
-    color: #9CF;
-}
-.dark a:visited {
-    color: #DBF;
-}
+.dark a {color: #9CF; }
+.dark a:visited {color: #DBF; }
 
 .wrapper {
     background: #FBFAFA;
@@ -74,25 +70,40 @@ body .dark-overlay {
     padding-inline-start: 1em;
 }
 
-.nav {
-    overflow: hidden;
-    display: block;
+.nav-title {
+    margin-top: 20px;
+    text-align: center;
 }
 
 .nav-scroller {
     overflow-x: hidden;
     overflow-y: scroll;
     overscroll-behavior: contain;
-    height: 100vh;
+    height: 100%;
     width: 260px;
     padding-right: 25px;
 }
 
-.nav-scroller > .toc {
-    margin-top: 40px;
+.nav {
+  position: fixed;
+  overflow: hidden;
+  display: block;
+  z-index: 1;
+  width: 265px;
+  -webkit-overflow-scrolling: touch;
 }
 
-.toc > ul {
+.nav-sections {
+  height: 55vh;
+  top: 0;
+}
+.nav-chapters {
+  bottom: 0;
+  height: 45vh;
+}
+
+
+.nav-chapters .toc > ul {
     /* room so elements aren't hidden by menu */
     padding-bottom: 90px;
 }
@@ -122,9 +133,6 @@ body .dark-overlay {
     width: 185px;
     padding: 4px 5px 4px 40px;
     text-indent: -35px;
-}
-.toc > ul > li > a {
-    margin-top: 0.8em;
 }
 
 .toc a.active {text-decoration: underline;}
@@ -167,6 +175,49 @@ body .dark-overlay {
     margin-top: -2px;
     font-size: 85%;
     line-height: 1.2em;
+}
+
+.content {
+    position: relative;
+}
+
+.chapter-nav-top,
+.chapter-nav-bottom {
+    height: 2em;
+    font-size: 0.95em;
+    line-height: 1.2em;
+    font-family: lp-enriqueta;
+}
+.chapter-nav a {color: #666;}
+.chapter-nav a:hover {color: #000;}
+.dark .chapter-nav a {color: #AAA;}
+.dark .chapter-nav a:hover {color: #FFF;}
+
+.chapter-nav-top > div,
+.chapter-nav-bottom > div {
+    position: absolute;
+    width: 25em;
+    max-width: 45%;
+    height: 2em;
+}
+
+.chapter-nav-top > div {top: 0;}
+.chapter-nav-bottom > div {bottom: 0;}
+
+.chapter-prev {
+    padding: 2em 0 2em 1em;
+}
+.chapter-next {
+    padding: 2em 1em 2em 0;
+}
+
+.chapter-prev {
+    text-align: left;
+    left: 0;
+}
+.chapter-next {
+    text-align: right;
+    right: 0;
 }
 
 .header, .menu, .nav {
@@ -223,14 +274,6 @@ body .dark-overlay {
     display: none;
 }
 
-.nav {
-  position: fixed;
-  top: 0;
-  z-index: 1;
-  width: 265px;
-  -webkit-overflow-scrolling: touch;
-}
-
 .menu,
 .header {
     position: fixed;
@@ -246,7 +289,7 @@ body .dark-overlay {
     .header {top: 0;}
     .menu {bottom: 0;}
     .nav {
-        border: 1px solid #777;
+        border-right: 1px solid #777;
         left: -300px;
         transition: left 250ms;
         will-change: left;
@@ -495,10 +538,6 @@ img.bob,
 
 /* Section - Component: Admonitions */
 
-.admonition p.admonition-title {
-    margin: 0 0 1em -0.25px;
-}
-
 blockquote, .admonition {
     box-shadow: 0px 0px 6px #DDD;
 }
@@ -584,6 +623,26 @@ body {
         left: calc(50% - 630px);
     }
 }
+
+/* split nav and page centered */
+@media only screen and (min-width: 1450px) {
+    .wrapper {
+        margin: 40px 0 40px calc(50% - 450px);
+    }
+    .nav-chapters, .nav-sections {
+        top: 0;
+        height: 100vh;
+    }
+    .nav-chapters, .menu {
+        left: calc(50% - 730px);
+    }
+    .nav-sections {
+        height: 100vh;
+        left: unset;
+        right: calc(50% - 730px);
+    }
+}
+
 
 /* Increase font size to maintain approx. constant line length. */
 

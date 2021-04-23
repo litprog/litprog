@@ -1,6 +1,6 @@
 # Example: Solve Every Sudoku Puzzle
 
-Where the previous chapter *described* how LitProg works, this chapter aims to *demonstrate* by example how LitProg can be used.
+Where the previous chapter *described* how LitProg works, this chapter aims to *demonstrate* how it works.
 
 This chapter produces the following artifacts:
 

@@ -2,7 +2,8 @@
 "strict";
 
 var menuIcon = document.querySelector(".menu-icon")
-var navPanel = document.querySelector(".nav")
+var sectionsPanel = document.querySelector(".nav-sections")
+var chaptersPanel = document.querySelector(".nav-chapters")
 
 var loadingStart = Date.now()
 var lastInteraction = Date.now()
@@ -15,10 +16,12 @@ function toggleNav() {
     lastInteraction = Date.now()
     navState.isOpen = !navState.isOpen
     if (navState.isOpen) {
-        navPanel.classList.add("active")
+        sectionsPanel.classList.add("active")
+        chaptersPanel.classList.add("active")
         menuIcon.classList.add("active")
     } else {
-        navPanel.classList.remove("active")
+        sectionsPanel.classList.remove("active")
+        chaptersPanel.classList.remove("active")
         menuIcon.classList.remove("active")
     }
 }
@@ -127,15 +130,15 @@ function togglePdfLinks() {
 onInteraction(pdfIcon, togglePdfLinks)
 
 var navScrollerNode = document.querySelector(".nav-scroller")
-var tocNode = document.querySelector(".toc")
+var sectionsTocNode = document.querySelector(".nav-sections .toc")
 var headingNodes = document.querySelectorAll("h1, h2, h3, h4, h5")
-var navLinkNodes = document.querySelectorAll(".toc a")
+var sectionLinkNodes = document.querySelectorAll(".nav-sections a")
 
 var navLinkNodesByHash = {}
-for (var i = 0; i < navLinkNodes.length; i++) {
-    var href = navLinkNodes[i].href
+for (var i = 0; i < sectionLinkNodes.length; i++) {
+    var href = sectionLinkNodes[i].href
     var hrefAnchor = href.slice(href.indexOf("#"))
-    navLinkNodesByHash[hrefAnchor] = navLinkNodes[i]
+    navLinkNodesByHash[hrefAnchor] = sectionLinkNodes[i]
 }
 
 var setActiveNavTimeout = 0
@@ -163,6 +166,7 @@ function setActiveNav() {
         }
 
         var newActiveNav = navLinkNodesByHash[headingHash];
+        if (!newActiveNav) {return}
 
         if (activeNavNode == newActiveNav) {return}
 
@@ -172,7 +176,7 @@ function setActiveNav() {
         activeNavNode = newActiveNav
         newActiveNav.classList.add("active")
 
-        var relOffsetTop = newActiveNav.offsetTop - tocNode.offsetTop
+        var relOffsetTop = newActiveNav.offsetTop - sectionsTocNode.offsetTop
         var scrollTop = navScrollerNode.scrollTop
         var scrollBottom = scrollTop + 2 * navScrollerNode.offsetHeight / 3
         if (!(scrollTop < relOffsetTop && relOffsetTop < scrollBottom)) {
@@ -182,10 +186,10 @@ function setActiveNav() {
         break
     }
     if (activeNavNode) {
-        var navLinkNodes = document.querySelectorAll(".toc a")
+        var sectionLinkNodes = document.querySelectorAll(".nav-sections a")
         var isAfterActive = false
-        for (var i = 0; i < navLinkNodes.length; i++) {
-            var navLinkNode = navLinkNodes[i];
+        for (var i = 0; i < sectionLinkNodes.length; i++) {
+            var navLinkNode = sectionLinkNodes[i];
             if (navLinkNode === activeNavNode) {
                 isAfterActive = true;
             }

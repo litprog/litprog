@@ -7,8 +7,8 @@
     }
     body {
         /* for A4 and US-Letter */
-        font-size: 10pt;
-        line-height: 1.6em;
+        font-size: 11pt;
+        line-height: 1.5em;
     }
     img {
         max-height: calc(297mm - 45mm);
@@ -18,12 +18,12 @@
     @page {
         @top-left {
             content: counter(page) "        " string(chapter);
-            font-size: 10pt;
+            font-size: 10.5pt;
             margin-bottom: -10mm;
         }
         @top-right {
             content: string(section);
-            font-size: 10pt;
+            font-size: 10.5pt;
             margin-bottom: -10mm;
         }
     }

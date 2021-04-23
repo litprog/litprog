@@ -203,11 +203,12 @@ $ pycalver test 'v201811.0051-beta' '{pycalver}' --release final
 
 
 def _iter_postproc_content_html(
-    content_html         : HTMLText,
+    html_res             : md2html.HTMLResult,
     max_line_len         : int,
     add_initial_linebreak: bool              = False,
     block_linenos        : MaybeBlockLinenos = None,
 ) -> typ.Iterable[str]:
+    content_html: HTMLText = html_res.raw_html
     content_html = content_html.replace("<table>" , """<div class="table-wrap"><table>""")
     content_html = content_html.replace("</table>", """</table></div>""")
 
@@ -228,14 +229,18 @@ def _iter_postproc_content_html(
 
         if block_linenos is None:
             first_lineno = 0
-        else:
+        elif block_index < len(block_linenos):
             first_lineno, num_lines = block_linenos[block_index]
             num_content_lines = content_text.strip("\n").count("\n")
             if num_lines == num_content_lines:
                 block_index += 1
             else:
-                logger.warning("could not match line numbers to html code block")
+                loc = f"{html_res.filename}"
+                logger.warning(f"could not match line numbers of block {loc} to html <code>")
                 first_lineno = 0
+        else:
+            loc = f"{html_res.filename}"
+            logger.warning(f"could not match line numbers in {loc} to html <code> block")
 
         wrapped_lines = iter_wrapped_lines(
             content_text,
@@ -305,7 +310,6 @@ def _shyphenate(dic: pyphen.Pyphen, text: str) -> str:
 
 
 def _shyphenate_html(soup: bs4.BeautifulSoup) -> None:
-    # TODO: get language from project metadata
     dic = pyphen.Pyphen(lang="en_US")
 
     elements = it.chain(soup.find_all("p"), soup.find_all("li"))
@@ -397,10 +401,9 @@ def _add_heading_links(soup: bs4.BeautifulSoup) -> None:
             heading.string.wrap(a_tag)
 
 
-def _add_heading_numbers_screen(content_soup: bs4.BeautifulSoup, nav_soup: bs4.BeautifulSoup) -> None:
-
+def _add_heading_numbers_screen(content_soup: bs4.BeautifulSoup, sections_soup: bs4.BeautifulSoup) -> None:
     numbers_by_hashlink: typ.Dict[str, str] = {
-        node['href'].split("#", 1)[-1]: node.text.split(" ", 1)[0] for node in nav_soup.select("a")
+        node['href'].split("#", 1)[-1]: node.text.split(" ", 1)[0] for node in sections_soup.select("a")
     }
 
     for heading in content_soup.select("h1, h2, h3, h4, h5"):
@@ -548,16 +551,25 @@ def postproc_nav_html(nav_html: HTMLText, has_footnotes: bool = False) -> HTMLTe
     return str(nav_soup)
 
 
+class HTMLTexts(typ.NamedTuple):
+    content : HTMLText
+    chapters: HTMLText
+    sections: HTMLText
+
+    chapter_prev_href: str
+    chapter_next_href: str
+    chapter_prev_text: str
+    chapter_next_text: str
+
+
 def postproc4screen(
     html_res     : md2html.HTMLResult,
     block_linenos: BlockLinenos,
     nav_html     : HTMLText,
-) -> HTMLText:
-    content_html: HTMLText = html_res.raw_html
-
+) -> HTMLTexts:
     # content_html = "".join(_wrap_firstpara(content_html))
     html_chunks = _iter_postproc_content_html(
-        content_html,
+        html_res,
         max_line_len=MAX_CODE_BLOCK_LINE_LEN,
         add_initial_linebreak=False,
         block_linenos=block_linenos,
@@ -570,14 +582,70 @@ def postproc4screen(
     _add_heading_numbers_screen(content_soup, nav_soup)
     _add_figure_numbers(content_soup)
     _add_heading_links(content_soup)
-    _shyphenate_html(content_soup)
+
+    # NOTE (mb 2021-04-18): Since chrome finally supports hyphens: auto
+    #   on balance is better to disable this. The main reason is that copy
+    #   and paste from the html output will include invisible hyphens.
+    # _shyphenate_html(content_soup)
+
     _add_code_scrollers(content_soup)
     _update_footnote_refs(content_soup)
     _add_footnotes_header(content_soup)
     content_html = str(content_soup)
 
-    # content_html.replace("\u00AD", "&shy;")
-    return content_html
+    # content_html = content_html.replace("\u00AD", "&shy;")
+
+    chapters_soup = bs4.BeautifulSoup(str(nav_soup), PARSER_MODULE)
+    for elem in chapters_soup.select(".toc a"):
+        elem.attrs['href'] = elem.attrs['href'].split("#")[0]
+
+    for elem in chapters_soup.select(".toc > ul > li > ul > li > ul"):
+        elem.decompose()
+
+    current_elem = chapters_soup.select(".toc > ul > li > ul > li > a")[0]
+
+    parent       = current_elem.parent.parent.parent
+    prev_sibling = parent.previous_sibling
+    next_sibling = parent.next_sibling
+
+    while prev_sibling and isinstance(prev_sibling, bs4.element.NavigableString):
+        prev_sibling = prev_sibling.previous_sibling
+    while next_sibling and isinstance(next_sibling, bs4.element.NavigableString):
+        next_sibling = next_sibling.next_sibling
+
+    chapter_prev_href = ""
+    chapter_next_href = ""
+    chapter_prev_text = ""
+    chapter_next_text = ""
+
+    if prev_sibling:
+        prev_elem         = prev_sibling.select("a")[0]
+        chapter_prev_href = prev_elem.attrs['href'].split("#")[0]
+        chapter_prev_text = prev_elem.text
+    if next_sibling:
+        next_elem         = next_sibling.select("a")[0]
+        chapter_next_href = next_elem.attrs['href'].split("#")[0]
+        chapter_next_text = next_elem.text
+
+    current_elem.attrs['class'] = "active"
+    parent.insert(0, current_elem)
+
+    sections_soup = nav_soup.select(".toc > ul > li > ul")
+    if sections_soup:
+        sections_html = '<div class="toc">' + str(sections_soup[0]) + "</div>"
+    else:
+        sections_html = ""
+
+    chapters_html = str(chapters_soup)
+    return HTMLTexts(
+        content_html,
+        chapters_html,
+        sections_html,
+        chapter_prev_href,
+        chapter_next_href,
+        chapter_prev_text,
+        chapter_next_text,
+    )
 
 
 def postproc4print(html_res: md2html.HTMLResult, fmt: str, block_linenos: BlockLinenos) -> HTMLText:
@@ -594,7 +662,7 @@ def postproc4print(html_res: md2html.HTMLResult, fmt: str, block_linenos: BlockL
         max_line_len = MAX_CODE_BLOCK_LINE_LEN
 
     html_chunks = _iter_postproc_content_html(
-        html_res.raw_html,
+        html_res,
         max_line_len=max_line_len,
         add_initial_linebreak=True,
         block_linenos=block_linenos,

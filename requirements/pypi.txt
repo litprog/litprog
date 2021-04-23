@@ -22,6 +22,9 @@ beautifulsoup4
 Jinja2
 PyPDF2
 
+CairoSVG>=2.5.2
+    # older versions had some rendering issues
+
 toml
 PyYAML
 

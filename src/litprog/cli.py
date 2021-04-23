@@ -110,13 +110,13 @@ def _get_md_paths(input_paths: InputPaths) -> typ.List[pl.Path]:
 
 # TODO (mb 2021-01-28): These should be parsed from the front matter
 SELECTED_FORMATS = [
-    # 'print_a4',
-    # 'print_letter',
-    # 'print_ereader',
+    'print_a4',
+    'print_letter',
+    'print_ereader',
     'print_a5',
     'print_booklet_a4',
-    # 'print_halfletter',
-    # 'print_booklet_letter',
+    'print_halfletter',
+    'print_booklet_letter',
     # 'print_twocol_letter',
     # 'print_twocol_a4',
 ]

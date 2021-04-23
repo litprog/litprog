@@ -1,6 +1,12 @@
 # Costs and Benefits of LitProg
 
-todo
+> The reason that &#91; developers &#93; think the old code is a mess is
+> because of a cardinal, fundamental law of programming: It’s harder
+> to read code than to write it.
+>
+> Joel Spolsky - [Things you should never do][href_joel_neverdo]
+
+[href_joel_neverdo]: https://www.joelonsoftware.com/2000/04/06/things-you-should-never-do-part-i/
 
 
 
