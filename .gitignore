@@ -77,6 +77,7 @@ test_build_logs/*.log
 build/miniconda3.sh
 compat_test/
 fonts/
+fonts_archive/
 katex_static/
 lit_out/
 
