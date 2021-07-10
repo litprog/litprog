@@ -71,7 +71,7 @@ body .dark-overlay {
 }
 
 .nav-title {
-    margin-top: 20px;
+    margin-top: 30px;
     text-align: center;
 }
 
@@ -640,6 +640,9 @@ body {
         height: 100vh;
         left: unset;
         right: calc(50% - 730px);
+    }
+    .nav-title {
+        margin-top: 60px;
     }
 }
 

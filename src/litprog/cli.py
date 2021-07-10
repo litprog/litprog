@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 InputPaths = typ.Sequence[str]
 
-click.disable_unicode_literals_warning = True
+click.disable_unicode_literals_warning = True  # type: ignore[attr-defined]
 
 
 class LogConfig(typ.NamedTuple):

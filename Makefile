@@ -65,7 +65,7 @@ pycalver_docs: ../pycalver/README.html ../pycalver/README_booklet.pdf
 ## Default target
 doc/11_overview.html: lit_v3/11_overview.md src/litprog/static/*
 	PYTHONPATH=src/:vendor/:$$PYTHONPATH \
-		$(DEV_ENV)/bin/litprog \
+		$(DEV_ENV)/bin/lit \
 			build -v lit_v3/11_overview.md --html doc/
 #	cp doc/*.html /run/user/1000/keybase/kbfs/public/mbarkhau/litprog/
 # 	rsync -r fonts/woff* /run/user/1000/keybase/kbfs/public/mbarkhau/litprog/fonts/
@@ -73,15 +73,22 @@ doc/11_overview.html: lit_v3/11_overview.md src/litprog/static/*
 #	cp src/litprog/static/*.js /run/user/1000/keybase/kbfs/public/mbarkhau/litprog/
 
 
+svg2png := inkscape --without-gui --export-area-page --file
+
+
 ## Create favicon
-favicon.ico: *.png
-	inkscape -z -e favicon_16.png -w 16 -h 16 favicon.svg
-	inkscape -z -e favicon_24.png -w 24 -h 24 favicon.svg
-	inkscape -z -e favicon_48.png -w 48 -h 48 favicon.svg
-	inkscape -z -e icon.png -w 128 -h 128 favicon.svg
-	inkscape -z -e icon.png -w 128 -h 128 logotype.svg
-	convert favicon_16.png favicon_24.png favicon_48.png favicon_old.ico
-	convert logotype_16.png logotype_24.png logotype_48.png favicon.ico
+logo/favicon.ico: logo/*.svg
+	# $(svg2png) logo/favicon.svg --export-png logo/favicon_16.png -w 16 -h 16
+	# $(svg2png) logo/favicon.svg --export-png logo/favicon_24.png -w 24 -h 24
+	# $(svg2png) logo/favicon.svg --export-png logo/favicon_48.png -w 48 -h 48
+	# $(svg2png) logo/favicon.svg --export-png logo/icon.png -w 128 -h 128
+	# convert logo/favicon_16.png logo/favicon_24.png logo/favicon_48.png logo/favicon_old.ico
+
+	$(svg2png) logo/logotype.svg --export-png logo/logotype_16.png -w 16 -h 16
+	$(svg2png) logo/logotype.svg --export-png logo/logotype_24.png -w 24 -h 24
+	$(svg2png) logo/logotype.svg --export-png logo/logotype_48.png -w 48 -h 48
+	$(svg2png) logo/logotype.svg --export-png logo/logotype.png -w 256 -h 256
+	convert logo/logotype_16.png logo/logotype_24.png logo/logotype_48.png logo/favicon.ico
 
 
 KATEX_CDN_BASE_URL=https://cdn.jsdelivr.net/npm/katex@0.10.2/dist
@@ -122,8 +129,8 @@ deploy_sketch:
 ## build ../sbk/READMEv2.md -> doc/
 .PHONY: sbk
 sbk:
-	$(DEV_ENV)/bin/litprog build -v ../sbk/READMEv2.md --html doc
-	$(DEV_ENV)/bin/litprog build -v ../sbk/READMEv2.md --pdf doc
+	$(DEV_ENV)/bin/lit build -v ../sbk/READMEv2.md --html doc
+	$(DEV_ENV)/bin/lit build -v ../sbk/READMEv2.md --pdf doc
 
 
 ## upload static doc/ to keybase

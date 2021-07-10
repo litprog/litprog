@@ -5,7 +5,6 @@
 # SPDX-License-Identifier: MIT
 
 import os
-import sys
 import setuptools
 
 try:
@@ -37,7 +36,7 @@ long_description = "\n\n".join((read("README.md"), read("CHANGELOG.md")))
 package_dir = {"": "src"}
 
 
-static_globs = [
+package_data_globs = [
     "*.js",
     "*.css",
     "*.html",
@@ -64,7 +63,7 @@ setuptools.setup(
     packages=['litprog'],
     package_dir=package_dir,
     include_package_data=True,
-    package_data={'litprog': static_globs},
+    package_data={'litprog': package_data_globs},
     zip_safe=True,
     install_requires=install_requires,
     entry_points="""
