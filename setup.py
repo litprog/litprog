@@ -5,6 +5,7 @@
 # SPDX-License-Identifier: MIT
 
 import os
+import sys
 import setuptools
 
 try:
@@ -19,21 +20,32 @@ def project_path(*sub_paths):
 
 
 def read(*sub_paths):
-    with open(project_path(*sub_paths), mode="rb") as fh:
-        return fh.read().decode("utf-8")
+    with open(project_path(*sub_paths), mode="rb") as fobj:
+        return fobj.read().decode("utf-8")
 
 
-install_requires = [
-    line.strip()
-    for line in read("requirements", "pypi.txt").splitlines()
-    if line.strip() and not line.startswith("#")
-]
+def read_requirements(subset):
+    return [
+        line.strip()
+        for line in read("requirements", "pypi_" + subset +".txt").splitlines()
+        if line.strip() and not line.startswith("#")
+    ]
 
 
 long_description = "\n\n".join((read("README.md"), read("CHANGELOG.md")))
 
+install_requires = read_requirements("default")
 
 package_dir = {"": "src"}
+
+if any(arg.startswith("bdist") for arg in sys.argv):
+    import lib3to6
+    package_dir = lib3to6.fix(
+        package_dir,
+        target_version="3.6",
+        install_requires=install_requires,
+        default_mode='enabled',
+    )
 
 
 package_data_globs = [
@@ -66,6 +78,10 @@ setuptools.setup(
     package_data={'litprog': package_data_globs},
     zip_safe=True,
     install_requires=install_requires,
+    extras_require={
+        'html': read_requirements("html"),
+        'pdf': read_requirements("html") + read_requirements("pdf"),
+    },
     entry_points="""
         [console_scripts]
         lit=litprog.cli:cli

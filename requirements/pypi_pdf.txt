@@ -1,0 +1,6 @@
+CairoSVG>=2.5.2
+    # older versions had some rendering issues
+
+PyPDF2
+WeasyPrint
+Pyphen

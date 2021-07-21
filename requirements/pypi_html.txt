@@ -1,0 +1,9 @@
+Markdown>=3.0
+markdown-svgbob
+markdown-aafigure
+markdown-blockdiag
+markdown-katex
+
+Pygments
+beautifulsoup4
+Jinja2

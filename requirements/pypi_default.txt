@@ -11,24 +11,9 @@ click<8.0; python_version < "3.6"
 click; python_version >= "3.6"
 importlib-resources;python_version<="3.8"
 
-Markdown>=3.0
-markdown-svgbob
-markdown-aafigure
-markdown-blockdiag
-markdown-katex
-Pygments
-Pyphen
-WeasyPrint
-beautifulsoup4
-Jinja2
-PyPDF2
-
-CairoSVG>=2.5.2
-    # older versions had some rendering issues
-
 toml
 PyYAML
 
 # for block result caching
-redis
-zstandard
+# redis
+# zstandard
