@@ -224,10 +224,24 @@ function setMenuVis(vis) {
     }
 }
 
+var contentNode = document.querySelector(".content")
+
+contentNode.addEventListener('click', (evt) => {
+    if (pdfLinks.classList.contains("active") && !evt.target.closest(".pdf-links")) {
+        togglePdfLinks()
+        evt.preventDefault()
+    }
+})
+
 window.addEventListener("scroll", (evt) => {
     clearTimeout(setActiveNavTimeout)
     setActiveNavTimeout = setTimeout(setActiveNav, 100)
     if (window.pageYOffset < 10) {
+        setMenuVis(true)
+        return
+    }
+
+    if (window.pageYOffset > contentNode.offsetHeight - window.innerHeight) {
         setMenuVis(true)
         return
     }
@@ -258,15 +272,6 @@ window.addEventListener("scroll", (evt) => {
     // }
 
     setMenuVis(window.pageYOffset < 10 || deltaY < 0)
-})
-
-var contentNode = document.querySelector(".content")
-
-contentNode.addEventListener('click', (evt) => {
-    if (pdfLinks.classList.contains("active") && !evt.target.closest(".pdf-links")) {
-        togglePdfLinks()
-        evt.preventDefault()
-    }
 })
 
 var activeTarget = null;
