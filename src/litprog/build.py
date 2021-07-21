@@ -251,6 +251,11 @@ def _expand_block_content(
                 else:
                     added_deps.add(lp_dep_sid)
 
+            if lp_dep_sid not in blocks_by_sid:
+                # TODO (mb 2021-07-18): pylev for better message
+                errmsg = f"Invalid dep: '{lp_dep_sid}'"
+                raise BlockError(errmsg, block)
+
             for dep_block in blocks_by_sid[lp_dep_sid]:
                 dep_content = _expand_block_content(
                     blocks_by_sid, dep_block, added_deps, dep_map, keep_fence=False, lvl=lvl + 1
@@ -412,7 +417,6 @@ def _get_default_command(block: parse.Block) -> typ.Optional[str]:
     # TODO (mb 2020-12-17): Allow override/configuration
     lang = block.info_string.strip()
     if lang == 'python':
-        # TODO (mb 2020-12-18): sys.executable to work with pypy?
         return "python3"
     elif lang in ("bash", "shell"):
         return "bash"

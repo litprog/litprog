@@ -254,7 +254,11 @@ def build(
     verbose        : int  = 0,
 ) -> None:
     _configure_logging(verbose)
-    _build(input_paths, html, pdf, exitfirst, in_place_update, cache_enabled, concurrency)
+    try:
+        _build(input_paths, html, pdf, exitfirst, in_place_update, cache_enabled, concurrency)
+    except (lp_build.BlockExecutionError, lp_build.BlockError) as err:
+        print(err)
+        sys.exit(1)
 
 
 @cli.command()
@@ -285,16 +289,16 @@ def watch(
     # initial build
     try:
         _build(input_paths, html, pdf, exitfirst, in_place_update, cache_enabled, concurrency)
-    except lp_build.BlockExecutionError:
-        pass
+    except (lp_build.BlockExecutionError, lp_build.BlockError) as err:
+        print(err)
 
     watcher = lp_watch.Watcher(input_paths)
 
     def _build_cb(changes) -> None:
         try:
             _build(input_paths, html, pdf, exitfirst, in_place_update, cache_enabled, concurrency)
-        except lp_build.BlockExecutionError:
-            pass
+        except (lp_build.BlockExecutionError, lp_build.BlockError) as err:
+            print(err)
         # refresh mtimes after build, as they may have changed in the meantime
         watcher.refresh_mtimes()
 
