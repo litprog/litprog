@@ -10,21 +10,13 @@
   <defs>
      <path id="L" d="M 43 53 H 26 V 9 L 33 8 V 5 L 12 5 V 8 L 18 9 V 53 L 11 55 V 60 H 50 V 44 H 44 Z" />
      <path id="P"
-      d="M 18 10 H 31 Q 44 10 44 21 Q 44 32 31 32 H 26 L 26 39 H 31 Q 52 39 52 21 Q 52 4 31 4 H 18 L 11 4 L 11 9" />
+      d="M 18 10 H 31 Q 44 10 44 21 Q 44 32 31 32 H 25 L 25 39 H 31 Q 52 39 52 21 Q 52 4 31 4 H 18 L 11 4 L 11 9 Z" />
     <g id="backdrop-l" style="fill:#FFFFFF"> <use xlink:href="#L" /> </g>
     <g id="backdrop-p" style="fill:#000000"> <use xlink:href="#P" /> </g>
   </defs>
-  <use xlink:href="#backdrop-l" transform="translate(1 1) "/>
-  <use xlink:href="#backdrop-l" transform="translate(-1 1) "/>
-  <use xlink:href="#backdrop-l" transform="translate(1 -1) "/>
-  <use xlink:href="#backdrop-l" transform="translate(-1 -1) "/>
-  <use xlink:href="#backdrop-p" transform="translate(1 1) "/>
-  <use xlink:href="#backdrop-p" transform="translate(-1 1) "/>
-  <use xlink:href="#backdrop-p" transform="translate(1 -1) "/>
-  <use xlink:href="#backdrop-p" transform="translate(-1 -1) "/>
   <g aria-label="LP"
-     style="fill:#000000">
-     <use xlink:href="#L" />
-     <use xlink:href="#P" style="fill:#ffcc00" />
+     style="fill:#000000" stroke-opacity="0.7">
+     <use xlink:href="#L" style="stroke: #ffffff"/>
+     <use xlink:href="#P" style="stroke: #000000; fill:#ffcc00" />
   </g>
 </svg>
