@@ -12,17 +12,12 @@ import pathlib as pl
 
 import jinja2
 
-try:
-    import importlib.resources as importlib_resources
-except ImportError:
-    import importlib_resources  # type: ignore
-
 from . import vcs
 from . import parse
 from . import md2html
 from . import html2pdf
 from . import __version__
-from . import pdf_booklet
+from . import package_data
 from . import vcs_timeline
 from . import html_postproc
 
@@ -73,35 +68,6 @@ PART_PAGE_SIZES = {
     'print_twocol_a4'     : "tallcol_a4",
     'print_twocol_letter' : "tallcol_letter",
 }
-
-SELECTED_STATIC_DEPS = {
-    r"static/fonts_screen\.css",
-    r"static/fonts_print\.css",
-    r"static/katex\.css",
-    r"static/codehilite\.css",
-    r"static/general_v2\.css",
-    # r"static/screen_v2\.css",
-    r"static/screen_v3\.css",
-    # r"static/slideout.js",
-    r"static/popper.js",
-    # r"static/popper.min.js",
-    r"static/app.js",
-    r"static/print\.css",
-    r"static/print_a4\.css",
-    r"static/print_a5\.css",
-    r"static/print_letter\.css",
-    r"static/print_ereader\.css",
-    r"static/print_halfletter\.css",
-    r"static/print_tallcol\.css",
-    r"static/print_tallcol_a4\.css",
-    r"static/print_tallcol_letter\.css",
-    r"static/.+\.css",
-    r"static/.+\.svg",
-    r"static/fonts/.+\.woff2",
-    r"static/fonts/.+\.woff",
-    r"static/fonts/.+\.ttf",
-}
-
 
 INDEX_HTML = """
 <!DOCTYPE html>
@@ -287,25 +253,6 @@ def _write_screen_html(file_items: typ.List[FileItem], html_dir: pl.Path) -> Non
             fobj.write(INDEX_HTML.format(inital_url))
 
 
-Package = typ.NewType('Package', str)
-
-
-def _iter_package_paths() -> typ.Iterator[tuple[Package, str]]:
-    available_filepaths = {
-        package: list(importlib_resources.contents(package))
-        for package in ["litprog.static", "litprog.static.fonts"]
-    }
-
-    for static_fpath in SELECTED_STATIC_DEPS:
-        dirpath, fname = static_fpath.rsplit("/", 1)
-        package = Package("litprog." + dirpath.replace("/", "."))
-
-        pkg_fname_re = re.compile(fname)
-        for pkg_fname in available_filepaths[package]:
-            if pkg_fname_re.match(pkg_fname):
-                yield package, pkg_fname
-
-
 def _write_static_files(captured_static_paths: StaticPaths, html_dir: pl.Path) -> None:
     # copy/update static dependencies references in markdown files
     for src_path_str, tgt_path_str in sorted(captured_static_paths):
@@ -315,15 +262,15 @@ def _write_static_files(captured_static_paths: StaticPaths, html_dir: pl.Path) -
     out_static_dir = html_dir / "static"
     out_static_dir.mkdir(parents=True, exist_ok=True)
 
-    for package, pkg_fname in _iter_package_paths():
+    for package, pkg_fname, pkg_path_ctx in package_data.iter_paths():
         out_fpath = out_static_dir / pkg_fname
-        with importlib_resources.path(package, pkg_fname) as in_path:
-            if out_fpath.exists() and in_path.stat().st_mtime < out_fpath.stat().st_mtime:
-                continue
-            logger.debug(f"copy {in_path} -> {out_fpath}")
-            with in_path.open(mode="rb") as in_fobj:
-                with out_fpath.open(mode="wb") as out_fobj:
-                    shutil.copyfileobj(in_fobj, out_fobj)
+        with pkg_path_ctx as in_path:
+            is_out_older = not out_fpath.exists() or in_path.stat().st_mtime >= out_fpath.stat().st_mtime
+            if is_out_older:
+                logger.debug(f"copy {in_path} -> {out_fpath}")
+                with in_path.open(mode="rb") as in_fobj:
+                    with out_fpath.open(mode="wb") as out_fobj:
+                        shutil.copyfileobj(in_fobj, out_fobj)
 
 
 def gen_html(ctx: parse.Context, html_dir: pl.Path) -> None:
@@ -383,6 +330,8 @@ def gen_pdf(
     pdf_dir : pl.Path,
     formats : typ.Sequence[str] = PRINT_FORMATS,
 ) -> None:
+    from . import pdf_booklet
+
     if not pdf_dir.exists():
         pdf_dir.mkdir(parents=True)
 
