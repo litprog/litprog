@@ -139,8 +139,6 @@ def iter_wrapped_lines(
     pre_content_text  = pre_content_text.replace("<span></span>", "")
     pre_content_lines = pre_content_text.splitlines()
 
-    # NOTE: code blocks are basically hardcoded to a width of two characters
-    # line_number_width = len(str(len(pre_content_lines)))
     for line_idx, line in enumerate(pre_content_lines):
         lineno = first_lineno + line_idx + 1
         parts  = list(_iter_wrapped_line_parts(line, max_len=max_line_len))
@@ -151,13 +149,17 @@ def iter_wrapped_lines(
                 else:
                     lineno_span = "<span class=\"lineno\">\u21AA</span>"
 
-                if add_initial_linebreak and line_part.startswith("<code"):
+                if line_part.startswith("<code"):
                     tag_end_idx = line_part.index(">")
-                    # TODO: Fix this cludge. For some reason, the
-                    #   first line is indented by less than a full
-                    #   space and I have no idea why.
-                    _stupid_linebreak = "\n"
-                    line_part         = (
+                    if add_initial_linebreak:
+                        # TODO: Fix this cludge. For some reason, the
+                        #   first line is indented by less than a full
+                        #   space and I have no idea why.
+                        _stupid_linebreak = "\n"
+                    else:
+                        _stupid_linebreak = ""
+
+                    line_part = (
                         line_part[: tag_end_idx + 1]
                         + _stupid_linebreak
                         + lineno_span
