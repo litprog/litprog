@@ -142,27 +142,28 @@ class ResultCache:
             self.task_keys_by_provide_id[entry.task_key] = entry.task_key
 
     def task_key(self, task: common.BlockTask) -> str:
-        requires_digest = hashlib.sha1()
+        requires_parts: list[str] = []
 
-        requires_digest.update(task.block.namespace.encode("utf-8"))
+        requires_parts.append(task.block.namespace)
         if task.opts.directive == 'run':
-            requires_digest.update(task.command.encode("utf-8"))
+            requires_parts.append(task.command)
             for maybe_path in shlex.split(task.command):
                 if os.path.exists(maybe_path):
                     mtime = os.stat(maybe_path).st_mtime
-                    requires_digest.update(str(mtime).encode("utf-8"))
+                    requires_parts.append(str(mtime))
         else:
-            requires_digest.update(task.block.content.encode("utf-8"))
+            requires_parts.append(task.block.content)
 
         for require_id in sorted(task.opts.requires_ids):
-            requires_digest.update(require_id.encode("utf-8"))
+            requires_parts.append(require_id)
             # For any require, there MUST have previously have been a
             #   call of ResultCache._reset_task_keys for the
             #   corresponding block with the def/provide. This means
             #   that task_keys_by_provide_id must be populated.
             task_key = self.task_keys_by_provide_id[require_id]
-            requires_digest.update(task_key.encode("utf-8"))
+            requires_parts.append(task_key)
 
+        requires_digest = hashlib.sha1("".join(requires_parts).encode("utf-8"))
         return requires_digest.hexdigest()
 
     def invalidate_requires(self, provides_id: str) -> None:
