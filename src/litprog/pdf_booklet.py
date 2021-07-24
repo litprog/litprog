@@ -11,13 +11,15 @@ import typing as typ
 import logging
 import pathlib as pl
 
-import PyPDF2 as pypdf
+import pdfrw
 
 logger = logging.getLogger("pdf_booklet")
 
 
-MAX_BOOKLET_SHEETS = 13
-PAGES_PER_SHEET    = 4
+MAX_SECTION_PAGES = 48
+PAGES_PER_SHEET   = 4
+
+assert MAX_SECTION_PAGES % PAGES_PER_SHEET == 0
 
 PT_PER_INCH = 72
 PT_PER_MM   = PT_PER_INCH / 25.4
@@ -55,83 +57,31 @@ PAPER_FORMATS_PT = {
 # https://tex.stackexchange.com/questions/60934/
 
 
-def calc_booklet_page_counts(total_pages: int, max_sheets: int = MAX_BOOKLET_SHEETS) -> typ.List[int]:
-    total_sheets = math.ceil(total_pages  / PAGES_PER_SHEET)
-    num_booklets = math.ceil(total_sheets / max_sheets)
-
-    # spb: sheets per booklet
-    # ppb: pages per booklet
-
-    target_ppb = total_pages / num_booklets
-    spb        = math.floor(target_ppb / PAGES_PER_SHEET)
-    ppb        = spb * PAGES_PER_SHEET
-
-    if ppb * num_booklets < total_pages - PAGES_PER_SHEET:
-        ppb += PAGES_PER_SHEET
-
-    if ppb * num_booklets < total_pages:
-        # Add extra pages to the last booklet
-        last_ppb = ppb + PAGES_PER_SHEET
-    else:
-        last_ppb = ppb
-
-    return [ppb] * (num_booklets - 1) + [last_ppb]
-
-
 # Glossary
-# Booklet: Multiple sheets that get bound together
-# Sheet: Duplex printed piece of paper, with four pages
-# Half-Sheet: One face of a sheet with two pages
+# Section: Multiple sheets that get bound together
+# Bifolio: Duplex printed piece of paper, with two sheets and four pages
+# Sheet: One face of a bifolio with two pages
 # Page: One half of one side of a sheet
 
 _BOOKLET_PAGE_NUMBERING_ILLUSTRATION = r"""
 
-         Booklet 1        Booklet 2
+       Section 1        Section 2
 
-         +       +        +       +
-    8   /|----->/|   16  /|----->/|
-    -->/ | 6   / |   -->/ | 14  / |
-      / 7| -->/ 5|     /15| -->/13|
-     +   |   +   |    +   |   +   |
-     |\  |   |\  |    |\  |   |\  |
-     | \/    | \/     | \/    | \/
-     |  \    |  \     |  \    |  \
-     |   |   |   |    |   |   |   |
-     |  1|   |  3|    |  9|   | 11|
-      \  |  2 \  |  4  \  | 10 \  | 12
-       \ |<--  \ |<--   \ |<--  \ |<--
-        \|----->\|       \|----->\|
-         +       +        +       +
+       +       +        +       +
+  8   /|  6   /|   16  /|      /|
+  -->/ |  -->/ |   -->/ | 14  / |
+    / 7|    / 5|     /15| -->/13|
+   +   |   +   |    +   |   +   |
+   |\  |   |\  |    |\  |   |\  |
+   | \/    | \/     | \/    | \/
+   |  \    |  \     |  \    |  \
+   |   |   |   |    |   |   |   |
+   |  1|   |   |    |  9|   | 11|
+    \  | 3  \  |     \  | 10 \  | 12
+     \ | --->\ |      \ |<--  \ |<--
+      \|<-- 2 \|<-- 4  \|      \|
+       +       +        +       +
 """
-
-
-def booklet_page_layout(
-    total_pages: int, max_sheets: int = MAX_BOOKLET_SHEETS
-) -> typ.Tuple[typ.List[int], typ.List[int]]:
-    booklet_page_counts = calc_booklet_page_counts(total_pages, max_sheets)
-
-    booklet_index_by_page     : typ.List[int] = []
-    booklet_page_index_by_page: typ.List[int] = []
-
-    doc_page_offset = 0
-    for booklet_index, booklet_page_count in enumerate(booklet_page_counts):
-        left_doc_page_index  = doc_page_offset + booklet_page_count - 1
-        right_doc_page_index = doc_page_offset
-        while right_doc_page_index < left_doc_page_index:
-            booklet_page_index_by_page.append(left_doc_page_index)
-            booklet_page_index_by_page.append(right_doc_page_index)
-            booklet_page_index_by_page.append(right_doc_page_index + 1)
-            booklet_page_index_by_page.append(left_doc_page_index - 1)
-            booklet_index_by_page += [booklet_index] * 4
-            left_doc_page_index -= 2
-            right_doc_page_index += 2
-
-        doc_page_offset += booklet_page_count
-
-    assert len(booklet_page_index_by_page) == len(booklet_index_by_page)
-    assert len(booklet_page_index_by_page) == len(set(booklet_page_index_by_page))
-
-    return booklet_page_index_by_page, booklet_index_by_page
 
 
 def get_format_id(
@@ -154,20 +104,10 @@ def get_format_id(
     return None
 
 
-PDFReader = typ.Any
-
-PDFPage = typ.Any
-
-MediaBox = typ.Any
-
-PageIndexMapping = typ.List[typ.Tuple[int, int]]
-
-
 class OutputParameters(typ.NamedTuple):
 
-    page_order: str
-    width     : float
-    height    : float
+    width : float
+    height: float
 
     scale     : float
     pad_x     : float
@@ -175,7 +115,9 @@ class OutputParameters(typ.NamedTuple):
     pad_center: float
 
 
-def _init_output_parameters(reader: PDFReader, out_sheet_format: str) -> OutputParameters:
+def parse_output_parameters(
+    in_page_width: float, in_page_height: float, out_sheet_format: str
+) -> OutputParameters:
     # NOTE (mb 2021-03-04): Can we figure out the bounds of the inner content
     #   and scale + translate each page to be in a well defined content box
     #   in the output page?
@@ -183,11 +125,6 @@ def _init_output_parameters(reader: PDFReader, out_sheet_format: str) -> OutputP
     #   A possible alternative is PyMuPDF: https://pymupdf.readthedocs.io/
 
     # pylint: disable=too-many-locals
-
-    media_box = reader.getPage(0).mediaBox
-
-    in_page_width  = float(media_box.getWidth())
-    in_page_height = float(media_box.getHeight())
 
     out_sheet_width, out_sheet_height = PAPER_FORMATS_PT[out_sheet_format]
     if out_sheet_width < out_sheet_height:
@@ -225,7 +162,6 @@ def _init_output_parameters(reader: PDFReader, out_sheet_format: str) -> OutputP
     logger.info(f"    out: {_ow_mm}mm x {_oh_mm}mm")
 
     return OutputParameters(
-        'booklet',
         out_sheet_width,
         out_sheet_height,
         scale,
@@ -235,57 +171,60 @@ def _init_output_parameters(reader: PDFReader, out_sheet_format: str) -> OutputP
     )
 
 
-def _create_sheets(
-    in_pages            : typ.List[PDFPage],
-    output              : pypdf.PdfFileWriter,
-    out_coords          : OutputParameters,
-    half_page_to_in_page: PageIndexMapping,
-) -> typ.List[PDFPage]:
-    sheet_indexes = {half_page_index // 2 for in_page_index, half_page_index in half_page_to_in_page}
-    out_sheets    = [
-        output.addBlankPage(width=out_coords.width, height=out_coords.height) for _ in sheet_indexes
-    ]
-
-    for half_page_index, in_page_index in half_page_to_in_page:
-        if len(in_pages) - 1 < in_page_index:
-            continue
-
-        in_page = in_pages[in_page_index]
-
-        out_sheet = out_sheets[half_page_index // 2]
-        if half_page_index % 2 == 0:
-            x_offset = 0 - out_coords.pad_center
-        else:
-            x_offset = (out_coords.width / 2) + out_coords.pad_center
-
-        translate_x = x_offset + out_coords.pad_x
-        translate_y = 0        + out_coords.pad_y
-
-        tzero = time.time()
-
-        if abs(out_coords.scale - 1) < 0.01:
-            out_sheet.mergeTranslatedPage(in_page, tx=translate_x, ty=translate_y, expand=False)
-        else:
-            out_sheet.mergeScaledTranslatedPage(
-                in_page, scale=out_coords.scale, tx=translate_x, ty=translate_y, expand=False
-            )
-
-        duration = int((time.time() - tzero) * 1000)
-
-        sheet_index = half_page_index % 2
-        logger.debug(f"booklet page: {half_page_index:>2} sheet: {sheet_index:>2} {duration:>5}ms")
-
-    return out_sheets
-
-
 def create(
     in_path         : pl.Path,
     out_path        : typ.Optional[pl.Path] = None,
     out_sheet_format: str = 'A4-Landscape',
+    page_order      : str = 'booklet',
 ) -> pl.Path:
     assert out_sheet_format in PAPER_FORMATS_PT
 
-    max_sheets = MAX_BOOKLET_SHEETS
+    in_pdf    = pdfrw.PdfReader(in_path)
+    in_pages  = in_pdf.pages
+    firstpage = in_pages[0]
+
+    x0, y0, in_page_width, in_page_height = map(float, firstpage["/MediaBox"])
+    assert x0 == 0
+    assert y0 == 0
+
+    out_params = parse_output_parameters(in_page_width, in_page_height, out_sheet_format)
+    if abs(out_params.scale - 1) > 0.02:
+        import pdf_booklet_old
+        return pdf_booklet_old.create(in_path, out_path, out_sheet_format, page_order)
+
+    lx_offset = 0 - out_params.pad_center
+    rx_offset = (out_params.width / 2) + out_params.pad_center
+
+    in_sections = [[]]
+    for in_page in in_pages:
+        if len(in_sections[-1]) == MAX_SECTION_PAGES:
+            in_sections.append([])
+        in_sections[-1].append(in_page)
+
+    class PageMerge(pdfrw.PageMerge):
+        @property
+        def xobj_box(self):
+            return pdfrw.PdfArray((0, 0, out_params.width, out_params.height))
+
+    def fixpage(l_page: pdfrw.PdfDict, r_page: pdfrw.PdfDict) -> pdfrw.PdfDict:
+        result = PageMerge()
+        if l_page:
+            result.add(l_page)
+            result[-1].x += lx_offset
+        if r_page:
+            result.add(r_page)
+            result[-1].x += rx_offset
+
+        return result.render()
+
+    out_pages = []
+    for in_section in in_sections:
+        in_section += [None] * (-len(in_section) % 4)
+        assert len(in_section) % 4 == 0
+
+        while len(in_section) > 0:
+            out_pages.append(fixpage(in_section.pop(), in_section.pop(0)))
+            out_pages.append(fixpage(in_section.pop(0), in_section.pop()))
 
     if out_path is None:
         ext          = in_path.suffixes[-1]
@@ -294,33 +233,9 @@ def create(
     else:
         _out_path = out_path
 
-    output = pypdf.PdfFileWriter()
-
-    with in_path.open(mode="rb") as in_fobj:
-        reader = pypdf.PdfFileReader(in_fobj)
-
-        output_params = _init_output_parameters(reader, out_sheet_format)
-
-        in_pages = list(reader.pages)
-
-        if output_params.page_order == 'booklet':
-            layout = booklet_page_layout(len(in_pages), max_sheets=max_sheets)
-            booklet_page_indexes, _booklet_index_by_page = layout
-            half_page_to_in_page = list(enumerate(booklet_page_indexes))
-        else:
-            half_page_to_in_page = [
-                (half_page_index, half_page_index) for half_page_index in range(len(in_pages))
-            ]
-
-        out_sheets = _create_sheets(in_pages, output, output_params, half_page_to_in_page)
-        tzero      = time.time()
-        for out_sheet in out_sheets:
-            out_sheet.compressContentStreams()
-        compression_time = time.time() - tzero
-        logger.debug(f"compression time: {compression_time}")
-
-        with _out_path.open(mode="wb") as out_fobj:
-            output.write(out_fobj)
+    out_pdf = pdfrw.PdfWriter(_out_path)
+    out_pdf = out_pdf.addpages(out_pages)
+    out_pdf.write()
 
     logger.info(f"Wrote to '{_out_path}'")
 
