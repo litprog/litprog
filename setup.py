@@ -8,12 +8,6 @@ import os
 import sys
 import setuptools
 
-try:
-    import fastentrypoints  # noqa
-except ImportError:
-    pass
-
-
 def project_path(*sub_paths):
     project_dirpath = os.path.abspath(os.path.dirname(__file__))
     return os.path.join(project_dirpath, *sub_paths)
@@ -48,19 +42,6 @@ if any(arg.startswith("bdist") for arg in sys.argv):
     )
 
 
-package_data_globs = [
-    "*.js",
-    "*.css",
-    "*.html",
-    "*.svg",
-    "*.png",
-    "static/fonts/KaTeX*",
-    "static/fonts/katex.css",
-    "static/fonts/iosevka-term-ss05-regular*",
-    "static/fonts/enriqueta-v10-latin-ext_latin*",
-    "static/fonts/bitter-v17-latin-ext_latin*",
-]
-
 setuptools.setup(
     name="litprog",
     license="MIT",
@@ -75,7 +56,6 @@ setuptools.setup(
     packages=['litprog'],
     package_dir=package_dir,
     include_package_data=True,
-    package_data={'litprog': package_data_globs},
     zip_safe=True,
     install_requires=install_requires,
     extras_require={
