@@ -15,10 +15,10 @@ import collections
 from concurrent.futures import Future
 from concurrent.futures import ThreadPoolExecutor
 
-from . import cache
 from . import parse
 from . import common
 from . import session
+from . import capture_cache
 
 logger = logging.getLogger(__name__)
 
@@ -744,7 +744,7 @@ class Runner:
     _all_tasks         : typ.List[common.BlockTask]
     _task_results      : typ.List[typ.Tuple[common.BlockTask, session.Capture]]
 
-    _cache: cache.ResultCache
+    _cache: capture_cache.ResultCache
 
     def __init__(
         self,
@@ -770,9 +770,9 @@ class Runner:
             self._all_tasks.extend(_iter_block_tasks(md_file))
 
         if self.opts.cache_enabled:
-            self._cache = cache.LocalResultCache(self.orig_files)
+            self._cache = capture_cache.LocalResultCache(self.orig_files)
         else:
-            self._cache = cache.DummyCache()
+            self._cache = capture_cache.DummyCache()
 
     def _run_task(self, task: common.BlockTask) -> None:
         if self.opts.cache_enabled:

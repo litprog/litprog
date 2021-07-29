@@ -28,7 +28,25 @@ logger = logging.getLogger(__name__)
 
 MarkdownFiles = typ.Iterable[parse.MarkdownFile]
 
-SERIAL_VERSION_ID = 1
+SERIAL_VERSION_ID = '1'
+
+
+# TODO (mb 2021-03-05):
+
+# dctx = zstandard.ZstdDecompressor()
+# capture_bytes = dctx.decompress(capture_zstd)
+
+# cctx = zstandard.ZstdCompressor()
+# capture_zstd = cctx.compress(capture_bytes)
+
+
+def _compress(data: bytes) -> bytes:
+    return data
+
+
+def _decompress(data: bytes) -> bytes:
+    return data
+
 
 CaptureData = bytes
 
@@ -234,23 +252,6 @@ class DummyCache(ResultCache):
 
     def flush(self) -> None:
         pass
-
-
-# TODO (mb 2021-03-05):
-
-# dctx = zstandard.ZstdDecompressor()
-# capture_bytes = dctx.decompress(capture_zstd)
-
-# cctx = zstandard.ZstdCompressor()
-# capture_zstd = cctx.compress(capture_bytes)
-
-
-def _compress(data: bytes) -> bytes:
-    return data
-
-
-def _decompress(data: bytes) -> bytes:
-    return data
 
 
 def parse_cache_id(md_files: MarkdownFiles) -> str:
