@@ -14,22 +14,19 @@ import math
 def sig_round(val: float, n: int = 3) -> float:
     if n <= 1:
         raise TypeError(f"n must be > 0, but got n={repr(n)}")
-
-    if val == 0.0:
+    elif val == 0.0:
         return 0.0
-
-    log = math.log10(abs(val))
-    if log <= 1.5:
-        sig = -int(log - n)
     else:
-        sig = -int(log - (n - 1))
-
-    return round(val, sig)
+        log = math.ceil(math.log10(abs(val)))
+        return round(val, n - log)
 ```
 
 ```python
 # exec
 # dep: sig_round
+assert sig_round(123.456, n=6) == 123.456
+assert sig_round(123.456, n=5) == 123.46
+assert sig_round(123.456, n=4) == 123.5
 assert sig_round(123.456, n=3) == 123.0
 assert sig_round(123.456, n=2) == 120.0
 assert sig_round( 23.456, n=3) ==  23.5

@@ -782,9 +782,9 @@ Usage: python /home/mbarkhau/foss/litprog/examples/fib_cli.py [--help] [--pretty
 ```
 
 ```bash
-# run: python3 examples/fib_cli.py --pretty 3 7 8 9 19 20
+# run: python3 examples/fib_cli.py --pretty 3 7 8 9 18 20
 fib( 3) =>    2  fib( 7) =>   13  fib( 8) =>   21
-fib( 9) =>   34  fib(19) => 4181  fib(20) => 6765
+fib( 9) =>   34  fib(18) => 2584  fib(20) => 6765
 # exit: 0
 ```
 
