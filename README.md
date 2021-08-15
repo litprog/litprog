@@ -4,7 +4,7 @@ Project/Repo:
 
 [![MIT License][license_img]][license_ref]
 [![Supported Python Versions][pyversions_img]][pyversions_ref]
-[![CalVer 2021.1005-alpha][version_img]][version_ref]
+[![CalVer 2021.1006-alpha][version_img]][version_ref]
 [![PyPI Version][pypi_img]][pypi_ref]
 [![PyPI Downloads][downloads_img]][downloads_ref]
 
@@ -60,7 +60,7 @@ Code Quality/CI:
 [downloads_img]: https://pepy.tech/badge/litprog/month
 [downloads_ref]: https://pepy.tech/project/litprog
 
-[version_img]: https://img.shields.io/badge/CalVer-2021.1005--alpha-blue.svg
+[version_img]: https://img.shields.io/badge/CalVer-2021.1006--alpha-blue.svg
 [version_ref]: https://pypi.org/project/pycalver/
 
 [pyversions_img]: https://img.shields.io/pypi/pyversions/litprog.svg
