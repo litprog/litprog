@@ -77,4 +77,9 @@ def init_md_ctx() -> md.Markdown:
 def md2html(md_text: MarkdownText, md_filepath: str) -> HTMLResult:
     md_ctx        = init_md_ctx()
     raw_html_text = md_ctx.convert(md_text)
-    return HTMLResult(raw_html_text, md_ctx.toc, md_ctx.toc_tokens, md_filepath)  # type: ignore
+    return HTMLResult(
+        raw_html_text,
+        md_ctx.toc,  # type: ignore
+        md_ctx.toc_tokens,  # type: ignore
+        md_filepath,
+    )

@@ -194,7 +194,7 @@ def create(
         from litprog import pdf_booklet_old
 
         result_path = pdf_booklet_old.create(in_path, out_path, out_sheet_format, page_order)
-        return result_path  # type: ignore
+        return result_path
 
     lx_offset = 0 - out_params.pad_center
     rx_offset = (out_params.width / 2) + out_params.pad_center
