@@ -21,10 +21,10 @@ TocTokens = typ.List[typ.Dict[str, typ.Any]]
 
 class HTMLResult(typ.NamedTuple):
 
-    raw_html  : HTMLText
-    toc_html  : TocHTML
-    toc_tokens: TocTokens
-    filename  : str
+    raw_html   : HTMLText
+    toc_html   : TocHTML
+    toc_tokens : TocTokens
+    in_filepath: str
 
 
 def init_md_ctx() -> md.Markdown:
@@ -74,7 +74,7 @@ def init_md_ctx() -> md.Markdown:
     return md.Markdown(extensions=extensions, extension_configs=extension_configs)
 
 
-def md2html(md_text: MarkdownText, filename: str = "<markdown_blob>") -> HTMLResult:
+def md2html(md_text: MarkdownText, md_filepath: str) -> HTMLResult:
     md_ctx        = init_md_ctx()
     raw_html_text = md_ctx.convert(md_text)
-    return HTMLResult(raw_html_text, md_ctx.toc, md_ctx.toc_tokens, filename)  # type: ignore
+    return HTMLResult(raw_html_text, md_ctx.toc, md_ctx.toc_tokens, md_filepath)  # type: ignore

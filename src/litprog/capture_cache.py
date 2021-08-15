@@ -15,9 +15,9 @@ import pathlib as pl
 import datetime as dt
 
 from . import parse
-from . import common
 from . import config
 from . import session
+from . import common_types as ct
 
 # import zlib
 # import zstandard
@@ -26,7 +26,7 @@ from . import session
 logger = logging.getLogger(__name__)
 
 
-MarkdownFiles = typ.Iterable[parse.MarkdownFile]
+Chapters = typ.Iterable[parse.Chapter]
 
 SERIAL_VERSION_ID = '1'
 
@@ -62,7 +62,7 @@ class ManifestEntry(typ.NamedTuple):
 
 
 def init_manifest_entry(
-    task: common.BlockTask, task_key: str, capture: session.Capture
+    task: ct.BlockTask, task_key: str, capture: session.Capture
 ) -> typ.Tuple[ManifestEntry, CaptureData]:
     created     = dt.datetime.utcnow().isoformat()
     md_filename = str(task.md_path)
@@ -159,7 +159,7 @@ class ResultCache:
         for entry in self.manifest:
             self.task_keys_by_provide_id[entry.task_key] = entry.task_key
 
-    def task_key(self, task: common.BlockTask) -> str:
+    def task_key(self, task: ct.BlockTask) -> str:
         requires_parts: list[str] = []
 
         requires_parts.append(task.block.namespace)
@@ -192,7 +192,7 @@ class ResultCache:
 
     def _reset_task_keys(
         self,
-        task : common.BlockTask,
+        task : ct.BlockTask,
         entry: ManifestEntry,
     ) -> None:
         provides_id = task.opts.provides_id
@@ -204,7 +204,7 @@ class ResultCache:
             self.invalidate_requires(provides_id)
             self.task_keys_by_provide_id[provides_id] = entry.task_key
 
-    def update(self, task: common.BlockTask, capture: session.Capture) -> None:
+    def update(self, task: ct.BlockTask, capture: session.Capture) -> None:
         task_key = self.task_key(task)
         entry, capture_data = init_manifest_entry(task, task_key, capture)
         self.write_capture(entry, capture_data)
@@ -216,7 +216,7 @@ class ResultCache:
     def read_capture(self, entry: ManifestEntry) -> typ.Optional[CaptureData]:
         raise NotImplementedError("MUST be implemented by subclass.")
 
-    def get_entry(self, task: common.BlockTask) -> typ.Optional[ManifestEntry]:
+    def get_entry(self, task: ct.BlockTask) -> typ.Optional[ManifestEntry]:
         task_key = self.task_key(task)
         for entry in reversed(self.manifest):
             if entry.task_key == task_key:
@@ -224,7 +224,7 @@ class ResultCache:
 
         return None
 
-    def get_capture(self, task: common.BlockTask) -> typ.Optional[session.Capture]:
+    def get_capture(self, task: ct.BlockTask) -> typ.Optional[session.Capture]:
         entry = self.get_entry(task)
         if entry is None:
             return None
@@ -254,8 +254,8 @@ class DummyCache(ResultCache):
         pass
 
 
-def parse_cache_id(md_files: MarkdownFiles) -> str:
-    """Parse identifier that is unique to the project of the md_files.
+def parse_cache_id(chapters: Chapters) -> str:
+    """Parse identifier that is unique to the project of the chapters.
 
     Special consideration is be given to
     derived the cache_id in a machine independent way.
@@ -267,8 +267,8 @@ def parse_cache_id(md_files: MarkdownFiles) -> str:
     prefix          = "unknown_project"
     project_id_data = b"unknown_project"
 
-    for md_file in md_files:
-        meta = md_file.parse_front_matter_meta()
+    for chapter in chapters:
+        meta = chapter.parse_front_matter_meta()
         if 'repo_url' in meta:
             url             = meta['repo_url']
             prefix          = url.replace("/", "_").replace(":", "_")
@@ -289,7 +289,7 @@ class LocalResultCache(ResultCache):
 
     def __init__(
         self,
-        orig_files: MarkdownFiles,
+        orig_files: Chapters,
     ) -> None:
         cache_subdir = parse_cache_id(orig_files)
         cache_dir    = config.CACHE_DIR / cache_subdir

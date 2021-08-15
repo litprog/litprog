@@ -5,9 +5,7 @@
 # SPDX-License-Identifier: MIT
 
 import typing as typ
-import pathlib as pl
-
-from . import parse
+from pathlib import Path
 
 
 class FormatOptions(typ.NamedTuple):
@@ -32,9 +30,9 @@ class SessionBlockOptions(typ.NamedTuple):
     directive: str
 
     # TODO (mb 2021-02-26): These ids are not namespaced (yet)
-    #   see litprog.build._namespaced_lp_id and litprog.parse.MarkdownFile.block_namespace()
+    #   see litprog.build._namespaced_lp_id and litprog.parse.Chapter.block_namespace()
     provides_id         : typ.Optional[str]
-    requires_ids        : typ.Set[str]
+    requires_ids        : set[str]
     timeout             : float
     input_delay         : float
     expected_exit_status: int
@@ -46,8 +44,49 @@ class SessionBlockOptions(typ.NamedTuple):
     fmt: FormatOptions
 
 
+class BlockLineInfo(typ.NamedTuple):
+    md_path     : Path
+    first_lineno: int
+    num_lines   : int
+
+
+BlockLineInfos = list[BlockLineInfo]
+
+
+class Headline(typ.NamedTuple):
+
+    md_path   : Path
+    elem_index: int
+    text      : str
+    level     : int
+
+
+InfoString = str
+
+
+class Directive(typ.NamedTuple):
+
+    name : str
+    value: str
+
+    raw_text: str
+
+
+class Block(typ.NamedTuple):
+
+    md_path           : Path
+    namespace         : str
+    first_line        : int
+    elem_index        : int
+    info_string       : InfoString
+    directives        : list[Directive]
+    content           : str
+    inner_content     : str
+    includable_content: str
+
+
 class TaskBlockOpts(typ.NamedTuple):
-    block: parse.Block
+    block: Block
     opts : SessionBlockOptions
 
 
@@ -55,9 +94,9 @@ ElemIndex = int
 
 
 class BlockTask(typ.NamedTuple):
-    md_path: pl.Path
+    md_path: Path
     command: str
-    block  : parse.Block
+    block  : Block
     opts   : SessionBlockOptions
     # block to which the captured output belongs
     capture_index: ElemIndex

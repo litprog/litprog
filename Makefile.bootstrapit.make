@@ -29,7 +29,7 @@ MODULE_NAME := $(shell echo $(subst -,_,$(PACKAGE_NAME)) | tr A-Z a-z)
 PLATFORM = $(shell uname -s)
 
 # miniconda is shared between projects
-CONDA_ROOT := $(shell if [[ -d /opt/conda/envs ]]; then echo "/opt/conda"; else echo "$$HOME/miniconda3"; fi;)
+CONDA_ROOT := $(shell if [[ -d /opt/conda/envs ]]; then echo "/opt/conda"; else echo "$${HOME}/miniconda3"; fi;)
 CONDA_BIN := $(CONDA_ROOT)/bin/conda
 
 ENV_PREFIX := $(CONDA_ROOT)/envs

@@ -1,20 +1,22 @@
 #!/usr/bin/env python
 import os, sys, math, time
 import contextlib
-from typing import Tuple, List, Dict, Set, Sequence
+from typing import Sequence
 __doc__ = f"""Usage: python {__file__} [--help] [--pretty] <n>..."""
 def fib(n: int) -> int:
     if n < 2:
         return n
     else:
         return fib(n - 1) + fib(n - 2)
-_cache: Dict[int, int] = {}
+_cache: dict[int, int] = {}
 def fast_fib(n: int) -> int:
     if n < 2:
         return n
-    if n not in _cache:
+    elif n in _cache:
+        return _cache[n]
+    else:
         _cache[n] = fast_fib(n - 1) + fast_fib(n - 2)
-    return _cache[n]
+        return _cache[n]
 def pretty_print_fibs(ns: Sequence[int]) -> None:
     """Calculate Fibbonacci numbers and print them to stdout."""
     fibs = [fib(n) for n in ns]
@@ -26,12 +28,12 @@ def pretty_print_fibs(ns: Sequence[int]) -> None:
         print(f"{in_str} => {res_str}", end="  ")
         if (i + 1) % 3 == 0:
             print()
-ParamsAndFlags = Tuple[List[str], Set[str]]
-def parse_args(args: List[str]) -> ParamsAndFlags:
+ParamsAndFlags = tuple[list[str], set[str]]
+def parse_args(args: list[str]) -> ParamsAndFlags:
     flags = {arg for arg in args if arg.startswith("-")}
     params = [arg for arg in args if arg not in flags]
     return params, flags
-def main(args: List[str] = sys.argv[1:]) -> int:
+def main(args: list[str] = sys.argv[1:]) -> int:
     params, flags = parse_args(args)
     if not args or "--help" in flags or "-h" in flags:
         print(__doc__)

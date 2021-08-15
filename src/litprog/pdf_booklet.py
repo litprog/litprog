@@ -5,8 +5,6 @@
 # Copyright (c) 2018-2021 Manuel Barkhau (mbarkhau@gmail.com) - MIT License
 # SPDX-License-Identifier: MIT
 import sys
-import math
-import time
 import typing as typ
 import logging
 import pathlib as pl
@@ -171,6 +169,9 @@ def parse_output_parameters(
     )
 
 
+PdfPage = typ.Any
+
+
 def create(
     in_path         : pl.Path,
     out_path        : typ.Optional[pl.Path] = None,
@@ -190,12 +191,14 @@ def create(
     out_params = parse_output_parameters(in_page_width, in_page_height, out_sheet_format)
     if abs(out_params.scale - 1) > 0.02:
         import pdf_booklet_old
-        return pdf_booklet_old.create(in_path, out_path, out_sheet_format, page_order)
+
+        result_path = pdf_booklet_old.create(in_path, out_path, out_sheet_format, page_order)
+        return result_path  # type: ignore
 
     lx_offset = 0 - out_params.pad_center
     rx_offset = (out_params.width / 2) + out_params.pad_center
 
-    in_sections = [[]]
+    in_sections: list[list[PdfPage]] = [[]]
     for in_page in in_pages:
         if len(in_sections[-1]) == MAX_SECTION_PAGES:
             in_sections.append([])

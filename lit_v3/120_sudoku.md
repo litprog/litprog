@@ -82,7 +82,7 @@ We can implement the notions of units, peers, and squares in Python 3.6+ as foll
 # def: notions
 # dep: boilerplate
 
-def cross(A: Sequence[str], B: Sequence[str]) -> Sequence[str]:
+def cross(A: list[str], B: list[str]) -> list[str]:
     """Cross product of elements in A and elements in B."""
     return [a + b for a in A for b in B]
 
@@ -185,11 +185,11 @@ Here is the code to parse a grid into a values dict:
 Square = str
 Digits = str     # length >= 1
 Digit  = str     # length == 1
-GridItem  = Tuple[Square, Digits]
-Grid      = Dict[Square, Digits]
+GridItem  = tuple[Square, Digits]
+Grid      = dict[Square, Digits]
 MaybeGrid = Optional[Grid]
 
-def grid_items(raw_grid: str) -> Iterable[GridItem]:
+def grid_items(raw_grid: str) -> Iterator[GridItem]:
     """Parse string representation of a Grid with '.' for empties."""
     chars = [c for c in raw_grid if c.isdigit() or c == '.']
     assert len(chars) == len(SQUARES)
@@ -497,7 +497,7 @@ Now we can create the complete program `examples/sudoku.py`.
 # dep: boilerplate
 import re
 
-def parse_grids(text: str) -> Iterable[str]:
+def parse_grids(text: str) -> Iterator[str]:
     puzzle = ""
     for line in text.splitlines():
         line, _ = re.subn(r"[^0-9\.]",  "", line)
@@ -506,7 +506,7 @@ def parse_grids(text: str) -> Iterable[str]:
             yield puzzle
             puzzle = ""
 
-def read_grids(filename: str) -> List[str]:
+def read_grids(filename: str) -> list[str]:
     with open(filename) as fobj:
         grids_text = fobj.read()
     return list(parse_grids(grids_text))
@@ -517,8 +517,8 @@ def read_grids(filename: str) -> List[str]:
 # dep: boilerplate, solve, display
 import time
 
-def solve_all(raw_grids: List[str], show: bool) -> None:
-    durations: List[float] = []
+def solve_all(raw_grids: list[str], show: bool) -> None:
+    durations: list[float] = []
     for raw_grid in raw_grids:
         tzero = time.time()
         result = solve(raw_grid)
@@ -539,7 +539,7 @@ def solve_all(raw_grids: List[str], show: bool) -> None:
 import os
 import sys
 
-def main(args: Sequence[str]) -> int:
+def main(args: list[str]) -> int:
     show = "--show" in args
     for filename in args:
         if os.path.exists(filename):
@@ -564,19 +564,19 @@ Below is the output from running the program at the command line; it solves the 
 
 ```bash
 # run: python3 examples/sudoku.py examples/sudoku_p096_euler.txt
-Solved 50 of 50 puzzles. (avg 4 ms/solve  max 6 ms)
+Solved 50 of 50 puzzles. (avg 2 ms/solve  max 3 ms)
 # exit: 0
 ```
 
 ```bash
 # run: python3 examples/sudoku.py examples/sudoku_top95.txt
-Solved 95 of 95 puzzles. (avg 16 ms/solve  max 79 ms)
+Solved 95 of 95 puzzles. (avg 7 ms/solve  max 36 ms)
 # exit: 0
 ```
 
 ```bash
 # run: python3 examples/sudoku.py examples/sudoku_hardest.txt
-Solved 11 of 11 puzzles. (avg 6 ms/solve  max 9 ms)
+Solved 11 of 11 puzzles. (avg 5 ms/solve  max 8 ms)
 # exit: 0
 ```
 
@@ -654,7 +654,7 @@ I guess if I want a really hard puzzle I'll have to make it myself. I don't know
 # dep: boilerplate, solve
 import random
 
-def shuffled(seq: Sequence[str]) -> Sequence[str]:
+def shuffled(seq: list[str]) -> list[str]:
     "Return a randomly shuffled copy of the input sequence."
     seq = list(seq)
     random.shuffle(seq)

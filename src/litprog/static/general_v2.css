@@ -274,7 +274,7 @@ blockquote                {border-color: #AAA;}
 .admonition .admonition-title:after {
     content: " ";
 
-    background-size: 1.3em 1.3em;
+    background-size: cover;
     height: 1.3em;
     width: 1.3em;
 

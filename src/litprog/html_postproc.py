@@ -15,6 +15,7 @@ import bs4
 import pyphen
 
 from . import md2html
+from . import common_types as ct
 
 logger = logging.getLogger(__name__)
 
@@ -110,7 +111,7 @@ def _iter_wrapped_line_parts(line: str, max_len: int) -> typ.Iterable[str]:
         yield parts[0]
         return
 
-    chunk: typ.List[str] = []
+    chunk: list[str] = []
     chunk_len = 0
     for part in parts:
         if chunk and chunk_len + _part_len(part) >= max_len:
@@ -123,10 +124,6 @@ def _iter_wrapped_line_parts(line: str, max_len: int) -> typ.Iterable[str]:
 
     if chunk:
         yield "".join(chunk)
-
-
-BlockLinenos      = typ.List[typ.Tuple[int, int]]
-MaybeBlockLinenos = typ.Optional[BlockLinenos]
 
 
 def iter_wrapped_lines(
@@ -207,8 +204,8 @@ $ pycalver test 'v201811.0051-beta' '{pycalver}' --release final
 def _iter_postproc_content_html(
     html_res             : md2html.HTMLResult,
     max_line_len         : int,
-    add_initial_linebreak: bool              = False,
-    block_linenos        : MaybeBlockLinenos = None,
+    add_initial_linebreak: bool = False,
+    block_line_infos     : typ.Optional[list[ct.BlockLineInfo]] = None,
 ) -> typ.Iterable[str]:
     content_html: HTMLText = html_res.raw_html
     content_html = content_html.replace("<table>" , """<div class="table-wrap"><table>""")
@@ -229,20 +226,21 @@ def _iter_postproc_content_html(
         end_lidx, end_ridx = end_match.span()
         content_text = content_html[begin_ridx:end_lidx]
 
-        if block_linenos is None:
+        if block_line_infos is None:
             first_lineno = 0
-        elif block_index < len(block_linenos):
-            first_lineno, num_lines = block_linenos[block_index]
-            num_content_lines = content_text.strip("\n").count("\n")
-            if num_lines == num_content_lines:
+        elif block_index < len(block_line_infos):
+            md_path, first_lineno, num_lines = block_line_infos[block_index]
+            num_content_lines = content_text.count("\n")
+            if num_lines >= num_content_lines:
                 block_index += 1
             else:
-                loc = f"{html_res.filename}"
-                logger.warning(f"could not match line numbers of block {loc} to html <code>")
+                blk  = block_index
+                path = f"{md_path}"
+                logger.warning(f"could not match line numbers of block {blk} in {path} to html <code>")
                 first_lineno = 0
         else:
-            loc = f"{html_res.filename}"
-            logger.warning(f"could not match line numbers in {loc} to html <code> block")
+            path = f"{html_res.in_filepath}"
+            logger.warning(f"could not match line numbers in {path} to html <code> block")
 
         wrapped_lines = iter_wrapped_lines(
             content_text,
@@ -404,14 +402,13 @@ def _add_heading_links(soup: bs4.BeautifulSoup) -> None:
 
 
 def _add_heading_numbers_screen(content_soup: bs4.BeautifulSoup, sections_soup: bs4.BeautifulSoup) -> None:
-    numbers_by_hashlink: typ.Dict[str, str] = {
+    numbers_by_hashlink: dict[str, str] = {
         node['href'].split("#", 1)[-1]: node.text.split(" ", 1)[0] for node in sections_soup.select("a")
     }
 
-    for heading in content_soup.select("h1, h2, h3, h4, h5"):
-        number            = numbers_by_hashlink.get(heading['id'], "")
-        is_section_number = number and "." in number
-        if is_section_number:
+    for heading in content_soup.select("h2, h3, h4, h5"):
+        number = numbers_by_hashlink.get(heading['id'], "")
+        if number:
             heading.insert(0, number + " ")
 
 
@@ -565,16 +562,16 @@ class HTMLTexts(typ.NamedTuple):
 
 
 def postproc4screen(
-    html_res     : md2html.HTMLResult,
-    block_linenos: BlockLinenos,
-    nav_html     : HTMLText,
+    html_res        : md2html.HTMLResult,
+    block_line_infos: list[ct.BlockLineInfo],
+    nav_html        : HTMLText,
 ) -> HTMLTexts:
     # content_html = "".join(_wrap_firstpara(content_html))
     html_chunks = _iter_postproc_content_html(
         html_res,
         max_line_len=MAX_CODE_BLOCK_LINE_LEN,
         add_initial_linebreak=False,
-        block_linenos=block_linenos,
+        block_line_infos=block_line_infos,
     )
     content_html = "".join(html_chunks)
 
@@ -650,7 +647,9 @@ def postproc4screen(
     )
 
 
-def postproc4print(html_res: md2html.HTMLResult, fmt: str, block_linenos: BlockLinenos) -> HTMLText:
+def postproc4print(
+    html_res: md2html.HTMLResult, fmt: str, block_line_infos: list[ct.BlockLineInfo]
+) -> HTMLText:
     # TODO: split code blocks
     # - add ids to headlines
     # - collect links and insert superscript (footnote links)
@@ -667,7 +666,7 @@ def postproc4print(html_res: md2html.HTMLResult, fmt: str, block_linenos: BlockL
         html_res,
         max_line_len=max_line_len,
         add_initial_linebreak=True,
-        block_linenos=block_linenos,
+        block_line_infos=block_line_infos,
     )
     html_text = "".join(html_chunks)
 

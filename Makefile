@@ -60,13 +60,13 @@ pycalver_docs: ../pycalver/README.html ../pycalver/README_booklet.pdf
 	echo "noop"
 
 
-## Generate Litprog Documentation
 
-## Default target
-doc/11_overview.html: lit_v3/11_overview.md src/litprog/static/*
+## Generate Litprog Documentation
+.PHONY: doc
+doc:
 	PYTHONPATH=src/:vendor/:$$PYTHONPATH \
 		$(DEV_ENV)/bin/lit \
-			build -v lit_v3/11_overview.md --html doc/
+			build -v lit_v3/*.md --html doc/
 #	cp doc/*.html /run/user/1000/keybase/kbfs/public/mbarkhau/litprog/
 # 	rsync -r fonts/woff* /run/user/1000/keybase/kbfs/public/mbarkhau/litprog/fonts/
 #	cp src/litprog/static/*.css /run/user/1000/keybase/kbfs/public/mbarkhau/litprog/

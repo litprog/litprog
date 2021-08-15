@@ -1,13 +1,5 @@
 # Introduction to LitProg
 
-!!! warning "WIP: Work in Progress"
-
-    This is very much incomplete. Probably half of it needs to either
-    be cut, or at least moved to another chapter.
-
-    I am currently dogfooding LitProg on a separate project before attempting a self-hosted implementation.
-
-
 LitProg is a [Markdown][href_wiki_markdown] processor for [Literate Programming (LP)][href_wiki_litprog].
 
 [href_wiki_markdown]: https://en.wikipedia.org/wiki/Markdown
@@ -36,7 +28,7 @@ LitProg does the following steps:
  2. write source code files as output,
  3. write HTML and PDF files as documentation.
 
-While this *is* in essence what LitProg does, this explanation doesn't show the key reason to use LitProg rather than other literate programming tools or to just continue directly writing source code files, without any extra ceremony.
+While this *is* in essence what LitProg does, it doesn't explain why to use LitProg rather than a static site generator, other literate programming tools or to just continue directly writing source code files, without any extra ceremony.
 
 LitProg is inspired by the interactive nature of [Jupyter notebooks][href_jupyter]: You can mix documentation, code and critically also *execution*. This makes it possible to *demonstrate* to your readers, that your literate program actually works as advertised, by executing sub-processes and capturing their output. So a more complete picture of how LitProg works is this:
 
@@ -77,6 +69,14 @@ LitProg is inspired by the interactive nature of [Jupyter notebooks][href_jupyte
 
 
 ## Theories of Programs
+
+!!! warning "WIP: Work in Progress"
+
+    This is very much incomplete. Probably half of it needs to either
+    be cut, or at least moved to another chapter.
+
+    I am currently dogfooding LitProg on a separate project before attempting a self-hosted implementation.
+
 
 [Peter Naur][href_wiki_naur] (the N in BNF) wrote a wonderful essay [Programming as Theory Building][href_naur_patb] in 1985 that I think still holds up to this day.  What resonates strongly with many experienced programmers is the idea, that code by itself is almost worthless, because it does not capture the theories upon which it is based.  The code by itself, may for a while continue to serve a use-case, but any attempt to modify or build upon code, without access to the theories used to create it, is ultimately doomed to fail or to be so expensive, that reimplementation from scratch should be considered.
 
@@ -626,17 +626,17 @@ Now that we have some code that works, and which we can also see is correct, it'
 
 ```python
 # def: fast_fib
-_cache: Dict[int, int] = {}
+_cache: dict[int, int] = {}
 
 def fast_fib(n: int) -> int:
     if n < 2:
         return n
-    if n not in _cache:
+    elif n in _cache:
+        return _cache[n]
+    else:
         _cache[n] = fast_fib(n - 1) + fast_fib(n - 2)
-    return _cache[n]
+        return _cache[n]
 ```
-
-Note that there is no dependency mechanism for blocks, so every time we `dep: fast_fib`, the block in which it is included will also have to `dep: imports` so that `Dict` is imported.
 
 We can run the same validation code as before, the only difference being that we replace `fib` with `fast_fib`
 
@@ -685,10 +685,10 @@ with timeit("fast"): fast_fib(20)
 
 ```shell
 # out
-slow     0.509 ms
-slow     1.010 ms
-slow     6.796 ms
-fast     0.023 ms
+slow     0.172 ms
+slow     1.037 ms
+slow     7.021 ms
+fast     0.024 ms
 fast     0.008 ms
 fast     0.007 ms
 # exit: 0
@@ -703,9 +703,9 @@ Next is some boring python scaffolding to wrap the functions written so far.
 
 ```python
 # def: parse_args
-ParamsAndFlags = Tuple[List[str], Set[str]]
+ParamsAndFlags = tuple[list[str], set[str]]
 
-def parse_args(args: List[str]) -> ParamsAndFlags:
+def parse_args(args: list[str]) -> ParamsAndFlags:
     flags = {arg for arg in args if arg.startswith("-")}
     params = [arg for arg in args if arg not in flags]
     return params, flags
@@ -726,7 +726,7 @@ __doc__ = f"""Usage: python {__file__} [--help] [--pretty] <n>..."""
 
 ```python
 # def: main
-def main(args: List[str] = sys.argv[1:]) -> int:
+def main(args: list[str] = sys.argv[1:]) -> int:
     params, flags = parse_args(args)
     # dep: args_check
 
@@ -857,7 +857,7 @@ assert os.path.exists(svg_path) and mtime(svg_path) >= mtime(csv_path)
 # def: gen_fib_durations_csv
 # dep: imports, slow_fib
 # timeout: 60
-def csv_lines() -> List[str]:
+def csv_lines() -> list[str]:
     for n in range(22):
         tzero = time.time()
         fib(n)
@@ -874,11 +874,11 @@ with open("examples/fib_durations.csv", mode="w") as fobj:
 ```bash
 # run: bash -c "tail -n 5 examples/fib_durations.csv"
 # requires: gen_fib_durations_csv
-17,370
-18,555
-19,902
-20,1554
-21,2308
+17,1653
+18,2590
+19,4215
+20,6839
+21,11042
 # exit: 0
 ```
 
@@ -899,5 +899,5 @@ then you should make sure that. can mark that block with the declaration `pure: 
 import os, sys, math, time
 import contextlib
 
-from typing import Tuple, List, Dict, Set, Sequence
+from typing import Sequence
 ```

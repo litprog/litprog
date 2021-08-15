@@ -28,18 +28,11 @@ def read_requirements(subset):
 
 long_description = "\n\n".join((read("README.md"), read("CHANGELOG.md")))
 
-install_requires = read_requirements("default")
-
-package_dir = {"": "src"}
-
-if any(arg.startswith("bdist") for arg in sys.argv):
+try:
     import lib3to6
-    package_dir = lib3to6.fix(
-        package_dir,
-        target_version="3.6",
-        install_requires=install_requires,
-        default_mode='enabled',
-    )
+    cmdclass = {'build_py': lib3to6.build_py}
+except ImportError:
+    cmdclass = {}
 
 
 setuptools.setup(
@@ -54,10 +47,10 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     packages=['litprog'],
-    package_dir=package_dir,
+    package_dir={"": "src"},
     include_package_data=True,
     zip_safe=True,
-    install_requires=install_requires,
+    install_requires=read_requirements("default"),
     extras_require={
         'html': read_requirements("html"),
         'pdf': read_requirements("html") + read_requirements("pdf"),

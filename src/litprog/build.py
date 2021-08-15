@@ -9,15 +9,15 @@ import sys
 import time
 import typing as typ
 import logging
-import pathlib as pl
 import tempfile
 import collections
+from pathlib import Path
 from concurrent.futures import Future
 from concurrent.futures import ThreadPoolExecutor
 
 from . import parse
-from . import common
 from . import session
+from . import common_types as ct
 from . import capture_cache
 
 logger = logging.getLogger(__name__)
@@ -39,22 +39,20 @@ TERM_COLORS = {
 
 DEFUALT_TIMEOUT = 9.0
 
-MarkdownFiles = typ.Iterable[parse.MarkdownFile]
+Chapters = typ.Iterable[parse.Chapter]
 
-# The expanded files are structurally no different, it's just that
-# their elements are expanded.
-ExpandedMarkdownFile  = parse.MarkdownFile
-ExpandedMarkdownFiles = typ.Iterable[ExpandedMarkdownFile]
+# The expanded files are no different in structure/datatype, it's just
+# that directives such as dep and include are expanded.
+ExpandedChapter  = parse.Chapter
+ExpandedChapters = typ.Iterator[ExpandedChapter]
 
 
 class BlockError(Exception):
 
-    block           : parse.Block
-    include_contents: typ.List[str]
+    block           : ct.Block
+    include_contents: list[str]
 
-    def __init__(
-        self, msg: str, block: parse.Block, include_contents: typ.Optional[typ.List[str]] = None
-    ) -> None:
+    def __init__(self, msg: str, block: ct.Block, include_contents: typ.Optional[list[str]] = None) -> None:
         self.block            = block
         self.include_contents = include_contents or []
 
@@ -63,9 +61,9 @@ class BlockError(Exception):
 
 
 def get_directive(
-    block: parse.Block, name: str, missing_ok: bool = True, many_ok: bool = True
-) -> typ.Optional[parse.Directive]:
-    found: typ.List[parse.Directive] = []
+    block: ct.Block, name: str, missing_ok: bool = True, many_ok: bool = True
+) -> typ.Optional[ct.Directive]:
+    found: list[ct.Directive] = []
     for directive in block.directives:
         if directive.name == name:
             if many_ok:
@@ -86,7 +84,7 @@ def get_directive(
         return found[0]
 
 
-def iter_directives(block: parse.Block, name: str) -> typ.Iterable[parse.Directive]:
+def iter_directives(block: ct.Block, name: str) -> typ.Iterable[ct.Directive]:
     for directive in block.directives:
         if directive.name == name:
             yield directive
@@ -115,7 +113,7 @@ def _indented_include(
 
 
 # TODO: this should be part of the parsing of all directives
-def _parse_prefix(directive: parse.Directive) -> str:
+def _parse_prefix(directive: ct.Directive) -> str:
     val = directive.value.strip()
     if val.startswith("'") and val.endswith("'"):
         val = val[1:-1]
@@ -127,19 +125,19 @@ def _parse_prefix(directive: parse.Directive) -> str:
 BlockId       = str
 ScopedBlockId = str
 
-BlockIds       = typ.List[BlockId]
-BlockListBySid = typ.Dict[ScopedBlockId, typ.List[parse.Block  ]]
-DependencyMap  = typ.Dict[ScopedBlockId, typ.List[ScopedBlockId]]
+BlockIds       = list[BlockId]
+BlockListBySid = dict[ScopedBlockId, list[ct.Block     ]]
+DependencyMap  = dict[ScopedBlockId, list[ScopedBlockId]]
 
 
-def _namespaced_lp_id(block: parse.Block, lp_id: BlockId) -> ScopedBlockId:
+def _namespaced_lp_id(block: ct.Block, lp_id: BlockId) -> ScopedBlockId:
     if "." in lp_id:
         return lp_id.strip()
     else:
         return block.namespace + "." + lp_id.strip()
 
 
-def _iter_dep_sids(block: parse.Block) -> typ.Iterable[ScopedBlockId]:
+def _iter_dep_sids(block: ct.Block) -> typ.Iterable[ScopedBlockId]:
     for lp_dep in iter_directives(block, 'dep'):
         for dep_id in lp_dep.value.split(","):
             yield _namespaced_lp_id(block, dep_id)
@@ -176,7 +174,7 @@ def _get_dep_cycle(
     dep_map: DependencyMap,
     root_id: BlockId,
     depth  : int = 0,
-) -> typ.List[str]:
+) -> list[str]:
     if lp_id in dep_map:
         dep_sids = dep_map[lp_id]
         if root_id in dep_sids:
@@ -191,7 +189,7 @@ def _get_dep_cycle(
 
 
 def _err_on_include_cycle(
-    block        : parse.Block,
+    block        : ct.Block,
     lp_id        : BlockId,
     blocks_by_sid: BlockListBySid,
     dep_map      : DependencyMap,
@@ -214,8 +212,8 @@ def _err_on_include_cycle(
 
 def _expand_block_content(
     blocks_by_sid: BlockListBySid,
-    block        : parse.Block,
-    added_deps   : typ.Set[str],
+    block        : ct.Block,
+    added_deps   : set[str],
     dep_map      : DependencyMap,
     keep_fence   : bool,
     lvl          : int = 1,
@@ -237,7 +235,7 @@ def _expand_block_content(
 
         is_dep = directive.name == 'dep'
 
-        lp_dep_contents: typ.List[str] = []
+        lp_dep_contents: list[str] = []
         for lp_dep_id in directive.value.split(","):
             lp_dep_sid = _namespaced_lp_id(block, lp_dep_id)
             if lp_def:
@@ -270,27 +268,34 @@ def _expand_block_content(
     return new_content
 
 
-def _expand_directives(blocks_by_sid: BlockListBySid, md_file: parse.MarkdownFile) -> parse.MarkdownFile:
-    new_md_file = md_file.copy()
+def _expand_directives(blocks_by_sid: BlockListBySid, chapter: parse.Chapter) -> parse.Chapter:
+    new_chapter = chapter.copy()
     dep_map     = _build_dep_map(blocks_by_sid)
 
-    for block in list(new_md_file.iter_blocks()):
-        added_deps: typ.Set[str] = set()
+    for block in list(new_chapter.iter_blocks()):
+        added_deps: set[str] = set()
         new_content = _expand_block_content(blocks_by_sid, block, added_deps, dep_map, keep_fence=True)
         if new_content != block.content:
-            elem = new_md_file.elements[block.elem_index]
-            new_md_file.elements[block.elem_index] = parse.MarkdownElement(
-                elem.md_path, elem.first_line, elem.elem_index, elem.md_type, new_content, None
+            elements = new_chapter.elements[block.md_path]
+            elem     = elements[block.elem_index]
+
+            elements[block.elem_index] = parse.MarkdownElement(
+                elem.md_path,
+                elem.first_line,
+                elem.elem_index,
+                elem.md_type,
+                new_content,
+                None,
             )
 
-    return new_md_file
+    return new_chapter
 
 
-def _get_blocks_by_id(md_files: MarkdownFiles) -> BlockListBySid:
+def _get_blocks_by_id(chapters: Chapters) -> BlockListBySid:
     blocks_by_sid: BlockListBySid = {}
 
-    for md_file in md_files:
-        for block in md_file.iter_blocks():
+    for chapter in chapters:
+        for block in chapter.iter_blocks():
             lp_def = get_directive(block, 'def', missing_ok=True, many_ok=False)
             if lp_def:
                 lp_def_id = lp_def.value
@@ -307,91 +312,96 @@ def _get_blocks_by_id(md_files: MarkdownFiles) -> BlockListBySid:
 
                 blocks_by_sid[block_sid] = [block]
 
-            for lp_addto in iter_directives(block, 'addto'):
-                lp_addto_id = _namespaced_lp_id(block, lp_addto.value)
-                if lp_addto_id in blocks_by_sid:
-                    blocks_by_sid[lp_addto_id].append(block)
+    for chapter in chapters:
+        for block in chapter.iter_blocks():
+            for lp_amend in iter_directives(block, 'amend'):
+                lp_amend_sid = _namespaced_lp_id(block, lp_amend.value)
+                if lp_amend_sid in blocks_by_sid:
+                    blocks_by_sid[lp_amend_sid].append(block)
                 else:
-                    errmsg = f"Unknown block id: {lp_addto_id}"
+                    errmsg = f"Unknown block id: {lp_amend_sid}"
                     raise BlockError(errmsg, block)
 
     return blocks_by_sid
 
 
-def _iter_expanded_files(md_files: MarkdownFiles) -> ExpandedMarkdownFiles:
+def _iter_expanded_chapters(chapters: Chapters) -> ExpandedChapters:
     # NOTE (mb 2020-05-24): To do the expansion, we have to first
     #   build a graph so that we can resolve blocks for each dep/include.
 
     # pass 1. collect all blocks (globally) with def directives
     # NOTE (mb 2020-05-31): block ids are always absulute/fully qualified
-    blocks_by_sid = _get_blocks_by_id(md_files)
+    blocks_by_sid = _get_blocks_by_id(chapters)
 
     # pass 2. expand dep directives in markdown files
-    for md_file in md_files:
-        yield _expand_directives(blocks_by_sid, md_file)
+    for chapter in chapters:
+        yield _expand_directives(blocks_by_sid, chapter)
 
 
-def _iter_block_errors(orig_ctx: parse.Context, build_ctx: parse.Context) -> typ.Iterable[str]:
+def _iter_block_errors(parse_ctx: parse.Context, build_ctx: parse.Context) -> typ.Iterable[str]:
     """Validate that expansion worked correctly."""
-    # NOTE: the main purpose of the orig_ctx is to produce
+    # NOTE: the main purpose of the parse_ctx is to produce
     #   better error messages. It allows us to point at the
     #   original block, whereas the build_ctx has been
     #   modified and line numbers no longer correspond to
     #   the original file.
-    assert len(orig_ctx.files) == len(build_ctx.files)
-    for orig_md_file, md_file in zip(orig_ctx.files, build_ctx.files):
-        assert orig_md_file.md_path == md_file.md_path
-        assert len(orig_md_file.elements) == len(md_file.elements)
+    assert len(parse_ctx.chapters) == len(build_ctx.chapters)
+    for orig_chapter, chapter in zip(parse_ctx.chapters, build_ctx.chapters):
+        assert orig_chapter.md_paths == chapter.md_paths
+        for md_path in orig_chapter.md_paths:
+            assert len(orig_chapter.elements[md_path]) == len(chapter.elements[md_path])
 
-        for block in md_file.iter_blocks():
-            orig_elem = orig_md_file.elements[block.elem_index]
+        for block in chapter.iter_blocks():
+            orig_elem = orig_chapter.elements[block.md_path][block.elem_index]
             for directive in block.directives:
-                if directive.name not in ('dep', 'include'):
-                    continue
+                if directive.name in ('dep', 'include'):
+                    elem = chapter.elements[block.md_path][block.elem_index]
 
-                elem = md_file.elements[block.elem_index]
+                    rel_line_no = 0
+                    for line in orig_elem.content.splitlines():
+                        if directive.raw_text in line:
+                            break
 
-                rel_line_no = 0
-                for line in orig_elem.content.splitlines():
-                    if directive.raw_text in line:
-                        break
+                        rel_line_no += 1
 
-                    rel_line_no += 1
-
-                # TODO (mb 2020-12-30): These line numbers appear to be wrong,
-                #   I think for recursive dep directives in particular.
-                line_no       = elem.first_line + rel_line_no
-                raw_text_repr = repr(directive.raw_text.strip("\n"))
-                yield (
-                    f"Error processing {md_file.md_path} on line {line_no}: "
-                    + f"Could not expand {raw_text_repr}"
-                )
+                    # TODO (mb 2020-12-30): These line numbers appear to be wrong,
+                    #   I think for recursive dep directives in particular.
+                    line_no       = elem.first_line + rel_line_no
+                    raw_text_repr = repr(directive.raw_text.strip("\n"))
+                    yield (
+                        f"Error processing {block.md_path} on line {line_no}: "
+                        + f"Could not expand {raw_text_repr}"
+                    )
 
 
 def _dump_files(build_ctx: parse.Context) -> None:
-    for md_file in build_ctx.files:
-        for block in md_file.iter_blocks():
-            file_directive = get_directive(block, 'file')
-            if file_directive is None:
-                continue
+    for chapter in build_ctx.chapters:
+        for md_path in chapter.md_paths:
+            md_mtime = md_path.stat().st_mtime
+            for block in chapter.iter_blocks():
+                file_directive = get_directive(block, 'file')
+                if file_directive is None:
+                    continue
 
-            path             = pl.Path(file_directive.value)
-            new_content_data = block.includable_content.encode("utf-8")
-
-            if path.exists():
-                with path.open(mode="rb") as fobj:
-                    old_content_data = fobj.read()
-
-                if old_content_data == new_content_data:
+                path = Path(file_directive.value)
+                if path.exists() and md_mtime < path.stat().st_mtime:
                     # don't needlessly update mtimes
                     continue
 
-            path.parent.mkdir(parents=True, exist_ok=True)
-            with path.open(mode="wb") as fobj:
-                fobj.write(new_content_data)
+                if path.exists():
+                    with path.open(mode="rb") as fobj:
+                        old_content_data = fobj.read()
+
+                    new_content_data = block.includable_content.encode("utf-8")
+                    if old_content_data == new_content_data:
+                        continue
+
+                path.parent.mkdir(parents=True, exist_ok=True)
+                with path.open(mode="wb") as fobj:
+                    fobj.write(new_content_data)
 
 
-def _parse_out_fmt(block: parse.Block, directive_name: str, default_fmt: str) -> str:
+def _parse_out_fmt(block: ct.Block, directive_name: str, default_fmt: str) -> str:
     color_directive = get_directive(block, directive_name)
     if color_directive is None:
         return default_fmt
@@ -413,7 +423,7 @@ def _parse_out_fmt(block: parse.Block, directive_name: str, default_fmt: str) ->
         raise Exception(err_msg)
 
 
-def _get_default_command(block: parse.Block) -> typ.Optional[str]:
+def _get_default_command(block: ct.Block) -> typ.Optional[str]:
     # TODO (mb 2020-12-17): Allow override/configuration
     lang = block.info_string.strip()
     if lang == 'python':
@@ -426,7 +436,7 @@ def _get_default_command(block: parse.Block) -> typ.Optional[str]:
         return None
 
 
-def _parse_format_options(block: parse.Block) -> common.FormatOptions:
+def _parse_format_options(block: ct.Block) -> ct.FormatOptions:
     default_err_fmt = "\u001b[" + TERM_COLORS['red'] + "m{0}\u001b[0m"
 
     out_fmt = _parse_out_fmt(block, 'out_color', "{0}")
@@ -441,7 +451,7 @@ def _parse_format_options(block: parse.Block) -> common.FormatOptions:
     else:
         info_fmt = info_directive.value
 
-    return common.FormatOptions(
+    return ct.FormatOptions(
         out=out_fmt,
         err=err_fmt,
         info=info_fmt,
@@ -450,7 +460,7 @@ def _parse_format_options(block: parse.Block) -> common.FormatOptions:
     )
 
 
-def _parse_session_block_options(block: parse.Block) -> typ.Optional[common.SessionBlockOptions]:
+def _parse_session_block_options(block: ct.Block) -> typ.Optional[ct.SessionBlockOptions]:
     exec_directive = get_directive(block, 'exec')
     run_directive  = get_directive(block, 'run')
     out_directive  = get_directive(block, 'out')
@@ -490,7 +500,7 @@ def _parse_session_block_options(block: parse.Block) -> typ.Optional[common.Sess
     input_delay_val      = float(_input_delay.value) if _input_delay else 0.0
     expected_exit_status = int(_expect.value) if _expect else 0
 
-    return common.SessionBlockOptions(
+    return ct.SessionBlockOptions(
         command=command,
         directive=directive,
         provides_id=provides_id,
@@ -505,7 +515,7 @@ def _parse_session_block_options(block: parse.Block) -> typ.Optional[common.Sess
     )
 
 
-def _parse_capture_output(capture: session.Capture, opts: common.SessionBlockOptions) -> str:
+def _parse_capture_output(capture: session.Capture, opts: ct.SessionBlockOptions) -> str:
     # TODO: coloring
     # if "\u001b" in capture.stderr:
     #     stderr = capture.stderr
@@ -563,9 +573,9 @@ TEMPFILE_RE = re.compile(TEMPFILE_PATTERN)
 
 
 def _postproc_failed_block(
-    block      : parse.Block,
-    opts       : common.SessionBlockOptions,
-    stdin_lines: typ.List[str],
+    block      : ct.Block,
+    opts       : ct.SessionBlockOptions,
+    stdin_lines: list[str],
     capture    : session.Capture,
 ) -> None:
     rjust     = len(str(len(stdin_lines)))
@@ -589,14 +599,14 @@ Tempfile = typ.Optional[typ.Any]
 Command  = str
 
 
-def _init_isession(opts: common.SessionBlockOptions, command: Command) -> session.InteractiveSession:
+def _init_isession(opts: ct.SessionBlockOptions, command: Command) -> session.InteractiveSession:
     if opts.is_debug:
         return session.DebugInteractiveSession(command)
     else:
         return session.InteractiveSession(command)
 
 
-def _init_command(opts: common.SessionBlockOptions) -> typ.Tuple[Tempfile, Command]:
+def _init_command(opts: ct.SessionBlockOptions) -> tuple[Tempfile, Command]:
     command = opts.command
     if command is None:
         raise TypeError("Must be str but was None")
@@ -613,10 +623,10 @@ def _init_command(opts: common.SessionBlockOptions) -> typ.Tuple[Tempfile, Comma
 
 
 def _process_isession(
-    block      : parse.Block,
-    opts       : common.SessionBlockOptions,
+    block      : ct.Block,
+    opts       : ct.SessionBlockOptions,
     command    : str,
-    stdin_lines: typ.List[str],
+    stdin_lines: list[str],
 ) -> session.Capture:
     _cmd = command if len(command) < 40 else (command[:40] + "...")
 
@@ -664,8 +674,8 @@ def _process_isession(
 
 
 def _process_command_block(
-    block: parse.Block,
-    opts : common.SessionBlockOptions,
+    block: ct.Block,
+    opts : ct.SessionBlockOptions,
 ) -> session.Capture:
     tmp, command = _init_command(opts)
 
@@ -690,15 +700,15 @@ def _process_command_block(
             os.unlink(tmp.name)
 
 
-def _iter_task_blocks(md_file: parse.MarkdownFile) -> typ.Iterable[common.TaskBlockOpts]:
-    for block in md_file.iter_blocks():
+def _iter_task_blocks(chapter: parse.Chapter) -> typ.Iterable[ct.TaskBlockOpts]:
+    for block in chapter.iter_blocks():
         opts = _parse_session_block_options(block)
         if opts:
-            yield common.TaskBlockOpts(block, opts)
+            yield ct.TaskBlockOpts(block, opts)
 
 
-def _iter_block_tasks(md_file: parse.MarkdownFile) -> typ.Iterable[common.BlockTask]:
-    taskblockopt_items = list(_iter_task_blocks(md_file))
+def _iter_block_tasks(chapter: parse.Chapter) -> typ.Iterable[ct.BlockTask]:
+    taskblockopt_items = list(_iter_task_blocks(chapter))
     for i, (block, opts) in enumerate(taskblockopt_items):
         capture_index = -1
 
@@ -712,16 +722,10 @@ def _iter_block_tasks(md_file: parse.MarkdownFile) -> typ.Iterable[common.BlockT
             if opts.directive == 'run':
                 capture_index = block.elem_index
 
-            yield common.BlockTask(md_file.md_path, command, block, opts, capture_index)
+            yield ct.BlockTask(block.md_path, command, block, opts, capture_index)
 
 
-class MarkdownFileResult(typ.NamedTuple):
-
-    orig_md_file    : parse.MarkdownFile
-    updated_elements: typ.List[parse.MarkdownElement]
-
-
-FilesItem = typ.Tuple[parse.MarkdownFile, parse.MarkdownFile]
+ChapNum = str
 
 
 class BuildOptions(typ.NamedTuple):
@@ -734,47 +738,51 @@ class BuildOptions(typ.NamedTuple):
 
 class Runner:
 
-    orig_files : MarkdownFiles
-    build_files: MarkdownFiles
-    opts       : BuildOptions
+    orig_chapters : Chapters
+    build_chapters: Chapters
+    opts          : BuildOptions
 
-    results: typ.List[MarkdownFileResult]
+    elements_by_chapnum: dict[str, dict[Path, list[parse.MarkdownElement]]]
 
-    _file_items_by_path: typ.Dict[pl.Path, FilesItem]
-    _all_tasks         : typ.List[common.BlockTask]
-    _task_results      : typ.List[typ.Tuple[common.BlockTask, session.Capture]]
+    _chapter_by_path: dict[Path, parse.Chapter]
+    _all_tasks      : list[ct.BlockTask]
+    _task_results   : list[tuple[ct.BlockTask, session.Capture]]
+    _cached_tasks   : list[ct.BlockTask]
 
     _cache: capture_cache.ResultCache
 
     def __init__(
         self,
-        orig_files : MarkdownFiles,
-        build_files: MarkdownFiles,
-        opts       : BuildOptions,
+        orig_chapters : Chapters,
+        build_chapters: Chapters,
+        opts          : BuildOptions,
     ) -> None:
-        self.orig_files  = orig_files
-        self.build_files = build_files
-        self.opts        = opts
+        self.orig_chapters  = orig_chapters
+        self.build_chapters = build_chapters
+        self.opts           = opts
 
-        self.results             = []
-        self._file_items_by_path = {}
-        self._all_tasks          = []
-        self._task_results       = []
+        self.elements_by_chapnum = {}
 
         # TODO (mb 2021-03-04): _task_results and _cache are somewhat redundant.
         #   It might be possible/reasonable to always rely on the _cache to lookup
         #   the capture of a task, even one that was just executed.
 
-        for orig_md_file, md_file in zip(self.orig_files, self.build_files):
-            self._file_items_by_path[md_file.md_path] = (orig_md_file, md_file)
-            self._all_tasks.extend(_iter_block_tasks(md_file))
+        self._chapter_by_path = {}
+        self._all_tasks       = []
+        self._task_results    = []
+        self._cached_tasks    = []
 
         if self.opts.cache_enabled:
-            self._cache = capture_cache.LocalResultCache(self.orig_files)
+            self._cache = capture_cache.LocalResultCache(self.orig_chapters)
         else:
             self._cache = capture_cache.DummyCache()
 
-    def _run_task(self, task: common.BlockTask) -> None:
+        for chapter in self.build_chapters:
+            for md_path in chapter.md_paths:
+                self._chapter_by_path[md_path] = chapter
+            self._all_tasks.extend(_iter_block_tasks(chapter))
+
+    def _run_task(self, task: ct.BlockTask) -> None:
         if self.opts.cache_enabled:
             cached_capture = self._cache.get_capture(task)
         else:
@@ -784,6 +792,7 @@ class Runner:
             capture = _process_command_block(task.block, task.opts)
             self._cache.update(task, capture)
         else:
+            self._cached_tasks.append(task)
             capture = cached_capture
 
         if task.capture_index >= 0:
@@ -793,10 +802,10 @@ class Runner:
         updated_elements = collections.defaultdict(list)
 
         for task, capture in self._task_results:
-            orig_md_file, md_file = self._file_items_by_path[task.md_path]
-            output = _parse_capture_output(capture, task.opts)
+            chapter = self._chapter_by_path[task.md_path]
+            output  = _parse_capture_output(capture, task.opts)
 
-            elem = md_file.elements[task.capture_index]
+            elem = chapter.elements[task.md_path][task.capture_index]
             assert elem.md_type == 'block'
 
             header_lines = [
@@ -817,16 +826,18 @@ class Runner:
                     new_content,
                     None,
                 )
-                updated_elements[task.md_path].append(updated_elem)
+                key = (chapter.chapnum, task.md_path)
+                updated_elements[key].append(updated_elem)
 
-        for orig_md_file, md_file in zip(self.orig_files, self.build_files):
-            result = MarkdownFileResult(orig_md_file, updated_elements[md_file.md_path])
-            self.results.append(result)
+        for chapter in self.orig_chapters:
+            self.elements_by_chapnum[chapter.chapnum] = {
+                md_path: updated_elements.get((chapter.chapnum, md_path), []) for md_path in chapter.md_paths
+            }
 
-    def _start(self, submit_task: typ.Callable[[common.BlockTask], Future]) -> None:
-        provided_ids        : typ.Set[str] = set()
-        remaining_tasks     : typ.List[common.BlockTask] = list(self._all_tasks)
-        prev_remaining_tasks: typ.List[common.BlockTask] = []
+    def _start(self, submit_task: typ.Callable[[ct.BlockTask], Future]) -> None:
+        provided_ids        : set[str] = set()
+        remaining_tasks     : list[ct.BlockTask] = list(self._all_tasks)
+        prev_remaining_tasks: list[ct.BlockTask] = []
         num_completed = 0
 
         while remaining_tasks:
@@ -837,8 +848,8 @@ class Runner:
             else:
                 prev_remaining_tasks = remaining_tasks
 
-            defered_tasks: typ.List[common.BlockTask] = []
-            futures      : typ.List[typ.Tuple[Future, common.BlockTask]] = []
+            defered_tasks: list[ct.BlockTask] = []
+            futures      : list[tuple[Future, ct.BlockTask]] = []
 
             for task in remaining_tasks:
                 if task.opts.requires_ids <= provided_ids:
@@ -855,73 +866,92 @@ class Runner:
 
             remaining_tasks = defered_tasks
 
-        logger.info(f"Completed tasks: {num_completed} of {len(self._all_tasks)}")
+        total  = len(self._all_tasks)
+        cached = len(self._cached_tasks)
+        logger.info(f"Completed tasks: {num_completed} of {total} ({cached} cached)")
 
     def start(self) -> None:
-        if self.opts.concurrency == 1 or self.opts.exitfirst:
+        try:
+            if self.opts.concurrency > 1 and self.opts.exitfirst:
+                logger.warning("Incompatible --concurrency > 1 and --exit-first")
+                logger.warning("    Fallback to --concurrency=1")
 
-            def submit(task: common.BlockTask) -> Future:
-                future: Future = Future()
-                self._run_task(task)
-                future.set_result(None)
-                return future
+            if self.opts.concurrency == 1 or self.opts.exitfirst:
 
-            self._start(submit)
-        else:
-            with ThreadPoolExecutor(max_workers=self.opts.concurrency) as executor:
-
-                def submit(task: common.BlockTask) -> Future:
-                    return executor.submit(self._run_task, task)
+                def submit(task: ct.BlockTask) -> Future:
+                    future: Future = Future()
+                    self._run_task(task)
+                    future.set_result(None)
+                    return future
 
                 self._start(submit)
+            else:
+                with ThreadPoolExecutor(max_workers=self.opts.concurrency) as executor:
 
-        self._postprocess_captures()
-        self._cache.flush()
+                    def submit(task: ct.BlockTask) -> Future:
+                        return executor.submit(self._run_task, task)
+
+                    self._start(submit)
+            self._postprocess_captures()
+        finally:
+            self._cache.flush()
 
     def wait(self) -> None:
         pass
 
 
-def _run_subprocs(orig_ctx: parse.Context, opts: BuildOptions, runner: Runner) -> parse.Context:
+def _run_subprocs(parse_ctx: parse.Context, opts: BuildOptions, runner: Runner) -> parse.Context:
     runner.start()
     runner.wait()
 
-    doc_ctx = orig_ctx.copy()
+    doc_ctx = parse_ctx.copy()
 
-    for file_idx, md_file_result in enumerate(runner.results):
-        if not any(md_file_result.updated_elements):
-            continue
-
-        md_path = md_file_result.orig_md_file.md_path
+    for chap_idx, orig_chapter in enumerate(parse_ctx.chapters):
+        updated_elements = runner.elements_by_chapnum[orig_chapter.chapnum]
 
         # phase 6. rewrite output blocks
-        orig_elements = list(md_file_result.orig_md_file.elements)
-        new_elements  = list(orig_elements)  # copy
-        for elem in md_file_result.updated_elements:
-            orig_elem = orig_elements[elem.elem_index]
-            assert 'out' in orig_elem.content or 'run' in orig_elem.content
-            new_elements[elem.elem_index] = elem
+        new_elems_by_path = {}
+        for md_path in orig_chapter.md_paths:
+            orig_elems = orig_chapter.elements[md_path]
+            if md_path in updated_elements:
+                new_elems = list(orig_elems)  # copy
+                for updated_elem in updated_elements[md_path]:
+                    orig_elem = orig_elems[updated_elem.elem_index]
+                    assert "out" in orig_elem.content or "run" in orig_elem.content
+                    new_elems[updated_elem.elem_index] = updated_elem
+                new_elems_by_path[md_path] = new_elems
+            else:
+                new_elems_by_path[md_path] = orig_elems
 
-        new_md_file = parse.MarkdownFile(md_path, new_elements)
+        new_chapter = parse.Chapter(
+            orig_chapter.md_paths,
+            orig_chapter.chapnum,
+            orig_chapter.namespace,
+            new_elems_by_path,
+        )
         if opts.in_place_update:
-            new_file_content = str(new_md_file)
-            with new_md_file.md_path.open(mode="w", encoding="utf-8") as fobj:
-                fobj.write(new_file_content)
+            for md_path in new_chapter.md_paths:
+                new_file_content = new_chapter.md_content(md_path)
 
-            logger.info(f"Updated {new_md_file.md_path}")
-        else:
-            logger.info(f"Update skipped for {new_md_file.md_path} (use -i/--in-place-update)")
+                with md_path.open(mode="r", encoding="utf-8") as fobj:
+                    old_file_content = fobj.read()
 
-        doc_ctx.files[file_idx] = new_md_file
+                if old_file_content != new_file_content:
+                    with md_path.open(mode="w", encoding="utf-8") as fobj:
+                        fobj.write(new_file_content)
+
+                    logger.info(f"Updated {md_path}")
+
+        doc_ctx.chapters[chap_idx] = new_chapter
+
+    if not opts.in_place_update:
+        logger.info("Update skipped. Use -i/--in-place-update to update 'out' blocks.")
 
     return doc_ctx
 
 
-def build(
-    orig_ctx: parse.Context,
-    opts    : BuildOptions,
-) -> parse.Context:
-    build_ctx   = orig_ctx.copy()
+def build(parse_ctx: parse.Context, opts: BuildOptions) -> parse.Context:
+    build_ctx   = parse_ctx.copy()
     build_start = time.time()
 
     try:
@@ -930,7 +960,7 @@ def build(
         # build_ctx      = _expand_constants(build_ctx)
 
         # phase 2: expand dep directives
-        expanded_files = list(_iter_expanded_files(build_ctx.files))
+        expanded_chapters = list(_iter_expanded_chapters(build_ctx.chapters))
     except BlockError as err:
         # TODO (mb 2020-06-03): print context of block
         contents = err.include_contents or [err.block.content]
@@ -940,10 +970,10 @@ def build(
                     sys.stderr.write("E " + line.rstrip() + "\n")
         raise
 
-    build_ctx = parse.Context(expanded_files)
+    build_ctx = parse.Context(chapters=expanded_chapters)
 
     # phase 3. validate blocks
-    error_messages = list(_iter_block_errors(orig_ctx, build_ctx))
+    error_messages = list(_iter_block_errors(parse_ctx, build_ctx))
     for error_msg in error_messages:
         logger.error(error_msg)
 
@@ -959,10 +989,11 @@ def build(
     #   - Write new files to temp directory
     #   - Only update if original mtimes are still the same
 
-    # phase 5. run sub-processes
-    runner = Runner(orig_ctx.files, build_ctx.files, opts)
+    # phase 5. run sub-processes and update output blocks
+    runner = Runner(parse_ctx.chapters, build_ctx.chapters, opts)
     try:
-        return _run_subprocs(orig_ctx, opts, runner)
+        doc_ctx = _run_subprocs(parse_ctx, opts, runner)
+        return doc_ctx
     finally:
         duration = time.time() - build_start
         logger.info(f"Build finished after {duration:9.3f}sec")

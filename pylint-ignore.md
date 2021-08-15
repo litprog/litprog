@@ -40,7 +40,7 @@ The recommended approach to using `pylint-ignore` is:
   32:     directive: str
   33:
 > 34:     # TODO (mb 2021-02-26): These ids are not namespaced (yet)
-  35:     #   see litprog.build._namespaced_lp_id and litprog.parse.MarkdownFile.block_namespace()
+  35:     #   see litprog.build._namespaced_lp_id and litprog.parse.Chapter.block_namespace()
   36:     provides_id         : typ.Optional[str]
 ```
 

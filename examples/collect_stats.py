@@ -1,11 +1,11 @@
-from typing import Sequence, Tuple, List, Dict, Optional, Iterable
+from typing import Optional, Iterator
 DIGITS = "123456789"
 from pathlib import Path
 STATIC_DIR = Path("lit_v3") / "static"
 TIMES_PATH = Path("examples") / "sudoku_random_times.csv"
 LIN_PATH = STATIC_DIR / "sudoku_random_puzzle_times_linear.svg"
 LOG_PATH = STATIC_DIR / "sudoku_random_puzzle_times_log.svg"
-def cross(A: Sequence[str], B: Sequence[str]) -> Sequence[str]:
+def cross(A: list[str], B: list[str]) -> list[str]:
     """Cross product of elements in A and elements in B."""
     return [a + b for a in A for b in B]
 ROWS    = list("ABCDEFGHI")
@@ -32,10 +32,10 @@ PEERS = {
 Square = str
 Digits = str     # length >= 1
 Digit  = str     # length == 1
-GridItem  = Tuple[Square, Digits]
-Grid      = Dict[Square, Digits]
+GridItem  = tuple[Square, Digits]
+Grid      = dict[Square, Digits]
 MaybeGrid = Optional[Grid]
-def grid_items(raw_grid: str) -> Iterable[GridItem]:
+def grid_items(raw_grid: str) -> Iterator[GridItem]:
     """Parse string representation of a Grid with '.' for empties."""
     chars = [c for c in raw_grid if c.isdigit() or c == '.']
     assert len(chars) == len(SQUARES)
@@ -107,7 +107,7 @@ def search(grid: Grid) -> MaybeGrid:
 def solve(raw_grid: str) -> MaybeGrid:
     return search(parse_grid(raw_grid))
 import random
-def shuffled(seq: Sequence[str]) -> Sequence[str]:
+def shuffled(seq: list[str]) -> list[str]:
     "Return a randomly shuffled copy of the input sequence."
     seq = list(seq)
     random.shuffle(seq)

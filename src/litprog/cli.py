@@ -14,16 +14,14 @@ import tempfile
 
 import click
 
-import litprog.build as lp_build
-import litprog.parse as lp_parse
-import litprog.watch as lp_watch
-
 try:
     import pretty_traceback
 
     pretty_traceback.install()
 except ImportError:
     pass  # no need to fail because of missing dev dependency
+
+# pylint: disable=import-outside-toplevel ; improves import time
 
 
 logger = logging.getLogger(__name__)
@@ -108,20 +106,6 @@ def _get_md_paths(input_paths: InputPaths) -> typ.List[pl.Path]:
     return md_paths
 
 
-# TODO (mb 2021-01-28): These should be parsed from the front matter
-SELECTED_FORMATS = [
-    'print_a4',
-    'print_letter',
-    'print_ereader',
-    'print_a5',
-    'print_booklet_a4',
-    'print_halfletter',
-    'print_booklet_letter',
-    # 'print_twocol_letter',
-    # 'print_twocol_a4',
-]
-
-
 def _num_cpus() -> int:
     try:
         # pylint: disable=no-member;    not available on all platforms
@@ -142,6 +126,9 @@ def _build(
     cache_enabled  : bool = True,
     concurrency    : int  = DEFAULT_CONCURRENCY,
 ) -> None:
+    import litprog.build as lp_build
+    import litprog.parse as lp_parse
+
     build_opts = lp_build.BuildOptions(
         exitfirst=exitfirst,
         in_place_update=in_place_update,
@@ -152,7 +139,7 @@ def _build(
     md_paths = _get_md_paths(input_paths)
 
     parse_ctx = lp_parse.parse_context(md_paths)
-    built_ctx = lp_build.build(parse_ctx, build_opts)
+    doc_ctx = lp_build.build(parse_ctx, build_opts)
 
     logger.info("build completed")
 
@@ -176,11 +163,11 @@ def _build(
     #   even those which don't generate --html or --pdf output.
     import litprog.gen_docs as lp_gen_docs
 
-    lp_gen_docs.gen_html(built_ctx, html_dir)
+    lp_gen_docs.gen_html(doc_ctx, html_dir)
 
     if pdf:
         pdf_dir = pl.Path(pdf)
-        lp_gen_docs.gen_pdf(built_ctx, html_dir, pdf_dir, formats=SELECTED_FORMATS)
+        lp_gen_docs.gen_pdf(doc_ctx, html_dir, pdf_dir)
 
     if is_html_tmp_dir:
         shutil.rmtree(html_dir)
@@ -254,6 +241,9 @@ def build(
     verbose        : int  = 0,
 ) -> None:
     _configure_logging(verbose)
+
+    import litprog.build as lp_build
+
     try:
         _build(input_paths, html, pdf, exitfirst, in_place_update, cache_enabled, concurrency)
     except (lp_build.BlockExecutionError, lp_build.BlockError) as err:
@@ -285,6 +275,9 @@ def watch(
     if len(input_paths) == 0:
         click.secho("No paths given.", fg='red')
         sys.exit(1)
+
+    import litprog.build as lp_build
+    import litprog.watch as lp_watch
 
     # initial build
     try:

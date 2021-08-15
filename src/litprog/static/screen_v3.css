@@ -95,10 +95,10 @@ body .dark-overlay {
 
 .nav-sections {
   height: 55vh;
-  top: 0;
+  bottom: 0;
 }
 .nav-chapters {
-  bottom: 0;
+  top: 0;
   height: 45vh;
 }
 
@@ -651,22 +651,22 @@ body {
 
 @media only screen and (min-width: 500px) {
     body {font-size: 15px;}
-    div.codehilite pre {font-size: 14px; letter-spacing: -0.02em;}
+    div.codehilite pre {font-size: 13px; letter-spacing: -0.02em;}
 }
 
 @media only screen and (min-width: 550px) {
     body {font-size: 16px;}
-    div.codehilite pre {font-size: 15px;}
+    div.codehilite pre {font-size: 14px;}
 }
 
 @media only screen and (min-width: 600px) {
     body {font-size: 17px;}
-    div.codehilite pre {font-size: 16px;}
+    div.codehilite pre {font-size: 15px;}
 }
 
 @media only screen and (min-width: 650px) {
     body {font-size: 18px; line-height: 1.5em;}
-    div.codehilite pre {font-size: 17px;}
+    div.codehilite pre {font-size: 16px;}
 }
 
 @media only screen and (min-width: 700px) {

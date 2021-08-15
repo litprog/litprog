@@ -1,7 +1,7 @@
-from typing import Sequence, Tuple, List, Dict, Optional, Iterable
+from typing import Optional, Iterator
 DIGITS = "123456789"
 import re
-def parse_grids(text: str) -> Iterable[str]:
+def parse_grids(text: str) -> Iterator[str]:
     puzzle = ""
     for line in text.splitlines():
         line, _ = re.subn(r"[^0-9\.]",  "", line)
@@ -9,11 +9,11 @@ def parse_grids(text: str) -> Iterable[str]:
         if len(puzzle) == 81:
             yield puzzle
             puzzle = ""
-def read_grids(filename: str) -> List[str]:
+def read_grids(filename: str) -> list[str]:
     with open(filename) as fobj:
         grids_text = fobj.read()
     return list(parse_grids(grids_text))
-def cross(A: Sequence[str], B: Sequence[str]) -> Sequence[str]:
+def cross(A: list[str], B: list[str]) -> list[str]:
     """Cross product of elements in A and elements in B."""
     return [a + b for a in A for b in B]
 ROWS    = list("ABCDEFGHI")
@@ -40,10 +40,10 @@ PEERS = {
 Square = str
 Digits = str     # length >= 1
 Digit  = str     # length == 1
-GridItem  = Tuple[Square, Digits]
-Grid      = Dict[Square, Digits]
+GridItem  = tuple[Square, Digits]
+Grid      = dict[Square, Digits]
 MaybeGrid = Optional[Grid]
-def grid_items(raw_grid: str) -> Iterable[GridItem]:
+def grid_items(raw_grid: str) -> Iterator[GridItem]:
     """Parse string representation of a Grid with '.' for empties."""
     chars = [c for c in raw_grid if c.isdigit() or c == '.']
     assert len(chars) == len(SQUARES)
@@ -147,8 +147,8 @@ def display(grid: Grid) -> None:
             print(dashed_line)
     print()
 import time
-def solve_all(raw_grids: List[str], show: bool) -> None:
-    durations: List[float] = []
+def solve_all(raw_grids: list[str], show: bool) -> None:
+    durations: list[float] = []
     for raw_grid in raw_grids:
         tzero = time.time()
         result = solve(raw_grid)
@@ -162,7 +162,7 @@ def solve_all(raw_grids: List[str], show: bool) -> None:
     print(f"(avg {avg_ms} ms/solve  max {max_ms} ms)")
 import os
 import sys
-def main(args: Sequence[str]) -> int:
+def main(args: list[str]) -> int:
     show = "--show" in args
     for filename in args:
         if os.path.exists(filename):

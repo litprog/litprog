@@ -7,6 +7,9 @@ import re
 import typing as typ
 import logging
 import pathlib as pl
+import collections
+
+from . import common_types as ct
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +42,7 @@ VALID_ELEMENT_TYPES = {
     MD_BLOCK,
 }
 
-NON_CODE_BLOCKS = ('bob', 'math')
+RENDERED_CODE_BLOCKS = ('bob', 'math')
 
 MarkdownElementType = str
 
@@ -299,40 +302,7 @@ class MarkdownElement:
         )
 
 
-MarkdownElements      = typ.List[MarkdownElement]
-MaybeMarkdownElements = typ.Optional[MarkdownElements]
-
-
-class Headline(typ.NamedTuple):
-
-    md_path   : pl.Path
-    elem_index: int
-    text      : str
-    level     : int
-
-
-InfoString = str
-
-
-class Directive(typ.NamedTuple):
-
-    name : str
-    value: str
-
-    raw_text: str
-
-
-class Block(typ.NamedTuple):
-
-    md_path           : pl.Path
-    namespace         : str
-    first_line        : int
-    elem_index        : int
-    info_string       : InfoString
-    directives        : typ.List[Directive]
-    content           : str
-    inner_content     : str
-    includable_content: str
+ElementsByPath = dict[pl.Path, list[MarkdownElement]]
 
 
 # NOTE (mb 2021-03-04): Right now the 'out' directive references the
@@ -344,7 +314,7 @@ VALID_DIRECTIVES = {
     'language',
     # block composition
     'def',
-    'addto',
+    'amend',
     'dep',
     'include',
     # session/subprocess
@@ -417,7 +387,7 @@ def get_line_directive(line: str, language: typ.Optional[str], is_prelude: bool)
     return None
 
 
-def _parse_directive(directive_text: str, raw_text: str) -> Directive:
+def _parse_directive(directive_text: str, raw_text: str) -> ct.Directive:
     if ":" in directive_text:
         name, value = directive_text.split(":", 1)
         name  = name.strip()
@@ -427,7 +397,7 @@ def _parse_directive(directive_text: str, raw_text: str) -> Directive:
         value = ""
 
     if name in VALID_DIRECTIVES:
-        return Directive(name, value, raw_text)
+        return ct.Directive(name, value, raw_text)
     else:
         errmsg = f"Invalid directive '{name}'"
         raise Exception(errmsg)
@@ -446,7 +416,7 @@ class ParseError(typ.NamedTuple):
     message : str
 
 
-AnyElem = typ.Union[MarkdownElement, Block]
+AnyElem = typ.Union[MarkdownElement, ct.Block]
 
 
 def location(elem: AnyElem) -> FileLocation:
@@ -457,91 +427,75 @@ def make_parse_error(message: str, elem: AnyElem, level: int = logging.ERROR) ->
     return ParseError(location(elem), level, message)
 
 
-FILENAME_PATTERN_URL = "https://regex101.com/r/sLzB5p/4"
+class Chapter:
 
-# Input files for LitProg must match this pattern.
-# The 'namespace' group is used to reference blocks
-# in different files in a way that doesn't break if
-# files are reordered.
+    md_paths : list[pl.Path]
+    chapnum  : str
+    namespace: str
+    elements : ElementsByPath
+    errors   : set[ParseError]
 
-FILENAME_PATTERN = r"""
-^
-(?:[0-9_\-\s]+)?
-(?P<namespace>[\w ]+)
-(?:\.\w*)?
-$
-"""
-
-FILENAME_RE = re.compile(FILENAME_PATTERN, flags=re.VERBOSE)
-
-
-class MarkdownFile:
-
-    md_path : pl.Path
-    errors  : typ.Set[ParseError]
-    elements: MarkdownElements
-
-    def __init__(self, md_path: pl.Path, elements: MaybeMarkdownElements = None) -> None:
-        self.md_path = md_path
-        self.errors  = set()
+    def __init__(
+        self,
+        md_paths : list[pl.Path],
+        chapnum  : str,
+        namespace: str,
+        elements : typ.Optional[ElementsByPath] = None,
+    ) -> None:
+        self.md_paths  = sorted(md_paths)
+        self.chapnum   = chapnum
+        self.namespace = namespace
+        self.errors    = set()
         if elements is None:
-            self.elements = _parse_md_elements(md_path)
+            self.elements = {md_path: _parse_md_elements(md_path) for md_path in md_paths}
         else:
             self.elements = elements
 
-    def copy(self) -> 'MarkdownFile':
-        return MarkdownFile(self.md_path, list(self.elements))
+    def copy(self) -> 'Chapter':
+        new_elements = {path: list(elems) for path, elems in self.elements.items()}
+        return Chapter(self.md_paths, self.chapnum, self.namespace, new_elements)
 
-    def block_namespace(self) -> str:
-        # The namespace is based only on the filename, directories are
-        # only for organization, otherwise they are ignored.
-        filename       = self.md_path.name
-        filename_match = FILENAME_RE.match(filename)
-        if filename_match is None:
-            errmsg = f"Invalid filename {filename}, must match {FILENAME_PATTERN_URL}"
-            raise Exception(errmsg)
-        else:
-            raw_namespace        = filename_match.group('namespace')
-            normalized_namespace = raw_namespace.replace("-", "_").replace(" ", "_")
-            return normalized_namespace
+    def headlines(self) -> typ.Iterable[ct.Headline]:
+        elem_index = 0
+        for md_path in self.md_paths:
+            for elem in self.elements[md_path]:
+                if elem.md_type != MD_HEADLINE:
+                    continue
 
-    def headlines(self) -> typ.Iterable[Headline]:
-        for elem_index, elem in enumerate(self.elements):
-            if elem.md_type != MD_HEADLINE:
-                continue
+                a_match = HEADLINE_RE_A.match(elem.content)
+                b_match = HEADLINE_RE_B.match(elem.content)
+                if a_match:
+                    text   = a_match.group('headline_text_a')
+                    marker = a_match.group('headline_marker_a')
+                    level  = marker.count("#")
+                elif b_match:
+                    text   = b_match.group('headline_text_b')
+                    marker = b_match.group('headline_marker_b')
+                    level  = 1 if "-" in marker else 2
+                else:
+                    err_msg = "Invalid headline: {elem.content}"
+                    raise ValueError(err_msg)
 
-            a_match = HEADLINE_RE_A.match(elem.content)
-            b_match = HEADLINE_RE_B.match(elem.content)
-            if a_match:
-                text   = a_match.group('headline_text_a')
-                marker = a_match.group('headline_marker_a')
-                level  = marker.count("#")
-            elif b_match:
-                text   = b_match.group('headline_text_b')
-                marker = b_match.group('headline_marker_b')
-                level  = 1 if "-" in marker else 2
-            else:
-                err_msg = "Invalid headline: {elem.content}"
-                raise ValueError(err_msg)
-
-            yield Headline(self.md_path, elem_index, text.strip(), level)
+                yield ct.Headline(md_path, elem_index, text.strip(), level)
+                elem_index += 1
 
     def image_tags(self) -> typ.Iterable[ImageTag]:
-        for elem in self.elements:
-            if elem.md_type in (MD_HEADLINE, MD_BLOCK):
-                continue
-            for image_match in IMAGE_URL_RE.finditer(elem.content):
-                yield ImageTag(*image_match.groups())
+        for md_path in self.md_paths:
+            for elem in self.elements[md_path]:
+                if elem.md_type in (MD_HEADLINE, MD_BLOCK):
+                    continue
+                for image_match in IMAGE_URL_RE.finditer(elem.content):
+                    yield ImageTag(*image_match.groups())
 
-    def _init_plain_block(self, elem: MarkdownElement, info_string: str) -> Block:
+    def _init_plain_block(self, elem: MarkdownElement, info_string: str) -> ct.Block:
         inner_content = elem.content
         inner_content = inner_content.split("\n", 1)[-1]
         # trim off final fence
         inner_content = inner_content.rsplit("\n", 1)[0]
 
-        return Block(
-            self.md_path,
-            self.block_namespace(),
+        return ct.Block(
+            elem.md_path,
+            self.namespace,
             elem.first_line,
             elem.elem_index,
             info_string,
@@ -552,11 +506,11 @@ class MarkdownFile:
             inner_content.strip(),
         )
 
-    def _init_code_block(self, elem: MarkdownElement, info_string: str, rest_content: str) -> Block:
+    def _init_code_block(self, elem: MarkdownElement, info_string: str, rest_content: str) -> ct.Block:
         language = info_string
         comment_start_re, comment_end_re = LANGUAGE_COMMENT_REGEXES[language]
 
-        directives = [Directive('language', language, language)]
+        directives = [ct.Directive('language', language, language)]
 
         inner_chunks      = []
         includable_chunks = []
@@ -617,9 +571,9 @@ class MarkdownFile:
         includable_content = includable_content.rsplit("\n", 1)[0]
         includable_content = "\n".join(line for line in includable_content.splitlines() if line.strip())
 
-        return Block(
-            self.md_path,
-            self.block_namespace(),
+        return ct.Block(
+            elem.md_path,
+            self.namespace,
             elem.first_line,
             elem.elem_index,
             info_string,
@@ -629,19 +583,20 @@ class MarkdownFile:
             includable_content,
         )
 
-    def _iter_block_elements(self) -> typ.Iterable[typ.Tuple[MarkdownElement, str, str]]:
-        for elem in self.elements:
-            if elem.md_type == 'block':
-                start_match = BLOCK_START_RE.match(elem.content)
-                assert start_match is not None
-                maybe_info_string = start_match.group('info_string')
-                info_string       = typ.cast(str, maybe_info_string or "")
-                info_string       = info_string.strip()
-                content_start     = start_match.end()
-                content           = elem.content[content_start:]
-                yield (elem, info_string, content)
+    def _iter_block_elements(self) -> typ.Iterable[tuple[MarkdownElement, str, str]]:
+        for md_path in self.md_paths:
+            for elem in self.elements[md_path]:
+                if elem.md_type == 'block':
+                    start_match = BLOCK_START_RE.match(elem.content)
+                    assert start_match is not None
+                    maybe_info_string = start_match.group('info_string')
+                    info_string       = typ.cast(str, maybe_info_string or "")
+                    info_string       = info_string.strip()
+                    content_start     = start_match.end()
+                    content           = elem.content[content_start:]
+                    yield (elem, info_string, content)
 
-    def iter_blocks(self) -> typ.Iterable[Block]:
+    def iter_blocks(self) -> typ.Iterable[ct.Block]:
         for elem, info_string, content in self._iter_block_elements():
             is_known_info_string = info_string in KNOWN_INFO_STRINGS
             if info_string.strip() and not is_known_info_string:
@@ -654,19 +609,20 @@ class MarkdownFile:
             else:
                 yield self._init_plain_block(elem, info_string)
 
-    def iter_block_linenos(self) -> typ.Iterable[typ.Tuple[int, int]]:
+    def iter_block_linenos(self) -> typ.Iterable[ct.BlockLineInfo]:
         for elem, info_string, content in self._iter_block_elements():
-            if info_string not in NON_CODE_BLOCKS:
-                num_lines = content.strip().count("\n")
-                yield elem.first_line, num_lines
+            if info_string not in RENDERED_CODE_BLOCKS:
+                num_lines = content.lstrip().count("\n")
+                yield ct.BlockLineInfo(elem.md_path, elem.first_line, num_lines)
 
     def parse_front_matter_meta(self) -> FrontMatterMetadata:
         # pylint: disable=import-outside-toplevel;
         #   to speed up cli, lazy load modules: yaml and toml
 
+        elements = self.elements[self.md_paths[0]]
         metadata = DEFAULT_FRONT_MATTER_META.copy()
-        if len(self.elements) > 0 and self.elements[0].md_type == MD_FRONT_MATTER:
-            content = self.elements[0].content
+        if len(elements) > 0 and elements[0].md_type == MD_FRONT_MATTER:
+            content = elements[0].content
             if content.startswith("+++"):
                 import toml
 
@@ -686,27 +642,33 @@ class MarkdownFile:
             metadata.update(meta)
         return metadata
 
-    def __lt__(self, other: 'MarkdownFile') -> bool:
-        return self.md_path < other.md_path
+    def __lt__(self, other: 'Chapter') -> bool:
+        return self.chapnum < other.chapnum
 
     def __eq__(self, other: object) -> bool:
-        if not isinstance(other, MarkdownFile):
-            return False
-        elif not self.md_path == other.md_path:
-            return False
-        elif not self.elements == other.elements:
-            return False
-        else:
-            return True
+        return (
+            isinstance(other, Chapter)
+            and self.chapnum   == other.chapnum
+            and self.namespace == other.namespace
+            and self.md_paths  == other.md_paths
+            and self.elements  == other.elements
+        )
+
+    def md_content(self, md_path: pl.Path, front_matter: bool = True) -> str:
+        return "".join([
+            elem.content
+            for elem in self.elements[md_path]
+            if front_matter or elem.md_type != MD_FRONT_MATTER
+        ])
 
     def __str__(self) -> str:
-        return "".join(elem.content for elem in self.elements if elem.md_type != MD_FRONT_MATTER)
+        raise NotImplementedError
 
     def __repr__(self) -> str:
-        return f"litprog.parse.MarkdownFile(\"{self.md_path}\")"
+        return f"litprog.parse.Chapter(\"{self.chapnum}\", {self.namespace})"
 
     def __hash__(self) -> int:
-        return hash(self.md_path)
+        return hash(self.chapnum) ^ hash(self.namespace)
 
 
 def _iter_raw_md_elements(content: str) -> typ.Iterable[_RawMarkdownElement]:
@@ -765,7 +727,7 @@ def _iter_raw_md_elements(content: str) -> typ.Iterable[_RawMarkdownElement]:
         yield _RawMarkdownElement(MD_PARAGRAPH, line_no, content)
 
 
-def _parse_md_elements(md_path: pl.Path) -> MarkdownElements:
+def _parse_md_elements(md_path: pl.Path) -> list[MarkdownElement]:
     # TODO: encoding from config
     with md_path.open(mode='r', encoding="utf-8") as fobj:
         content = fobj.read()
@@ -792,49 +754,96 @@ def _parse_md_elements(md_path: pl.Path) -> MarkdownElements:
     return elements
 
 
-MarkdownFiles = typ.List[MarkdownFile]
+# Input files for LitProg must match this pattern.
+# The 'namespace' group is used to reference blocks
+# in different files in a way that doesn't break if
+# files are reordered.
+
+FILENAME_PATTERN_URL = "https://regex101.com/r/sSc610/1"
+FILENAME_PATTERN = r"""
+^
+(?:
+  (?P<chapter>[0-9]{2})
+  (?P<section>[0-9][a-z]?)?
+  [_\-\s]
+)?
+(?P<namespace>[\w ]+)
+(?:\.\w*)?
+$
+"""
+
+FILENAME_RE = re.compile(FILENAME_PATTERN, flags=re.VERBOSE)
+
+
+def parse_namespace(filename: str) -> tuple[str, str]:
+    filename_match = FILENAME_RE.match(filename)
+    if filename_match is None:
+        errmsg = f"Invalid filename {filename}, must match {FILENAME_PATTERN_URL}"
+        raise Exception(errmsg)
+    else:
+        chapter              = filename_match.group('chapter')
+        raw_namespace        = filename_match.group('namespace')
+        normalized_namespace = raw_namespace.replace("-", "_").replace(" ", "_")
+        return (chapter or normalized_namespace, normalized_namespace)
 
 
 class Context:
 
-    files: MarkdownFiles
+    chapters: list[Chapter]
 
-    def __init__(self, md_path_or_files: typ.Union[FilePaths, MarkdownFiles]) -> None:
-        self.files = []
-        for path_or_file in md_path_or_files:
-            if isinstance(path_or_file, MarkdownFile):
-                self.files.append(path_or_file)
-            else:
-                self.files.append(MarkdownFile(path_or_file))
-        self.files.sort()
+    def __init__(self, *, md_paths: FilePaths = None, chapters: list[Chapter] = None) -> None:
+        if chapters:
+            assert md_paths is None
+            self.chapters = chapters
+        elif md_paths:
+            assert chapters is None
+            namespaces: dict[str, str] = {}
+            paths_by_chapnum = collections.defaultdict(list)
 
-    def headlines(self) -> typ.Iterable[Headline]:
-        for md_file in self.files:
-            for headline in md_file.headlines():
+            for md_path in md_paths:
+                chapnum, namespace = parse_namespace(md_path.name)
+                if chapnum in namespaces:
+                    namespace = namespaces[chapnum]
+                else:
+                    namespaces[chapnum] = namespace
+
+                paths_by_chapnum[chapnum, namespace].append(md_path)
+
+            self.chapters = [
+                Chapter(chapter_md_paths, chapnum, namespace)
+                for (chapnum, namespace), chapter_md_paths in sorted(paths_by_chapnum.items())
+            ]
+            self.chapters.sort()
+        else:
+            raise ValueError("Missing argument 'md_paths' for Context.")
+
+    def headlines(self) -> typ.Iterable[ct.Headline]:
+        for chapter in self.chapters:
+            for headline in chapter.headlines():
                 yield headline
 
-    def iter_blocks(self) -> typ.Iterable[Block]:
-        for md_file in self.files:
-            for block in md_file.iter_blocks():
+    def iter_blocks(self) -> typ.Iterable[ct.Block]:
+        for chapter in self.chapters:
+            for block in chapter.iter_blocks():
                 yield block
 
     def copy(self) -> 'Context':
-        return Context([f.copy() for f in self.files])
+        return Context(chapters=[f.copy() for f in self.chapters])
 
     def __eq__(self, other: object) -> bool:
-        return isinstance(other, Context) and self.files == other.files
+        return isinstance(other, Context) and self.chapters == other.chapters
 
 
 def parse_context(md_paths: FilePaths) -> Context:
-    parse_ctx = Context(md_paths)
+    parse_ctx = Context(md_paths=md_paths)
 
     # provoke parse errors early on
     assert parse_ctx.copy() == parse_ctx
     list(parse_ctx.headlines())
     list(parse_ctx.iter_blocks())
 
-    for md_file in parse_ctx.files:
-        for err in md_file.errors:
+    for chapter in parse_ctx.chapters:
+        for err in chapter.errors:
             logger.log(err.level, f"{err.location:<3} : " + err.message)
 
     return parse_ctx

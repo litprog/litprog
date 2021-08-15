@@ -1,18 +1,32 @@
-from . import pdf_booklet
+import math
+import time
+import typing as typ
+import logging
+import pathlib as pl
 
 import PyPDF2 as pypdf
 
+from . import pdf_booklet
+
+logger = logging.getLogger("pdf_booklet")
+
+
 PDFPage = typ.Any
 
-PageIndexMapping = typ.List[typ.Tuple[int, int]]
+PageIndexMapping = list[tuple[int, int]]
+
+MAX_SECTION_PAGES = 48
+PAGES_PER_SHEET   = 4
+
+assert MAX_SECTION_PAGES % PAGES_PER_SHEET == 0
 
 
 def _create_sheets(
-    in_pages  : typ.List[PDFPage],
+    in_pages  : list[PDFPage],
     output    : pypdf.PdfFileWriter,
     out_params: pdf_booklet.OutputParameters,
     page_order: str,
-) -> typ.List[PDFPage]:
+) -> list[PDFPage]:
     half_page_to_in_page = _booklet_page_indexes(len(in_pages), page_order)
     sheet_indexes        = {in_page_index // 2 for _, in_page_index in half_page_to_in_page}
     out_sheets           = [
@@ -48,7 +62,7 @@ def _create_sheets(
     return out_sheets
 
 
-def calc_section_page_counts(total_pages: int, max_pages: int = MAX_SECTION_PAGES) -> typ.List[int]:
+def calc_section_page_counts(total_pages: int, max_pages: int = MAX_SECTION_PAGES) -> list[int]:
     total_sheets = math.ceil(total_pages  / PAGES_PER_SHEET)
     num_sections = math.ceil(total_sheets / (max_pages // 4))
 
@@ -71,13 +85,13 @@ def calc_section_page_counts(total_pages: int, max_pages: int = MAX_SECTION_PAGE
     return [pps] * (num_sections - 1) + [last_ppb]
 
 
-def booklet_page_layout(total_pages: int, max_pages: int = MAX_SECTION_PAGES) -> typ.List[int]:
+def booklet_page_layout(total_pages: int, max_pages: int = MAX_SECTION_PAGES) -> list[int]:
     section_page_counts = calc_section_page_counts(total_pages, max_pages)
 
-    section_page_index_by_page: typ.List[int] = []
+    section_page_index_by_page: list[int] = []
 
     doc_page_offset = 0
-    for section_index, section_page_count in enumerate(section_page_counts):
+    for section_page_count in section_page_counts:
         left_doc_page_index  = doc_page_offset + section_page_count - 1
         right_doc_page_index = doc_page_offset
         while right_doc_page_index < left_doc_page_index:
@@ -143,5 +157,3 @@ def create(
     logger.info(f"Wrote to '{_out_path}'")
 
     return _out_path
-
-

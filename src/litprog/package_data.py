@@ -9,7 +9,7 @@ import typing as typ
 try:
     import importlib.resources as importlib_resources
 except ImportError:
-    # compat for py38 and lower
+    # compat for py36 and lower
     import importlib_resources  # type: ignore
 
 

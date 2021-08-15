@@ -4,7 +4,7 @@
 
 ```python
 # def: boilerplate
-from typing import Sequence, Tuple, List, Dict, Optional, Iterable
+from typing import Optional, Iterator
 
 DIGITS = "123456789"
 ```
@@ -151,7 +151,7 @@ if __name__ == '__main__':
 # run: python3 examples/collect_stats.py
 # def: calc_random_puzzle_times
 # timeout: 1000
-duration:    40.404 sec
+duration:    73.553 sec
 # exit: 0
 ```
 
