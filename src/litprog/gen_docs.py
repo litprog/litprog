@@ -338,10 +338,9 @@ def _gen_html_chunk(
         md_path = chapter.md_paths[0]
         logger.info(f"processing '{md_path}'")
 
-        md_text: MarkdownText = "\n\n".join([
-            chapter.md_content(_md_path, front_matter=False)
-            for _md_path in chapter.md_paths
-        ])
+        md_text: MarkdownText = "\n\n".join(
+            [chapter.md_content(_md_path, front_matter=False) for _md_path in chapter.md_paths]
+        )
 
         md_filepath = str(md_path)
         meta['md_filepath'  ] = md_filepath
@@ -420,6 +419,7 @@ def gen_pdf(
     html_dir: pl.Path,
     pdf_dir : pl.Path,
 ) -> None:
+    # pylint: disable=import-outside-toplevel ; improves import time
     from . import pdf_booklet
 
     if not pdf_dir.exists():

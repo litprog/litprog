@@ -184,13 +184,14 @@ def create(
     in_pages  = in_pdf.pages
     firstpage = in_pages[0]
 
-    x0, y0, in_page_width, in_page_height = map(float, firstpage["/MediaBox"])
-    assert x0 == 0
-    assert y0 == 0
+    _x0, _y0, in_page_width, in_page_height = map(float, firstpage["/MediaBox"])
+    assert _x0 == 0
+    assert _y0 == 0
 
     out_params = parse_output_parameters(in_page_width, in_page_height, out_sheet_format)
     if abs(out_params.scale - 1) > 0.02:
-        import pdf_booklet_old
+        # pylint: disable=import-outside-toplevel ; improves import time
+        from litprog import pdf_booklet_old
 
         result_path = pdf_booklet_old.create(in_path, out_path, out_sheet_format, page_order)
         return result_path  # type: ignore

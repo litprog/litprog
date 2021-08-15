@@ -112,14 +112,15 @@ def _indented_include(
         return content.replace(directive_text, include_val)
 
 
-# TODO: this should be part of the parsing of all directives
-def _parse_prefix(directive: ct.Directive) -> str:
+# TODO: Maybe use this to parse all directive values, and thereby enable quoting.
+def _parse_directive_val(directive: ct.Directive) -> str:
     val = directive.value.strip()
     if val.startswith("'") and val.endswith("'"):
-        val = val[1:-1]
-    if val.startswith('"') and val.endswith('"'):
-        val = val[1:-1]
-    return val
+        return val[1:-1]
+    elif val.startswith('"') and val.endswith('"'):
+        return val[1:-1]
+    else:
+        return val
 
 
 BlockId       = str
@@ -455,8 +456,8 @@ def _parse_format_options(block: ct.Block) -> ct.FormatOptions:
         out=out_fmt,
         err=err_fmt,
         info=info_fmt,
-        out_prefix=_parse_prefix(out_prefix) if out_prefix else "",
-        err_prefix=_parse_prefix(err_prefix) if err_prefix else "! ",
+        out_prefix=_parse_directive_val(out_prefix) if out_prefix else "",
+        err_prefix=_parse_directive_val(err_prefix) if err_prefix else "! ",
     )
 
 
@@ -607,6 +608,7 @@ def _init_isession(opts: ct.SessionBlockOptions, command: Command) -> session.In
 
 
 def _init_command(opts: ct.SessionBlockOptions) -> tuple[Tempfile, Command]:
+    # pylint: disable=consider-using-with; see later: os.unlink(tmp.name)
     command = opts.command
     if command is None:
         raise TypeError("Must be str but was None")
@@ -984,10 +986,6 @@ def build(parse_ctx: parse.Context, opts: BuildOptions) -> parse.Context:
     #   This has to happen before sub-processes, as those
     #   may use the newly created files.
     _dump_files(build_ctx)
-
-    # TODO (mb 2021-01-02): Atomicity guarantees
-    #   - Write new files to temp directory
-    #   - Only update if original mtimes are still the same
 
     # phase 5. run sub-processes and update output blocks
     runner = Runner(parse_ctx.chapters, build_ctx.chapters, opts)

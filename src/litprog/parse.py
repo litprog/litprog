@@ -655,11 +655,13 @@ class Chapter:
         )
 
     def md_content(self, md_path: pl.Path, front_matter: bool = True) -> str:
-        return "".join([
-            elem.content
-            for elem in self.elements[md_path]
-            if front_matter or elem.md_type != MD_FRONT_MATTER
-        ])
+        return "".join(
+            [
+                elem.content
+                for elem in self.elements[md_path]
+                if front_matter or elem.md_type != MD_FRONT_MATTER
+            ]
+        )
 
     def __str__(self) -> str:
         raise NotImplementedError

@@ -3,6 +3,8 @@
 #
 # Copyright (c) 2018-2021 Manuel Barkhau (mbarkhau@gmail.com) - MIT License
 # SPDX-License-Identifier: MIT
+
+
 import os
 import sys
 import glob
@@ -20,8 +22,6 @@ try:
     pretty_traceback.install()
 except ImportError:
     pass  # no need to fail because of missing dev dependency
-
-# pylint: disable=import-outside-toplevel ; improves import time
 
 
 logger = logging.getLogger(__name__)
@@ -86,7 +86,6 @@ def _iter_markdown_filepaths(input_paths: InputPaths) -> typ.Iterable[pl.Path]:
                     glob_path = pl.Path(glob_path_str)
                     if glob_path.is_file():
                         yield glob_path
-                # TODO (mb 2021-01-01): support globs
             else:
                 logger.warning(f"Invalid path: '{path_str}'")
 
@@ -139,7 +138,7 @@ def _build(
     md_paths = _get_md_paths(input_paths)
 
     parse_ctx = lp_parse.parse_context(md_paths)
-    doc_ctx = lp_build.build(parse_ctx, build_opts)
+    doc_ctx   = lp_build.build(parse_ctx, build_opts)
 
     logger.info("build completed")
 

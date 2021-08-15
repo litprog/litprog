@@ -42,7 +42,7 @@ def _digest(parts) -> str:
     return dig.hexdigest()
 
 
-class SimpleCache(object):
+class SimpleCache:
     def __init__(
         self,
         *,
@@ -145,9 +145,10 @@ class SimpleCache(object):
 
     def __exit__(self, typ, val, tb):
         if typ or val or tb:
-            return False
+            return
 
-        if not (self._obj and self._modified and "w" in self._mode):
+        is_modified = self._obj and self._modified and "w" in self._mode
+        if not is_modified:
             return
 
         output = self._dumps(self._obj)

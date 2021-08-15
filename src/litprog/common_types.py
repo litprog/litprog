@@ -29,8 +29,6 @@ class SessionBlockOptions(typ.NamedTuple):
     command  : typ.Optional[str]
     directive: str
 
-    # TODO (mb 2021-02-26): These ids are not namespaced (yet)
-    #   see litprog.build._namespaced_lp_id and litprog.parse.Chapter.block_namespace()
     provides_id         : typ.Optional[str]
     requires_ids        : set[str]
     timeout             : float

@@ -4,6 +4,8 @@
 # Copyright (c) 2018-2021 Manuel Barkhau (mbarkhau@gmail.com) - MIT License
 # SPDX-License-Identifier: MIT
 
+# pylint: disable=consider-using-with; due to long-lived Popen objects
+
 import os
 import json
 import time
