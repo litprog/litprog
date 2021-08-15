@@ -24,7 +24,7 @@ The recommended approach to using `pylint-ignore` is:
 # Overview
 
  - [W0212: protected-access (3x)](#w0212-protected-access)
- - [W0511: fixme (23x)](#w0511-fixme)
+ - [W0511: fixme (20x)](#w0511-fixme)
  - [W0703: broad-except (1x)](#w0703-broad-except)
  - [C0103: invalid-name (1x)](#c0103-invalid-name)
  - [C0415: import-outside-toplevel (2x)](#c0415-import-outside-toplevel)
@@ -136,15 +136,15 @@ The recommended approach to using `pylint-ignore` is:
 
 ## File src/litprog/build.py - Line 115 - W0511 (fixme)
 
-- `message: TODO: this should be part of the parsing of all directives`
+- `message: TODO: Maybe use this to parse all directive values, and thereby enable quoting.`
 - `author : Manuel Barkhau <mbarkhau@gmail.com>`
-- `date   : 2020-12-11T15:37:25`
+- `date   : 2021-08-15T16:53:09`
 
 ```
   113:
   114:
 > 115: # TODO: Maybe use this to parse all directive values, and thereby enable quoting.
-  116: def _parse_prefix(directive: ct.Directive) -> str:
+  116: def _parse_directive_val(directive: ct.Directive) -> str:
   117:     val = directive.value.strip()
 ```
 
@@ -198,37 +198,20 @@ The recommended approach to using `pylint-ignore` is:
 ```
 
 
-## File src/litprog/build.py - Line 253 - W0511 (fixme)
+## File src/litprog/build.py - Line 254 - W0511 (fixme)
 
 - `message: TODO (mb 2021-07-18): pylev for better message`
 - `author : Manuel Barkhau <mbarkhau@gmail.com>`
 - `date   : 2021-08-15T16:30:27`
 
 ```
-  213: def _expand_block_content(
+  214: def _expand_block_content(
   ...
-  251:
-  252:             if lp_dep_sid not in blocks_by_sid:
-> 253:                 # TODO (mb 2021-07-18): pylev for better message
-  254:                 errmsg = f"Invalid dep: '{lp_dep_sid}'"
-  255:                 raise BlockError(errmsg, block)
-```
-
-
-## File src/litprog/build.py - Line 367 - W0511 (fixme)
-
-- `message: TODO (mb 2020-12-30): These line numbers appear to be wrong,`
-- `author : Manuel Barkhau <mbarkhau@gmail.com>`
-- `date   : 2021-03-13T20:48:00`
-
-```
-  341: def _iter_block_errors(parse_ctx: parse.Context, build_ctx: parse.Context) -> typ.Iterable[str]:
-  ...
-  365:                         rel_line_no += 1
-  366:
-> 367:                     # TODO (mb 2020-12-30): These line numbers appear to be wrong,
-  368:                     #   I think for recursive dep directives in particular.
-  369:                     line_no       = elem.first_line + rel_line_no
+  252:
+  253:             if lp_dep_sid not in blocks_by_sid:
+> 254:                 # TODO (mb 2021-07-18): pylev for better message
+  255:                 errmsg = f"Invalid dep: '{lp_dep_sid}'"
+  256:                 raise BlockError(errmsg, block)
 ```
 
 
@@ -249,18 +232,35 @@ The recommended approach to using `pylint-ignore` is:
 ```
 
 
-## File src/litprog/build.py - Line 427 - W0511 (fixme)
+## File src/litprog/build.py - Line 368 - W0511 (fixme)
+
+- `message: TODO (mb 2020-12-30): These line numbers appear to be wrong,`
+- `author : Manuel Barkhau <mbarkhau@gmail.com>`
+- `date   : 2021-03-13T20:48:00`
+
+```
+  342: def _iter_block_errors(parse_ctx: parse.Context, build_ctx: parse.Context) -> typ.Iterable[str]:
+  ...
+  366:                         rel_line_no += 1
+  367:
+> 368:                     # TODO (mb 2020-12-30): These line numbers appear to be wrong,
+  369:                     #   I think for recursive dep directives in particular.
+  370:                     line_no       = elem.first_line + rel_line_no
+```
+
+
+## File src/litprog/build.py - Line 428 - W0511 (fixme)
 
 - `message: TODO (mb 2020-12-17): Allow override/configuration`
 - `author : Manuel Barkhau <mbarkhau@gmail.com>`
 - `date   : 2021-03-13T20:48:00`
 
 ```
-  425:
-  426: def _get_default_command(block: ct.Block) -> typ.Optional[str]:
-> 427:     # TODO (mb 2020-12-17): Allow override/configuration
-  428:     lang = block.info_string.strip()
-  429:     if lang == 'python':
+  426:
+  427: def _get_default_command(block: ct.Block) -> typ.Optional[str]:
+> 428:     # TODO (mb 2020-12-17): Allow override/configuration
+  429:     lang = block.info_string.strip()
+  430:     if lang == 'python':
 ```
 
 
@@ -298,18 +298,18 @@ The recommended approach to using `pylint-ignore` is:
 ```
 
 
-## File src/litprog/build.py - Line 519 - W0511 (fixme)
+## File src/litprog/build.py - Line 520 - W0511 (fixme)
 
 - `message: TODO: coloring`
 - `author : Manuel Barkhau <mbarkhau@gmail.com>`
 - `date   : 2020-12-11T15:37:25`
 
 ```
-  517:
-  518: def _parse_capture_output(capture: session.Capture, opts: ct.SessionBlockOptions) -> str:
-> 519:     # TODO: coloring
-  520:     # if "\u001b" in capture.stderr:
-  521:     #     stderr = capture.stderr
+  518:
+  519: def _parse_capture_output(capture: session.Capture, opts: ct.SessionBlockOptions) -> str:
+> 520:     # TODO: coloring
+  521:     # if "\u001b" in capture.stderr:
+  522:     #     stderr = capture.stderr
 ```
 
 
@@ -330,37 +330,37 @@ The recommended approach to using `pylint-ignore` is:
 ```
 
 
-## File src/litprog/build.py - Line 666 - W0511 (fixme)
+## File src/litprog/build.py - Line 667 - W0511 (fixme)
 
 - `message: TODO: limit output using max_bytes and max_lines`
 - `author : Manuel Barkhau <mbarkhau@gmail.com>`
 - `date   : 2020-12-11T15:37:25`
 
 ```
-  626: def _process_isession(
+  627: def _process_isession(
   ...
-  664:
-  665:     if exit_status == opts.expected_exit_status:
-> 666:         # TODO: limit output using max_bytes and max_lines
-  667:         # TODO: output escaping/fence style change and errors
-  668:         return capture
+  665:
+  666:     if exit_status == opts.expected_exit_status:
+> 667:         # TODO: limit output using max_bytes and max_lines
+  668:         # TODO: output escaping/fence style change and errors
+  669:         return capture
 ```
 
 
-## File src/litprog/build.py - Line 667 - W0511 (fixme)
+## File src/litprog/build.py - Line 668 - W0511 (fixme)
 
 - `message: TODO: output escaping/fence style change and errors`
 - `author : Manuel Barkhau <mbarkhau@gmail.com>`
 - `date   : 2020-12-11T15:37:25`
 
 ```
-  626: def _process_isession(
+  627: def _process_isession(
   ...
-  665:     if exit_status == opts.expected_exit_status:
-  666:         # TODO: limit output using max_bytes and max_lines
-> 667:         # TODO: output escaping/fence style change and errors
-  668:         return capture
-  669:     else:
+  666:     if exit_status == opts.expected_exit_status:
+  667:         # TODO: limit output using max_bytes and max_lines
+> 668:         # TODO: output escaping/fence style change and errors
+  669:         return capture
+  670:     else:
 ```
 
 
@@ -379,54 +379,37 @@ The recommended approach to using `pylint-ignore` is:
 ```
 
 
-## File src/litprog/build.py - Line 767 - W0511 (fixme)
+## File src/litprog/build.py - Line 768 - W0511 (fixme)
 
 - `message: TODO (mb 2021-03-04): _task_results and _cache are somewhat redundant.`
 - `author : Manuel Barkhau <mbarkhau@gmail.com>`
 - `date   : 2021-03-13T20:48:00`
 
 ```
-  755:     def __init__(
+  756:     def __init__(
   ...
-  765:         self.elements_by_chapnum = {}
-  766:
-> 767:         # TODO (mb 2021-03-04): _task_results and _cache are somewhat redundant.
-  768:         #   It might be possible/reasonable to always rely on the _cache to lookup
-  769:         #   the capture of a task, even one that was just executed.
+  766:         self.elements_by_chapnum = {}
+  767:
+> 768:         # TODO (mb 2021-03-04): _task_results and _cache are somewhat redundant.
+  769:         #   It might be possible/reasonable to always rely on the _cache to lookup
+  770:         #   the capture of a task, even one that was just executed.
 ```
 
 
-## File src/litprog/build.py - Line 966 - W0511 (fixme)
+## File src/litprog/build.py - Line 967 - W0511 (fixme)
 
 - `message: TODO (mb 2020-06-03): print context of block`
 - `author : Manuel Barkhau <mbarkhau@gmail.com>`
 - `date   : 2020-12-11T15:37:25`
 
 ```
-  954: def build(parse_ctx: parse.Context, opts: BuildOptions) -> parse.Context:
+  955: def build(parse_ctx: parse.Context, opts: BuildOptions) -> parse.Context:
   ...
-  964:         expanded_chapters = list(_iter_expanded_chapters(build_ctx.chapters))
-  965:     except BlockError as err:
-> 966:         # TODO (mb 2020-06-03): print context of block
-  967:         contents = err.include_contents or [err.block.content]
-  968:         for content in contents:
-```
-
-
-## File src/litprog/build.py - Line 989 - W0511 (fixme)
-
-- `message: TODO (mb 2021-01-02): Atomicity guarantees`
-- `author : Manuel Barkhau <mbarkhau@gmail.com>`
-- `date   : 2021-03-13T20:48:00`
-
-```
-  954: def build(parse_ctx: parse.Context, opts: BuildOptions) -> parse.Context:
-  ...
-  987:     _dump_files(build_ctx)
-  988:
-> 989:     # TODO (mb 2021-01-02): Atomicity guarantees
-  990:     #   - Write new files to temp directory
-  991:     #   - Only update if original mtimes are still the same
+  965:         expanded_chapters = list(_iter_expanded_chapters(build_ctx.chapters))
+  966:     except BlockError as err:
+> 967:         # TODO (mb 2020-06-03): print context of block
+  968:         contents = err.include_contents or [err.block.content]
+  969:         for content in contents:
 ```
 
 
@@ -470,37 +453,37 @@ The recommended approach to using `pylint-ignore` is:
 
 # C0415: import-outside-toplevel
 
-## File src/litprog/cli.py - Line 130 - C0415 (import-outside-toplevel)
+## File src/litprog/cli.py - Line 128 - C0415 (import-outside-toplevel)
 
 - `message: Import outside toplevel (litprog.build)`
 - `author : Manuel Barkhau <mbarkhau@gmail.com>`
 - `date   : 2021-08-15T16:41:24`
 
 ```
-  121: def _build(
+  119: def _build(
   ...
-  128:     concurrency    : int  = DEFAULT_CONCURRENCY,
-  129: ) -> None:
-> 130:     import litprog.build as lp_build
-  131:     import litprog.parse as lp_parse
-  132:
+  126:     concurrency    : int  = DEFAULT_CONCURRENCY,
+  127: ) -> None:
+> 128:     import litprog.build as lp_build
+  129:     import litprog.parse as lp_parse
+  130:
 ```
 
 
-## File src/litprog/cli.py - Line 131 - C0415 (import-outside-toplevel)
+## File src/litprog/cli.py - Line 129 - C0415 (import-outside-toplevel)
 
 - `message: Import outside toplevel (litprog.parse)`
 - `author : Manuel Barkhau <mbarkhau@gmail.com>`
 - `date   : 2021-08-15T16:41:24`
 
 ```
-  121: def _build(
+  119: def _build(
   ...
-  129: ) -> None:
-  130:     import litprog.build as lp_build
-> 131:     import litprog.parse as lp_parse
-  132:
-  133:     build_opts = lp_build.BuildOptions(
+  127: ) -> None:
+  128:     import litprog.build as lp_build
+> 129:     import litprog.parse as lp_parse
+  130:
+  131:     build_opts = lp_build.BuildOptions(
 ```
 
 
@@ -538,20 +521,20 @@ The recommended approach to using `pylint-ignore` is:
 
 # R1702: too-many-nested-blocks
 
-## File src/litprog/build.py - Line 349 - R1702 (too-many-nested-blocks)
+## File src/litprog/build.py - Line 350 - R1702 (too-many-nested-blocks)
 
 - `message: Too many nested blocks (6/5)`
 - `author : Manuel Barkhau <mbarkhau@gmail.com>`
 - `date   : 2021-08-15T16:30:27`
 
 ```
-  341: def _iter_block_errors(parse_ctx: parse.Context, build_ctx: parse.Context) -> typ.Iterable[str]:
+  342: def _iter_block_errors(parse_ctx: parse.Context, build_ctx: parse.Context) -> typ.Iterable[str]:
   ...
-  347:     #   the original file.
-  348:     assert len(parse_ctx.chapters) == len(build_ctx.chapters)
-> 349:     for orig_chapter, chapter in zip(parse_ctx.chapters, build_ctx.chapters):
-  350:         assert orig_chapter.md_paths == chapter.md_paths
-  351:         for md_path in orig_chapter.md_paths:
+  348:     #   the original file.
+  349:     assert len(parse_ctx.chapters) == len(build_ctx.chapters)
+> 350:     for orig_chapter, chapter in zip(parse_ctx.chapters, build_ctx.chapters):
+  351:         assert orig_chapter.md_paths == chapter.md_paths
+  352:         for md_path in orig_chapter.md_paths:
 ```
 
 
