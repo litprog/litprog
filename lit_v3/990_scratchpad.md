@@ -1,7 +1,7 @@
 # Scratchpad
 
 ```python
-# exec: python3
+# def: values
 import math, random
 
 rand = random.Random(1)
@@ -14,7 +14,11 @@ values = sorted([
 
 while 0.0 in values:
     values.remove(0.0)
+```
 
+```python
+# exec: python3
+# dep: values
 n = 4
 for val in values:
     log = math.ceil(math.log10(abs(val)))

@@ -565,19 +565,19 @@ Below is the output from running the program at the command line; it solves the 
 
 ```bash
 # run: python3 examples/sudoku.py examples/sudoku_p096_euler.txt
-Solved 50 of 50 puzzles. (avg 11 ms/solve  max 13 ms)
+Solved 50 of 50 puzzles. (avg 20 ms/solve  max 55 ms)
 # exit: 0
 ```
 
 ```bash
 # run: python3 examples/sudoku.py examples/sudoku_top95.txt
-Solved 95 of 95 puzzles. (avg 37 ms/solve  max 184 ms)
+Solved 95 of 95 puzzles. (avg 67 ms/solve  max 360 ms)
 # exit: 0
 ```
 
 ```bash
 # run: python3 examples/sudoku.py examples/sudoku_hardest.txt
-Solved 11 of 11 puzzles. (avg 16 ms/solve  max 25 ms)
+Solved 11 of 11 puzzles. (avg 27 ms/solve  max 38 ms)
 # exit: 0
 ```
 
@@ -644,7 +644,7 @@ Each of the puzzles above was solved in less than a fifth of a second. What abou
  9 8 4 | 7 6 1 | 2 3 5
  5 2 1 | 8 3 9 | 7 6 4
 
-Solved 2 of 2 puzzles. (avg 33 ms/solve  max 38 ms)
+Solved 2 of 2 puzzles. (avg 64 ms/solve  max 67 ms)
 # exit: 0
 ```
 

@@ -89,6 +89,7 @@ BLOCK_START_PATTERN = r"""
     ^
     (?P<block_fence>```|~~~)
     (?P<info_string>[^\n]*)?
+    (\r\n|\r|\n)
 """
 
 ELEMENT_PATTERN = f"""
@@ -220,8 +221,8 @@ HEADLINE_RE_B = _re(HEADLINE_PATTERN_B, flags=re.VERBOSE | re.MULTILINE)
 BLOCK_START_RE = _re(BLOCK_START_PATTERN, flags=re.VERBOSE | re.MULTILINE)
 
 BLOCK_END_RE = {
-    "```": _re(r"^```", flags=re.VERBOSE | re.MULTILINE),
-    "~~~": _re(r"^~~~", flags=re.VERBOSE | re.MULTILINE),
+    "```": _re(r"(\r\n|\r|\n)```", flags=re.VERBOSE | re.MULTILINE),
+    "~~~": _re(r"(\r\n|\r|\n)~~~", flags=re.VERBOSE | re.MULTILINE),
 }
 
 IMAGE_URL_RE = _re(IMAGE_URL_PATTERN, flags=re.VERBOSE | re.MULTILINE)
@@ -523,6 +524,7 @@ class Chapter:
 
         is_prelude = True
         rest       = rest_content
+
         while rest:
             start_match = comment_start_re.search(rest)
 
@@ -543,6 +545,7 @@ class Chapter:
                 is_prelude = False
 
             end_match = comment_end_re.search(rest)
+
             if end_match is None:
                 comment_text = rest
                 rest         = ""
@@ -550,32 +553,38 @@ class Chapter:
                 comment_text = rest[: end_match.start()]
                 rest         = rest[end_match.end() :]
 
+            if is_prelude:
+                # TODO (mb 2021-08-27): hacky, isn't there a better
+                #   way to capture the newlines earlier?
+                if rest.startswith("\n") or rest.startswith("\r"):
+                    comment_text = comment_text + rest[:1]
+                    rest = rest[1:]
+                elif rest.startswith("\r\n"):
+                    comment_text = comment_text + rest[:2]
+                    rest = rest[2:]
+
             raw_text = start_match.group(0) + comment_text
+
             assert raw_text in elem.content
             inner_chunks.append(raw_text)
-
-            comment_text = comment_text.strip()
-
-            # line_directives = list(_parse_directives(comment_text, raw_text, is_prelude=is_prelude))
 
             if has_directive(comment_text, is_prelude=is_prelude):
                 for directive in _parse_directives(comment_text, raw_text):
                     directives.append(directive)
                     if directive.name in ('dep', 'include'):
+                        # prelude ends with any include/dep directives
+                        is_prelude = False
                         # NOTE (mb 2020-06-03): needed for recursive include
                         includable_chunks.append(raw_text)
             else:
                 includable_chunks.append(raw_text)
 
         inner_content = "".join(inner_chunks)
+        includable_content = "".join(includable_chunks)
+
         # trim off final fence
         inner_content = inner_content.rsplit("\n", 1)[0]
-        inner_content = "\n".join(line for line in inner_content.splitlines() if line.strip())
-
-        includable_content = "".join(includable_chunks)
-        # trim off final fence
         includable_content = includable_content.rsplit("\n", 1)[0]
-        includable_content = "\n".join(line for line in includable_content.splitlines() if line.strip())
 
         return ct.Block(
             elem.md_path,

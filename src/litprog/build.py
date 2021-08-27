@@ -223,7 +223,7 @@ def _expand_block_content(
     #   This ensures that the first occurance of an dep
     #   directive is expanded at the earliest possible point
     #   even if it is a recursive dep.
-    lp_def = get_directive(block, 'def', missing_ok=True, many_ok=False)
+    def_ = get_directive(block, 'def', missing_ok=True, many_ok=False)
 
     if keep_fence:
         new_content = block.content
@@ -236,36 +236,43 @@ def _expand_block_content(
 
         is_dep = directive.name == 'dep'
 
-        lp_dep_contents: list[str] = []
-        for lp_dep_id in directive.value.split(","):
-            lp_dep_sid = _namespaced_lp_id(block, lp_dep_id)
-            if lp_def:
-                lp_def_id = _namespaced_lp_id(block, lp_def.value)
-                _err_on_include_cycle(block, lp_dep_sid, blocks_by_sid, dep_map, root_id=lp_def_id)
+        dep_contents: list[str] = []
+        for dep_id in directive.value.split(","):
+            dep_sid = _namespaced_lp_id(block, dep_id)
+            if def_:
+                def_id = _namespaced_lp_id(block, def_.value)
+                _err_on_include_cycle(block, dep_sid, blocks_by_sid, dep_map, root_id=def_id)
 
             if is_dep:
-                if lp_dep_sid in added_deps:
+                if dep_sid in added_deps:
                     # skip already included dependencies
                     continue
                 else:
-                    added_deps.add(lp_dep_sid)
+                    added_deps.add(dep_sid)
 
-            if lp_dep_sid not in blocks_by_sid:
+            if dep_sid not in blocks_by_sid:
                 # TODO (mb 2021-07-18): pylev for better message:
                 #   "Maybe you meant {closest_sids}"
-                errmsg = f"Invalid dep: '{lp_dep_sid}'"
+                errmsg = f"Invalid dep: '{dep_sid}'"
                 raise BlockError(errmsg, block)
 
-            for dep_block in blocks_by_sid[lp_dep_sid]:
+            for dep_block in blocks_by_sid[dep_sid]:
+                # ic = dep_block.includable_content
+                # print("###", repr(ic))
                 dep_content = _expand_block_content(
-                    blocks_by_sid, dep_block, added_deps, dep_map, keep_fence=False, lvl=lvl + 1
+                    blocks_by_sid,
+                    dep_block,
+                    added_deps,
+                    dep_map,
+                    keep_fence=False,
+                    lvl=lvl + 1,
                 )
                 dep_content = _match_indent(directive.raw_text, dep_content)
-                lp_dep_contents.append(dep_content)
+                dep_contents.append(dep_content)
 
-        include_content = "\n" + "\n".join(lp_dep_contents)
+        include_content = "".join(dep_contents)
         dep_text        = directive.raw_text.lstrip("\n")
-        new_content     = _indented_include(new_content, dep_text, include_content, is_dep=is_dep)
+        new_content = _indented_include(new_content, dep_text, include_content, is_dep=is_dep)
 
     return new_content
 
@@ -385,39 +392,35 @@ def _iter_block_errors(parse_ctx: parse.Context, build_ctx: parse.Context) -> ty
 
 
 def _dump_files(build_ctx: parse.Context) -> None:
-    # We take the most recent md_mtime of all files, as they might
-    # contain a block that is dep(ed)/includ(ed) by a 'file' block.
-    # This is conservative and we could improve this if we would keep
-    # track of the input md files used to create an output file.
-    md_mtime = max(
-        md_path.stat().st_mtime
-        for chapter in build_ctx.chapters
-        for md_path in chapter.md_paths
-    )
+    # NOTE (mb 2021-08-27): We use the most recent md_mtime of all
+    #   files, as they might contain a block that is
+    #   dep(ed)/includ(ed) by a 'file' block. This is conservative and
+    #   we could improve this if we would keep track of the input md
+    #   files used to create an output file.
+    md_mtime = max(md_path.stat().st_mtime for chapter in build_ctx.chapters for md_path in chapter.md_paths)
 
     for chapter in build_ctx.chapters:
-        for md_path in chapter.md_paths:
-            for block in chapter.iter_blocks():
-                file_directive = get_directive(block, 'file')
-                if file_directive is None:
+        for block in chapter.iter_blocks():
+            file_directive = get_directive(block, 'file')
+            if file_directive is None:
+                continue
+
+            path = Path(file_directive.value)
+            # see if we can skip updating the output file
+            if path.exists() and md_mtime < path.stat().st_mtime:
+                continue
+
+            new_content_data = block.includable_content.encode("utf-8")
+            if path.exists():
+                with path.open(mode="rb") as fobj:
+                    old_content_data = fobj.read()
+
+                if old_content_data == new_content_data:
                     continue
 
-                path = Path(file_directive.value)
-                # see if we can skip updating the output file
-                if path.exists() and md_mtime < path.stat().st_mtime:
-                    continue
-
-                new_content_data = block.includable_content.encode("utf-8")
-                if path.exists():
-                    with path.open(mode="rb") as fobj:
-                        old_content_data = fobj.read()
-
-                    if old_content_data == new_content_data:
-                        continue
-
-                path.parent.mkdir(parents=True, exist_ok=True)
-                with path.open(mode="wb") as fobj:
-                    fobj.write(new_content_data)
+            path.parent.mkdir(parents=True, exist_ok=True)
+            with path.open(mode="wb") as fobj:
+                fobj.write(new_content_data)
 
 
 def _parse_out_fmt(block: ct.Block, directive_name: str, default_fmt: str) -> str:
@@ -700,7 +703,7 @@ def _process_command_block(
     tmp, command = _init_command(opts)
 
     if opts.is_stdin_writable:
-        stdin_lines = block.inner_content.splitlines(opts.keepends)
+        stdin_lines = block.includable_content.splitlines(opts.keepends)
     else:
         stdin_lines = []
 
