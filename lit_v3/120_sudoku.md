@@ -76,7 +76,7 @@ G . . . | 6 . 3 | . 7 .    G 2 8 9 | 6 4 3 | 5 7 1
 H 5 . . | 2 . . | . . .    H 5 7 3 | 2 9 1 | 6 8 4
 ```
 
-We can implement the notions of units, peers, and squares in Python 3.6+ as follows:
+We can implement the notions of units, peers, and squares in Python 3.9+ as follows:
 
 ```python
 # def: notions
@@ -324,7 +324,7 @@ We could implement `assign` as `grid[s] = d`, but we can do more than just that.
 # def: assign
 # dep: eliminate
 def assign(grid: Grid, s: Square, d: Digit) -> MaybeGrid:
-    """Eliminate all the other grid (except d) from grid[s] and propagate.
+    """Eliminate all the other values (except d) from grid[s] and propagate.
 
     if a contradiction is detected, return None
     """
@@ -349,10 +349,8 @@ def parse_grid(raw_grid: str) -> MaybeGrid:
     # then assign values from the grid.
     grid = {s: DIGITS for s in SQUARES}
     for s, d in grid_items(raw_grid):
-        if not d.isdigit():
-            continue
         # propagate initial constraint
-        if assign(grid, s, d) is None:
+        if d.isdigit() and assign(grid, s, d) is None:
             return None
     return grid
 ```
@@ -552,9 +550,12 @@ if __name__ == '__main__':
 ```
 
 ```bash
-# exec
-isort examples/sudoku.py
-sjfmt examples/sudoku.py
+# run: bash -c "isort examples/sudoku.py && sjfmt examples/sudoku.py"
+Fixing /home/mbarkhau/foss/litprog/examples/sudoku.py
+! reformatted examples/sudoku.py
+! All done! ✨ 🍰 ✨
+! 1 file reformatted.
+# exit: 0
 ```
 
 
@@ -564,19 +565,19 @@ Below is the output from running the program at the command line; it solves the 
 
 ```bash
 # run: python3 examples/sudoku.py examples/sudoku_p096_euler.txt
-Solved 50 of 50 puzzles. (avg 2 ms/solve  max 3 ms)
+Solved 50 of 50 puzzles. (avg 11 ms/solve  max 13 ms)
 # exit: 0
 ```
 
 ```bash
 # run: python3 examples/sudoku.py examples/sudoku_top95.txt
-Solved 95 of 95 puzzles. (avg 7 ms/solve  max 36 ms)
+Solved 95 of 95 puzzles. (avg 37 ms/solve  max 184 ms)
 # exit: 0
 ```
 
 ```bash
 # run: python3 examples/sudoku.py examples/sudoku_hardest.txt
-Solved 11 of 11 puzzles. (avg 5 ms/solve  max 8 ms)
+Solved 11 of 11 puzzles. (avg 16 ms/solve  max 25 ms)
 # exit: 0
 ```
 
@@ -643,7 +644,7 @@ Each of the puzzles above was solved in less than a fifth of a second. What abou
  9 8 4 | 7 6 1 | 2 3 5
  5 2 1 | 8 3 9 | 7 6 4
 
-Solved 2 of 2 puzzles. (avg 7 ms/solve  max 8 ms)
+Solved 2 of 2 puzzles. (avg 33 ms/solve  max 38 ms)
 # exit: 0
 ```
 
@@ -742,7 +743,7 @@ Solved 1 of 1 puzzles. (avg 37519 ms/solve  max 37519 ms)
 # exit: 0
 ```
 
-Unfortunately, this is not a true Sudoku puzzle because it has multiple solutions. (It was generated before I incorporated Olivier Grégoire's suggestion about checking for 8 digits, so note that any solution to this puzzle leads to another solution where the 1s and 7s are swapped.) But is this an intrinsicly hard puzzle? Or is the difficulty an artifact of the particular variable- and value-ordering scheme used by my `search` routine? To test I randomized the value ordering (I changed `for d in values[s]` in the last line of `search` to be `for d in shuffled(values[s])` and implemented `shuffled` using `random.shuffle`). The results were starkly bimodal: in 27 out of 30 trials the puzzle took less than 0.02 seconds, while each of the other 3 trials took just about 190 seconds (about 10,000 times longer). There are multiple solutions to this puzzle, and the randomized `search` found 13 different solutions. My guess is that somewhere early in the search there is a sequence of squares (probably two) such that if we choose the exact wrong combination of values to fill the squares, it takes about 190 seconds to discover that there is a contradiction. But if we make any other choice, we very quickly either find a solution or find a contradiction and move on to another choice. So the speed of the algorithm is determined by whether it can avoid the deadly combination of value choices.
+Unfortunately, this is not a true Sudoku puzzle because it has multiple solutions. (It was generated before I incorporated Olivier Grégoire's suggestion about checking for 8 digits, so note that any solution to this puzzle leads to another solution where the 1s and 7s are swapped.) But is this an intrinsically hard puzzle? Or is the difficulty an artifact of the particular variable- and value-ordering scheme used by my `search` routine? To test I randomized the value ordering (I changed `for d in values[s]` in the last line of `search` to be `for d in shuffled(values[s])` and implemented `shuffled` using `random.shuffle`). The results were starkly bimodal: in 27 out of 30 trials the puzzle took less than 0.02 seconds, while each of the other 3 trials took just about 190 seconds (about 10,000 times longer). There are multiple solutions to this puzzle, and the randomized `search` found 13 different solutions. My guess is that somewhere early in the search there is a sequence of squares (probably two) such that if we choose the exact wrong combination of values to fill the squares, it takes about 190 seconds to discover that there is a contradiction. But if we make any other choice, we very quickly either find a solution or find a contradiction and move on to another choice. So the speed of the algorithm is determined by whether it can avoid the deadly combination of value choices.
 
 Randomization works most of the time (27 out of 30), but perhaps we could do even better by considering a better value ordering (one popular heuristic is _least-constraining value_, which chooses first the value that imposes the fewest constraints on peers), or by trying a smarter variable ordering.
 

@@ -16,6 +16,9 @@ keywords    = [
 copyright     = "2019-2021 Manuel Barkhau - MIT License"
 copyright_url = "https://github.com/litprog/litprog/blob/master/LICENSE"
 
+pdf_basename = "print"
+pdf_formats  = ["a4", "a5", "booklet_a4"]
+
 [configuration]
 concurrent = true
 

@@ -20,7 +20,7 @@ from . import common_types as ct
 logger = logging.getLogger(__name__)
 
 
-MAX_CODE_BLOCK_LINE_LEN = 85
+MAX_CODE_BLOCK_LINE_LEN = 80
 
 HTML_PART_PATTERN = re.compile(r"(&[#\w]+?;|<.*?>|\s+\w+)")
 

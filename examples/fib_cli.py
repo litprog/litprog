@@ -28,13 +28,14 @@ def pretty_print_fibs(ns: Sequence[int]) -> None:
         print(f"{in_str} => {res_str}", end="  ")
         if (i + 1) % 3 == 0:
             print()
-ParamsAndFlags = tuple[list[str], set[str]]
-def parse_args(args: list[str]) -> ParamsAndFlags:
+Flags = set[str]
+Params = list[str]
+def parse_args(args: list[str]) -> tuple[Flags, Params]:
     flags = {arg for arg in args if arg.startswith("-")}
     params = [arg for arg in args if arg not in flags]
-    return params, flags
+    return (flags, params)
 def main(args: list[str] = sys.argv[1:]) -> int:
-    params, flags = parse_args(args)
+    flags, params = parse_args(args)
     if not args or "--help" in flags or "-h" in flags:
         print(__doc__)
         return 0

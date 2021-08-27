@@ -1,7 +1,7 @@
 # Scratchpad
 
 ```python
-# def: setup
+# exec: python3
 import math, random
 
 rand = random.Random(1)
@@ -14,11 +14,6 @@ values = sorted([
 
 while 0.0 in values:
     values.remove(0.0)
-```
-
-```python
-# exec: python3
-# dep: setup
 
 n = 4
 for val in values:

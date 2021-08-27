@@ -47,7 +47,7 @@ assert dict(grid_items(FIXTURE_1)) == {
 }
 ```
 
-The `shorten_digits` function is just to make the output of the `display` funciton a bit less verbose for partially solved puzzles. It's primary use is during debugging/develpment.
+The `shorten_digits` function is just to make the output of the `display` function a bit less verbose for partially solved puzzles. It's primary use is during debugging/develpment.
 
 ### Pretty Printing
 
@@ -151,11 +151,11 @@ if __name__ == '__main__':
 # run: python3 examples/collect_stats.py
 # def: calc_random_puzzle_times
 # timeout: 1000
-duration:    73.553 sec
+duration:    98.400 sec
 # exit: 0
 ```
 
-I spent a few hours on different ways to render plots eventually gave up on getting it the way I wanted (as close as possible to the originals). I'm not fond of the matplotlib API.
+I spent a few hours on different ways to render plots eventually gave up on getting it the way I wanted (as close as possible to the originals). I'm not fond of the matplotlib API...
 
 ```python
 # exec

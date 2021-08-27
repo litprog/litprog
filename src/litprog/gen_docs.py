@@ -436,12 +436,13 @@ def gen_pdf(
 
     pdf_formats = [(fmt if fmt.startswith("print_") else "print_" + fmt) for fmt in cur_meta['pdf_formats']]
 
-    all_md_texts = []
+    all_md_texts    : list[MarkdownText    ] = []
     block_line_infos: list[ct.BlockLineInfo] = []
     for file_meta, chapter in zip(chapter_metas, ctx.chapters):
-        md_text: MarkdownText = str(chapter)
         cur_meta.update(file_meta)
-        all_md_texts.append(md_text)
+        for md_path in chapter.md_paths:
+            md_text = chapter.md_content(md_path, front_matter=False)
+            all_md_texts.append(md_text)
         block_line_infos.extend(chapter.iter_block_linenos())
 
     full_md_text = "\n\n".join(all_md_texts)

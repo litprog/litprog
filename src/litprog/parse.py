@@ -314,7 +314,7 @@ VALID_DIRECTIVES = {
     'language',
     # block composition
     'def',
-    'amend',
+    # 'amend',  # depricated
     'dep',
     'include',
     # session/subprocess
@@ -357,50 +357,56 @@ assert VALID_INLINE_DIRECTIVES < VALID_ARG_DIRECTIVES
 assert VALID_NOARG_DIRECTIVES  < VALID_DIRECTIVES
 
 
-def get_line_directive(line: str, language: typ.Optional[str], is_prelude: bool) -> typ.Optional[str]:
+def has_directive(comment_text: str, is_prelude: bool, language: typ.Optional[str] = None) -> bool:
     if language is None:
-        comment_text = line
+        comment_text = comment_text
     else:
         comment_start_re, comment_end_re = LANGUAGE_COMMENT_REGEXES[language]
-        start_match = comment_start_re.search(line)
+        start_match = comment_start_re.search(comment_text)
         if start_match is None:
-            return None
+            return False
 
-        comment_text = line[start_match.end() :]
+        comment_text = comment_text[start_match.end() :]
         end_match    = comment_end_re.search(comment_text)
         if end_match is None:
-            return None
+            return False
 
     comment_text = comment_text.strip()
     if is_prelude:
         if comment_text in VALID_NOARG_DIRECTIVES:
-            return comment_text
+            return True
 
         for name in VALID_ARG_DIRECTIVES:
-            if comment_text.startswith(name + ":"):
-                return name
+            if re.match(r"^" + name + r"\s*:", comment_text):
+                return True
     else:
         for name in VALID_INLINE_DIRECTIVES:
-            if comment_text.startswith(name + ":"):
-                return name
+            if re.match(r"^" + name + r"\s*:", comment_text):
+                return True
 
-    return None
+    return False
 
 
-def _parse_directive(directive_text: str, raw_text: str) -> ct.Directive:
-    if ":" in directive_text:
-        name, value = directive_text.split(":", 1)
-        name  = name.strip()
-        value = value.strip()
-    else:
-        name  = directive_text.strip()
-        value = ""
+def _parse_directives(comment_text: str, raw_text: str) -> typ.Iterable[ct.Directive]:
+    # TODO (mb 2021-08-19): Is there a way we can support
+    #   multiple directives on the same line?
+    rest = comment_text
+    while rest:
+        # match = re.match(r"^" + name + r"\s*:", rest)
+        if ":" in rest:
+            name, value = rest.split(":", 1)
+            name  = name.strip()
+            value = value.strip()
+        else:
+            name  = rest.strip()
+            value = ""
 
-    if name in VALID_DIRECTIVES:
-        return ct.Directive(name, value, raw_text)
-    else:
-        errmsg = f"Invalid directive '{name}'"
-        raise Exception(errmsg)
+        if name in VALID_DIRECTIVES:
+            yield ct.Directive(name, value, raw_text)
+            return
+        else:
+            errmsg = f"Invalid directive '{name}'"
+            raise Exception(errmsg)
 
 
 # NOTE (mb 2020-05-22): Since we do multiple passes over the file, we
@@ -546,19 +552,19 @@ class Chapter:
 
             raw_text = start_match.group(0) + comment_text
             assert raw_text in elem.content
+            inner_chunks.append(raw_text)
 
             comment_text = comment_text.strip()
 
-            directive_name = get_line_directive(comment_text, language=None, is_prelude=is_prelude)
-            if directive_name:
-                directive = _parse_directive(comment_text, raw_text)
-                directives.append(directive)
-                inner_chunks.append(raw_text)
-                if directive.name in ('dep', 'include'):
-                    # NOTE (mb 2020-06-03): needed for recursive include
-                    includable_chunks.append(raw_text)
+            # line_directives = list(_parse_directives(comment_text, raw_text, is_prelude=is_prelude))
+
+            if has_directive(comment_text, is_prelude=is_prelude):
+                for directive in _parse_directives(comment_text, raw_text):
+                    directives.append(directive)
+                    if directive.name in ('dep', 'include'):
+                        # NOTE (mb 2020-06-03): needed for recursive include
+                        includable_chunks.append(raw_text)
             else:
-                inner_chunks.append(raw_text)
                 includable_chunks.append(raw_text)
 
         inner_content = "".join(inner_chunks)

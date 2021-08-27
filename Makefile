@@ -66,7 +66,8 @@ pycalver_docs: ../pycalver/README.html ../pycalver/README_booklet.pdf
 doc:
 	PYTHONPATH=src/:vendor/:$$PYTHONPATH \
 		$(DEV_ENV)/bin/lit \
-			build -v lit_v3/*.md --html doc/
+			build -v lit_v3/*.md \
+			--html doc/ --pdf doc/
 #	cp doc/*.html /run/user/1000/keybase/kbfs/public/mbarkhau/litprog/
 # 	rsync -r fonts/woff* /run/user/1000/keybase/kbfs/public/mbarkhau/litprog/fonts/
 #	cp src/litprog/static/*.css /run/user/1000/keybase/kbfs/public/mbarkhau/litprog/
@@ -124,13 +125,6 @@ deploy_sketch:
 	cp src/litprog/static/*.js /run/user/1000/keybase/kbfs/public/mbarkhau/litprog/src/litprog/static/;
 	cp src/litprog/static/*.css /run/user/1000/keybase/kbfs/public/mbarkhau/litprog/src/litprog/static/;
 	cp src/litprog/static/*.svg /run/user/1000/keybase/kbfs/public/mbarkhau/litprog/src/litprog/static/;
-
-
-## build ../sbk/READMEv2.md -> doc/
-.PHONY: sbk
-sbk:
-	$(DEV_ENV)/bin/lit build -v ../sbk/READMEv2.md --html doc
-	$(DEV_ENV)/bin/lit build -v ../sbk/READMEv2.md --pdf doc
 
 
 ## upload static doc/ to keybase

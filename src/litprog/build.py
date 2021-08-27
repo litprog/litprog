@@ -251,7 +251,8 @@ def _expand_block_content(
                     added_deps.add(lp_dep_sid)
 
             if lp_dep_sid not in blocks_by_sid:
-                # TODO (mb 2021-07-18): pylev for better message
+                # TODO (mb 2021-07-18): pylev for better message:
+                #   "Maybe you meant {closest_sids}"
                 errmsg = f"Invalid dep: '{lp_dep_sid}'"
                 raise BlockError(errmsg, block)
 
@@ -313,15 +314,23 @@ def _get_blocks_by_id(chapters: Chapters) -> BlockListBySid:
 
                 blocks_by_sid[block_sid] = [block]
 
-    for chapter in chapters:
-        for block in chapter.iter_blocks():
-            for lp_amend in iter_directives(block, 'amend'):
-                lp_amend_sid = _namespaced_lp_id(block, lp_amend.value)
-                if lp_amend_sid in blocks_by_sid:
-                    blocks_by_sid[lp_amend_sid].append(block)
-                else:
-                    errmsg = f"Unknown block id: {lp_amend_sid}"
-                    raise BlockError(errmsg, block)
+    # NOTE (mb 2021-08-19): The amend directive has been removed as it
+    #   it would lead to confusion. When a reader wants to understand a block,
+    #   it will be more easy for them if they need not worry about any other
+    #   block in the project. They need only consider the block they
+    #   see before them and they can see all contents either directly or
+    #   as explicitly named expansions in the form of a dep/include
+    #   directive.
+    #
+    # for chapter in chapters:
+    #     for block in chapter.iter_blocks():
+    #         for lp_amend in iter_directives(block, 'amend'):
+    #             lp_amend_sid = _namespaced_lp_id(block, lp_amend.value)
+    #             if lp_amend_sid in blocks_by_sid:
+    #                 blocks_by_sid[lp_amend_sid].append(block)
+    #             else:
+    #                 errmsg = f"Unknown block id: {lp_amend_sid}"
+    #                 raise BlockError(errmsg, block)
 
     return blocks_by_sid
 
@@ -376,24 +385,33 @@ def _iter_block_errors(parse_ctx: parse.Context, build_ctx: parse.Context) -> ty
 
 
 def _dump_files(build_ctx: parse.Context) -> None:
+    # We take the most recent md_mtime of all files, as they might
+    # contain a block that is dep(ed)/includ(ed) by a 'file' block.
+    # This is conservative and we could improve this if we would keep
+    # track of the input md files used to create an output file.
+    md_mtime = max(
+        md_path.stat().st_mtime
+        for chapter in build_ctx.chapters
+        for md_path in chapter.md_paths
+    )
+
     for chapter in build_ctx.chapters:
         for md_path in chapter.md_paths:
-            md_mtime = md_path.stat().st_mtime
             for block in chapter.iter_blocks():
                 file_directive = get_directive(block, 'file')
                 if file_directive is None:
                     continue
 
                 path = Path(file_directive.value)
+                # see if we can skip updating the output file
                 if path.exists() and md_mtime < path.stat().st_mtime:
-                    # don't needlessly update mtimes
                     continue
 
+                new_content_data = block.includable_content.encode("utf-8")
                 if path.exists():
                     with path.open(mode="rb") as fobj:
                         old_content_data = fobj.read()
 
-                    new_content_data = block.includable_content.encode("utf-8")
                     if old_content_data == new_content_data:
                         continue
 
@@ -813,7 +831,7 @@ class Runner:
             header_lines = [
                 line
                 for line in elem.content.splitlines(task.opts.keepends)
-                if line.startswith("```") or parse.get_line_directive(line, language="shell", is_prelude=True)
+                if line.startswith("```") or parse.has_directive(line, is_prelude=True, language="shell")
             ]
 
             last_line   = header_lines.pop()

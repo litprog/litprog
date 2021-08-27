@@ -76,7 +76,7 @@ def eliminate(grid: Grid, s: Square, d: Digit) -> MaybeGrid:
                 return None
     return grid
 def assign(grid: Grid, s: Square, d: Digit) -> MaybeGrid:
-    """Eliminate all the other grid (except d) from grid[s] and propagate.
+    """Eliminate all the other values (except d) from grid[s] and propagate.
     if a contradiction is detected, return None
     """
     others = grid[s].replace(d, "")
@@ -92,10 +92,8 @@ def parse_grid(raw_grid: str) -> MaybeGrid:
     # then assign values from the grid.
     grid = {s: DIGITS for s in SQUARES}
     for s, d in grid_items(raw_grid):
-        if not d.isdigit():
-            continue
         # propagate initial constraint
-        if assign(grid, s, d) is None:
+        if d.isdigit() and assign(grid, s, d) is None:
             return None
     return grid
 def search(grid: Grid) -> MaybeGrid:

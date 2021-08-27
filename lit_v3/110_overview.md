@@ -345,31 +345,64 @@ assert fib(12) == 144
 assert fib(20) == fib(19) + fib(18)
 ```
 
-The `test_fib` block is not executed just yet. I have declared them in a separate block first, as I plan to use these tests multiple times later. Note that this block does not directly depend on any other block that would contain a `fib` function, instead it will use whatever `fib` function is defined inside the block which has a `# dep: test_fib` directive.
+The `test_fib` block is not executed just yet. I have declared a separate block first, as I plan to use these tests multiple times later. Note that this block does not directly depend on any other block that would contain a `fib` function, instead it will use whatever `fib` function is defined inside the block which has a `# dep: test_fib` directive.
+
+To illustrate execution, we will write the code to a file
+`examples/fib_slow.py` ...
+
+```python
+# file: examples/fib_slow.py
+print("starting")
+# dep: slow_fib
+# dep: test_fib
+print("fibs:", fibs)
+print("complete")
+```
+
+... and then run a command that uses that file.
+
+```python
+# run: python3 examples/fib_slow.py
+starting
+fibs: [0, 1, 1, 2, 3, 5, 8, 13, 21]
+complete
+# exit: 0
+```
+
+The `run` directive invokes a command (in this case `python3 examples/fib_slow.py`), captures its output and writes the captured output back into the block, directly after the `# run: python...` directive.
+
+We needn't have written to a temporary file first. Many interpreters support execution of code that is given via [`stdin`][href_wiki_std_streams], as is the case with python. The `exec` directive makes it possible to skip the temporary file.
+
+[href_wiki_std_streams]: https://en.wikipedia.org/wiki/Standard_streams
 
 ```python
 # exec: python3
 # dep: slow_fib
 # dep: test_fib
+print("ok")
 ```
 
-The `exec` directive invokes a command (in this case `python3`), which receives the expanded block (after substitution of all `dep` directives) via its [stdin][href_wiki_std_streams].
-
-If the [exit status][href_wiki_exit_status] of the `python3` process is anything other than the expected value of `0`, then the LitProg build will fail. This is an important point:
-
-[href_wiki_std_streams]: https://en.wikipedia.org/wiki/Standard_streams
+The `exec` directive invokes a command (in this case `python3`), which receives the expanded block (after substitution of all `dep` directives) via its stdin.
+If the [exit status][href_wiki_exit_status] of the `python3` process were anything other than the expected value of `0`, then the LitProg build will fail. This is an important point:
 
 [href_wiki_exit_status]: https://en.wikipedia.org/wiki/Exit_status
 
-
 <center>
-The mere existence of the HTML or PDF that you are reading,<br/>
-is a kind of "proof"[^fnote_max_hedging]. The documentation artifacts would not exist, if any command exited with an unexpected exit status.
+The mere existence of the HTML or PDF that you are reading,
+is a kind of "proof"[^fnote_max_hedging].<br/>The documentation artifacts would not exist,<br/>if any command exited with an unexpected exit status.
 </center>
 
-[^fnote_max_hedging]: Any "proof" of correctness is only as good as the assertions made by the programmer. Hopefully the broader accessibility of LitProg programs means that programmers will feel the watchful eyes of readers and put some effort into making their programs demonstrably correct. Sorry about all the hedging.
+To accept as proof, something that is not visible may not be satisfying. As with the `run` directive, the output is captured for the `exec` directive, however it is only written back to the markdown file, if there is a block with an `out` directive directly afterward.
 
-!!! aside "Options of `exec`"
+```python
+# out
+ok
+# exit: 0
+```
+
+[^fnote_max_hedging]: Any "proof" of correctness is only as good as the assertions made by the programmer. Hopefully the accessibility of LitProg programs to more readers, means that programmers will feel it more worthwhile make the effort to demonstrate the correctness of their programs.
+
+!!! aside "Options of `run` and `exec`"
 
     - `expect`: The expected exit status of the process. The default value is `0`.
     - `timeout`: How many seconds a process may run before being terminated. The default value is `1.0`.
@@ -703,12 +736,13 @@ Next is some boring python scaffolding to wrap the functions written so far.
 
 ```python
 # def: parse_args
-ParamsAndFlags = tuple[list[str], set[str]]
+Flags = set[str]
+Params = list[str]
 
-def parse_args(args: list[str]) -> ParamsAndFlags:
+def parse_args(args: list[str]) -> tuple[Flags, Params]:
     flags = {arg for arg in args if arg.startswith("-")}
     params = [arg for arg in args if arg not in flags]
-    return params, flags
+    return (flags, params)
 ```
 
 ```python
@@ -727,7 +761,7 @@ __doc__ = f"""Usage: python {__file__} [--help] [--pretty] <n>..."""
 ```python
 # def: main
 def main(args: list[str] = sys.argv[1:]) -> int:
-    params, flags = parse_args(args)
+    flags, params = parse_args(args)
     # dep: args_check
 
     ns = [int(n) for n in params]
