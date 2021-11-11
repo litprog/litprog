@@ -37,16 +37,19 @@ class LogConfig(typ.NamedTuple):
     lvl: int
 
 
+LOG_FORMAT_DEFAULT = "%(levelname)-7s - %(message)s"
+
+LOG_FORMAT_VERBOSE = "%(asctime)s.%(msecs)03d %(levelname)-7s " + "%(name)-16s - %(message)s"
+
+
 def _parse_logging_config(verbosity: int) -> LogConfig:
     if verbosity == 0:
-        return LogConfig("%(levelname)-7s - %(message)s", logging.WARNING)
-
-    log_format = "%(asctime)s.%(msecs)03d %(levelname)-7s " + "%(name)-16s - %(message)s"
-    if verbosity == 1:
-        return LogConfig(log_format, logging.INFO)
-
-    assert verbosity >= 2
-    return LogConfig(log_format, logging.DEBUG)
+        return LogConfig(LOG_FORMAT_DEFAULT, logging.WARNING)
+    elif verbosity == 1:
+        return LogConfig(LOG_FORMAT_VERBOSE, logging.INFO)
+    else:
+        assert verbosity >= 2
+        return LogConfig(LOG_FORMAT_VERBOSE, logging.DEBUG)
 
 
 _PREV_VERBOSITY: int = -1

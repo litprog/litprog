@@ -6,15 +6,15 @@
 import re
 import typing as typ
 import logging
-import pathlib as pl
 import collections
+from pathlib import Path
 
 from . import common_types as ct
 
 logger = logging.getLogger(__name__)
 
 
-FilePaths = typ.Iterable[pl.Path]
+FilePaths = typ.Iterable[Path]
 
 MD_FRONT_MATTER = 'front_matter'
 
@@ -250,12 +250,13 @@ Successor = typ.Optional['MarkdownElement']
 
 class MarkdownElement:
 
-    md_path   : pl.Path
-    first_line: int
-    elem_index: int
-    md_type   : MarkdownElementType
-    content   : str
-    _successor: typ.Optional[typ.Any]
+    md_path     : Path
+    first_line  : int
+    elem_index  : int
+    md_type     : MarkdownElementType
+    content     : str
+    _successor  : typ.Optional[typ.Any]
+    src_md_paths: set[Path]
 
     # Recursive types not fully supported yet;
     # this class can be changed to a NamedTuple once they are.
@@ -266,20 +267,22 @@ class MarkdownElement:
 
     def __init__(
         self,
-        md_path   : pl.Path,
-        first_line: int,
-        elem_index: int,
-        md_type   : MarkdownElementType,
-        content   : str,
-        successor : Successor,
+        md_path     : Path,
+        first_line  : int,
+        elem_index  : int,
+        md_type     : MarkdownElementType,
+        content     : str,
+        successor   : Successor,
+        src_md_paths: set[Path],
     ) -> None:
         assert md_type in VALID_ELEMENT_TYPES
-        self.md_path    = md_path
-        self.first_line = first_line
-        self.elem_index = elem_index
-        self.md_type    = md_type
-        self.content    = content
-        self._successor = successor
+        self.md_path      = md_path
+        self.first_line   = first_line
+        self.elem_index   = elem_index
+        self.md_type      = md_type
+        self.content      = content
+        self._successor   = successor
+        self.src_md_paths = src_md_paths
 
     def __repr__(self) -> str:
         addr = hex(id(self))
@@ -300,10 +303,11 @@ class MarkdownElement:
             md_type=self.md_type,
             content=self.content,
             successor=self._successor or self,
+            src_md_paths=self.src_md_paths,
         )
 
 
-ElementsByPath = dict[pl.Path, list[MarkdownElement]]
+ElementsByPath = dict[Path, list[MarkdownElement]]
 
 
 # NOTE (mb 2021-03-04): Right now the 'out' directive references the
@@ -359,9 +363,7 @@ assert VALID_NOARG_DIRECTIVES  < VALID_DIRECTIVES
 
 
 def has_directive(comment_text: str, is_prelude: bool, language: typ.Optional[str] = None) -> bool:
-    if language is None:
-        comment_text = comment_text
-    else:
+    if language is not None:
         comment_start_re, comment_end_re = LANGUAGE_COMMENT_REGEXES[language]
         start_match = comment_start_re.search(comment_text)
         if start_match is None:
@@ -436,7 +438,7 @@ def make_parse_error(message: str, elem: AnyElem, level: int = logging.ERROR) ->
 
 class Chapter:
 
-    md_paths : list[pl.Path]
+    md_paths : list[Path]
     chapnum  : str
     namespace: str
     elements : ElementsByPath
@@ -444,7 +446,7 @@ class Chapter:
 
     def __init__(
         self,
-        md_paths : list[pl.Path],
+        md_paths : list[Path],
         chapnum  : str,
         namespace: str,
         elements : typ.Optional[ElementsByPath] = None,
@@ -558,10 +560,10 @@ class Chapter:
                 #   way to capture the newlines earlier?
                 if rest.startswith("\n") or rest.startswith("\r"):
                     comment_text = comment_text + rest[:1]
-                    rest = rest[1:]
+                    rest         = rest[1:]
                 elif rest.startswith("\r\n"):
                     comment_text = comment_text + rest[:2]
-                    rest = rest[2:]
+                    rest         = rest[2:]
 
             raw_text = start_match.group(0) + comment_text
 
@@ -579,11 +581,11 @@ class Chapter:
             else:
                 includable_chunks.append(raw_text)
 
-        inner_content = "".join(inner_chunks)
+        inner_content      = "".join(inner_chunks)
         includable_content = "".join(includable_chunks)
 
         # trim off final fence
-        inner_content = inner_content.rsplit("\n", 1)[0]
+        inner_content      = inner_content.rsplit("\n", 1)[0]
         includable_content = includable_content.rsplit("\n", 1)[0]
 
         return ct.Block(
@@ -669,7 +671,7 @@ class Chapter:
             and self.elements  == other.elements
         )
 
-    def md_content(self, md_path: pl.Path, front_matter: bool = True) -> str:
+    def md_content(self, md_path: Path, front_matter: bool = True) -> str:
         return "".join(
             [
                 elem.content
@@ -744,7 +746,7 @@ def _iter_raw_md_elements(content: str) -> typ.Iterable[_RawMarkdownElement]:
         yield _RawMarkdownElement(MD_PARAGRAPH, line_no, content)
 
 
-def _parse_md_elements(md_path: pl.Path) -> list[MarkdownElement]:
+def _parse_md_elements(md_path: Path) -> list[MarkdownElement]:
     # TODO: encoding from config
     with md_path.open(mode='r', encoding="utf-8") as fobj:
         content = fobj.read()
@@ -758,6 +760,7 @@ def _parse_md_elements(md_path: pl.Path) -> list[MarkdownElement]:
             raw_elem.md_type,
             raw_elem.content,
             None,
+            {md_path},
         )
         elements.append(elem)
 

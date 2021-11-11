@@ -63,7 +63,7 @@ class ManifestEntry(typ.NamedTuple):
 
 def init_manifest_entry(
     task: ct.BlockTask, task_key: str, capture: session.Capture
-) -> typ.Tuple[ManifestEntry, CaptureData]:
+) -> tuple[ManifestEntry, CaptureData]:
     created     = dt.datetime.utcnow().isoformat()
     md_filename = str(task.md_path)
     runtime_ms  = round(capture.runtime * 1000)
@@ -94,7 +94,7 @@ def init_manifest_entry(
     return entry, capture_data
 
 
-def _manifest_lines(manifest_entries: typ.List[ManifestEntry]) -> typ.Iterable[str]:
+def _manifest_lines(manifest_entries: list[ManifestEntry]) -> typ.Iterable[str]:
     manifest_entries.sort()
 
     colwidths = [0] * len(ManifestEntry._fields)
@@ -110,7 +110,7 @@ def _manifest_lines(manifest_entries: typ.List[ManifestEntry]) -> typ.Iterable[s
         yield line.rstrip()
 
 
-def dumps_manifest(manifest_entries: typ.List[ManifestEntry]) -> str:
+def dumps_manifest(manifest_entries: list[ManifestEntry]) -> str:
     if manifest_entries:
         return "\n".join(_manifest_lines(manifest_entries))
     else:
@@ -142,13 +142,24 @@ def parse_manifest(manifest_text: str) -> typ.Iterable[ManifestEntry]:
         )
 
 
+def _path_parser(task: ct.BlockTask) -> typ.Iterable[str]:
+    for maybe_path in shlex.split(task.command):
+        yield maybe_path
+
+    module_match = re.match(r"python[23]? -m ([\w\.]+)", task.command)
+    if module_match:
+        maybe_path = module_match.group(1).replace(".", "/") + ".py"
+        yield maybe_path
+        yield "src/" + maybe_path
+
+
 class ResultCache:
 
-    task_keys_by_provide_id: typ.Dict[str, str]
+    task_keys_by_provide_id: dict[str, str]
 
     # used for invalidation (whoever provides must invalidate all requires)
-    requires_by_provide_id: typ.Dict[str, typ.List[str]]
-    manifest              : typ.List[ManifestEntry]
+    requires_by_provide_id: dict[str, list[str]]
+    manifest              : list[ManifestEntry]
 
     def __init__(self, manifest_text: str) -> None:
         self.task_keys_by_provide_id = {}
@@ -165,7 +176,7 @@ class ResultCache:
         requires_parts.append(task.block.namespace)
         if task.opts.directive == 'run':
             requires_parts.append(task.command)
-            for maybe_path in shlex.split(task.command):
+            for maybe_path in _path_parser(task):
                 if os.path.exists(maybe_path):
                     mtime = os.stat(maybe_path).st_mtime
                     requires_parts.append(str(mtime))
@@ -218,6 +229,7 @@ class ResultCache:
 
     def get_entry(self, task: ct.BlockTask) -> typ.Optional[ManifestEntry]:
         task_key = self.task_key(task)
+
         for entry in reversed(self.manifest):
             if entry.task_key == task_key:
                 return entry
@@ -285,7 +297,7 @@ class LocalResultCache(ResultCache):
 
     _manifest_file: pl.Path
     _data_file    : pl.Path
-    _entry_buffer : typ.List[ManifestEntry]
+    _entry_buffer : list[ManifestEntry]
 
     def __init__(
         self,

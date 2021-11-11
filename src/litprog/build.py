@@ -8,6 +8,7 @@ import re
 import sys
 import time
 import typing as typ
+import fnmatch
 import logging
 import tempfile
 import collections
@@ -84,9 +85,10 @@ def get_directive(
         return found[0]
 
 
-def iter_directives(block: ct.Block, name: str) -> typ.Iterable[ct.Directive]:
+def iter_directives(block: ct.Block, *directive_names) -> typ.Iterable[ct.Directive]:
+    _names = set(directive_names)
     for directive in block.directives:
-        if directive.name == name:
+        if directive.name in _names:
             yield directive
 
 
@@ -138,10 +140,22 @@ def _namespaced_lp_id(block: ct.Block, lp_id: BlockId) -> ScopedBlockId:
         return block.namespace + "." + lp_id.strip()
 
 
-def _iter_dep_sids(block: ct.Block) -> typ.Iterable[ScopedBlockId]:
-    for lp_dep in iter_directives(block, 'dep'):
-        for dep_id in lp_dep.value.split(","):
+def _iter_directive_sids(block: ct.Block, *directive_names) -> typ.Iterable[ScopedBlockId]:
+    for directive in iter_directives(block, *directive_names):
+        for dep_id in directive.value.split(","):
             yield _namespaced_lp_id(block, dep_id)
+
+
+def _resolve_dep_sids(
+    raw_dep_sid: ScopedBlockId, blocks_by_sid: BlockListBySid
+) -> typ.Iterable[ScopedBlockId]:
+    if raw_dep_sid in blocks_by_sid:
+        yield raw_dep_sid
+    elif "*" in raw_dep_sid:
+        dep_sid_re = re.compile(fnmatch.translate(raw_dep_sid))
+        for maybe_dep_sid in blocks_by_sid:
+            if dep_sid_re.match(maybe_dep_sid):
+                yield maybe_dep_sid
 
 
 def _build_dep_map(blocks_by_sid: BlockListBySid) -> DependencyMap:
@@ -150,16 +164,20 @@ def _build_dep_map(blocks_by_sid: BlockListBySid) -> DependencyMap:
     The mapped block_ids (keys) are only the direct (non-recursive) dependencies.
     """
     dep_map: DependencyMap = {}
-    for lp_def_id, blocks in blocks_by_sid.items():
+    for def_id, blocks in blocks_by_sid.items():
         for block in blocks:
-            for dep_sid in _iter_dep_sids(block):
-                if dep_sid in blocks_by_sid:
-                    if lp_def_id in dep_map:
-                        dep_map[lp_def_id].append(dep_sid)
+            for raw_dep_sid in _iter_directive_sids(block, 'dep'):
+                dep_sids = list(_resolve_dep_sids(raw_dep_sid, blocks_by_sid))
+                if not any(dep_sids):
+                    # TODO (mb 2021-07-18): pylev for better message:
+                    #   "Maybe you meant {closest_sids}"
+                    raise BlockError(f"Invalid block id: {raw_dep_sid}", block)
+
+                for dep_sid in dep_sids:
+                    if def_id in dep_map:
+                        dep_map[def_id].append(dep_sid)
                     else:
-                        dep_map[lp_def_id] = [dep_sid]
-                else:
-                    raise BlockError(f"Unknown block id: {dep_sid}", block)
+                        dep_map[def_id] = [dep_sid]
 
     if logger.isEnabledFor(logging.DEBUG):
         logger.debug("include map")
@@ -218,63 +236,63 @@ def _expand_block_content(
     dep_map      : DependencyMap,
     keep_fence   : bool,
     lvl          : int = 1,
-) -> str:
+) -> tuple[str, set[Path]]:
     # NOTE (mb 2020-12-20): Depth first expansion of content.
     #   This ensures that the first occurance of an dep
     #   directive is expanded at the earliest possible point
     #   even if it is a recursive dep.
     def_ = get_directive(block, 'def', missing_ok=True, many_ok=False)
 
+    new_md_paths = {block.md_path}
+
     if keep_fence:
         new_content = block.content
     else:
         new_content = block.includable_content + "\n"
 
-    for directive in block.directives:
-        if directive.name not in ('dep', 'include'):
-            continue
-
+    for directive in iter_directives(block, 'dep', 'include'):
         is_dep = directive.name == 'dep'
 
         dep_contents: list[str] = []
-        for dep_id in directive.value.split(","):
-            dep_sid = _namespaced_lp_id(block, dep_id)
-            if def_:
-                def_id = _namespaced_lp_id(block, def_.value)
-                _err_on_include_cycle(block, dep_sid, blocks_by_sid, dep_map, root_id=def_id)
+        for raw_dep_sid in directive.value.split(","):
+            raw_dep_sid = _namespaced_lp_id(block, raw_dep_sid)
 
-            if is_dep:
-                if dep_sid in added_deps:
-                    # skip already included dependencies
-                    continue
-                else:
-                    added_deps.add(dep_sid)
-
-            if dep_sid not in blocks_by_sid:
+            dep_sids = list(_resolve_dep_sids(raw_dep_sid, blocks_by_sid))
+            if not dep_sids:
                 # TODO (mb 2021-07-18): pylev for better message:
                 #   "Maybe you meant {closest_sids}"
-                errmsg = f"Invalid dep: '{dep_sid}'"
-                raise BlockError(errmsg, block)
+                raise BlockError(f"Invalid block id: {raw_dep_sid}", block)
 
-            for dep_block in blocks_by_sid[dep_sid]:
-                # ic = dep_block.includable_content
-                # print("###", repr(ic))
-                dep_content = _expand_block_content(
-                    blocks_by_sid,
-                    dep_block,
-                    added_deps,
-                    dep_map,
-                    keep_fence=False,
-                    lvl=lvl + 1,
-                )
-                dep_content = _match_indent(directive.raw_text, dep_content)
-                dep_contents.append(dep_content)
+            for dep_sid in dep_sids:
+                if def_:
+                    def_id = _namespaced_lp_id(block, def_.value)
+                    _err_on_include_cycle(block, dep_sid, blocks_by_sid, dep_map, root_id=def_id)
+
+                if is_dep:
+                    if dep_sid in added_deps:
+                        # skip already included dependencies
+                        continue
+                    else:
+                        added_deps.add(dep_sid)
+
+                for dep_block in blocks_by_sid[dep_sid]:
+                    dep_content, dep_md_paths = _expand_block_content(
+                        blocks_by_sid,
+                        dep_block,
+                        added_deps,
+                        dep_map,
+                        keep_fence=False,
+                        lvl=lvl + 1,
+                    )
+                    dep_content = _match_indent(directive.raw_text, dep_content)
+                    dep_contents.append(dep_content)
+                    new_md_paths.update(dep_md_paths)
 
         include_content = "".join(dep_contents)
         dep_text        = directive.raw_text.lstrip("\n")
-        new_content = _indented_include(new_content, dep_text, include_content, is_dep=is_dep)
+        new_content     = _indented_include(new_content, dep_text, include_content, is_dep=is_dep)
 
-    return new_content
+    return (new_content, new_md_paths)
 
 
 def _expand_directives(blocks_by_sid: BlockListBySid, chapter: parse.Chapter) -> parse.Chapter:
@@ -283,7 +301,9 @@ def _expand_directives(blocks_by_sid: BlockListBySid, chapter: parse.Chapter) ->
 
     for block in list(new_chapter.iter_blocks()):
         added_deps: set[str] = set()
-        new_content = _expand_block_content(blocks_by_sid, block, added_deps, dep_map, keep_fence=True)
+        new_content, new_md_paths = _expand_block_content(
+            blocks_by_sid, block, added_deps, dep_map, keep_fence=True
+        )
         if new_content != block.content:
             elements = new_chapter.elements[block.md_path]
             elem     = elements[block.elem_index]
@@ -295,6 +315,7 @@ def _expand_directives(blocks_by_sid: BlockListBySid, chapter: parse.Chapter) ->
                 elem.md_type,
                 new_content,
                 None,
+                new_md_paths | {elem.md_path},
             )
 
     return new_chapter
@@ -397,7 +418,10 @@ def _dump_files(build_ctx: parse.Context) -> None:
     #   dep(ed)/includ(ed) by a 'file' block. This is conservative and
     #   we could improve this if we would keep track of the input md
     #   files used to create an output file.
-    md_mtime = max(md_path.stat().st_mtime for chapter in build_ctx.chapters for md_path in chapter.md_paths)
+    md_mtimes = {
+        md_path: md_path.stat().st_mtime for chapter in build_ctx.chapters for md_path in chapter.md_paths
+    }
+    md_mtime = max(md_mtimes.values())
 
     for chapter in build_ctx.chapters:
         for block in chapter.iter_blocks():
@@ -405,21 +429,25 @@ def _dump_files(build_ctx: parse.Context) -> None:
             if file_directive is None:
                 continue
 
-            path = Path(file_directive.value)
+            md_elem  = chapter.elements[block.md_path][block.elem_index]
+            md_mtime = max(md_mtimes[md_path] for md_path in md_elem.src_md_paths)
+
+            file_path = Path(file_directive.value)
+
             # see if we can skip updating the output file
-            if path.exists() and md_mtime < path.stat().st_mtime:
+            if file_path.exists() and md_mtime <= file_path.stat().st_mtime:
                 continue
 
             new_content_data = block.includable_content.encode("utf-8")
-            if path.exists():
-                with path.open(mode="rb") as fobj:
+            if file_path.exists():
+                with file_path.open(mode="rb") as fobj:
                     old_content_data = fobj.read()
 
                 if old_content_data == new_content_data:
                     continue
 
-            path.parent.mkdir(parents=True, exist_ok=True)
-            with path.open(mode="wb") as fobj:
+            file_path.parent.mkdir(parents=True, exist_ok=True)
+            with file_path.open(mode="wb") as fobj:
                 fobj.write(new_content_data)
 
 
@@ -848,6 +876,7 @@ class Runner:
                     elem.md_type,
                     new_content,
                     None,
+                    {elem.md_path},
                 )
                 key = (chapter.chapnum, task.md_path)
                 updated_elements[key].append(updated_elem)
