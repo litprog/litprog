@@ -8,6 +8,7 @@ import os
 import sys
 import setuptools
 
+
 def project_path(*sub_paths):
     project_dirpath = os.path.abspath(os.path.dirname(__file__))
     return os.path.join(project_dirpath, *sub_paths)
@@ -30,9 +31,9 @@ long_description = "\n\n".join((read("README.md"), read("CHANGELOG.md")))
 
 try:
     import lib3to6
-    cmdclass = {'build_py': lib3to6.build_py}
+    distclass = lib3to6.Distribution
 except ImportError:
-    cmdclass = {}
+    distclass = setuptools.dist.Distribution
 
 
 setuptools.setup(
@@ -55,6 +56,10 @@ setuptools.setup(
         'html': read_requirements("html"),
         'pdf': read_requirements("html") + read_requirements("pdf"),
     },
+    python_requires=">=3.7",
+    setup_requires=['lib3to6>=202110.1050b0'],
+    lib3to6_default_mode='enabled',
+    distclass=distclass,
     entry_points="""
         [console_scripts]
         lit=litprog.cli:cli
