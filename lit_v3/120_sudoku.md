@@ -565,19 +565,19 @@ Below is the output from running the program at the command line; it solves the 
 
 ```bash
 # run: python3 examples/sudoku.py examples/sudoku_p096_euler.txt
-Solved 50 of 50 puzzles. (avg 20 ms/solve  max 55 ms)
+Solved 50 of 50 puzzles. (avg 10 ms/solve  max 13 ms)
 # exit: 0
 ```
 
 ```bash
 # run: python3 examples/sudoku.py examples/sudoku_top95.txt
-Solved 95 of 95 puzzles. (avg 67 ms/solve  max 360 ms)
+Solved 95 of 95 puzzles. (avg 38 ms/solve  max 188 ms)
 # exit: 0
 ```
 
 ```bash
 # run: python3 examples/sudoku.py examples/sudoku_hardest.txt
-Solved 11 of 11 puzzles. (avg 27 ms/solve  max 38 ms)
+Solved 11 of 11 puzzles. (avg 15 ms/solve  max 22 ms)
 # exit: 0
 ```
 
@@ -644,7 +644,7 @@ Each of the puzzles above was solved in less than a fifth of a second. What abou
  9 8 4 | 7 6 1 | 2 3 5
  5 2 1 | 8 3 9 | 7 6 4
 
-Solved 2 of 2 puzzles. (avg 64 ms/solve  max 67 ms)
+Solved 2 of 2 puzzles. (avg 17 ms/solve  max 19 ms)
 # exit: 0
 ```
 
@@ -682,21 +682,30 @@ def random_puzzle(n=17) -> str:
                 )
 ```
 
-Even with these checks, my random puzzles are not guaranteed to have one unique solution. Many have multiple solutions, and a few (about 0.2%) have no solution. Puzzles that appear in books and newspapers always have one unique solution.
+Even with these checks, my random puzzles are not guaranteed to
+have one unique solution. Many have multiple solutions, and a
+few (about 0.2%) have no solution. Puzzles that appear in books
+and newspapers always have one unique solution.
 
-The average time to solve a random puzzle is 0.01 seconds, and more than 99.95% took less than 0.1 seconds, but a few took much longer:
+The average time to solve a random puzzle is 0.01 seconds, and
+more than 99.95% took less than 0.1 seconds, but a few took much
+longer:
 
 - `0.032%      (1 in 3,000) took more than 0.1 seconds`
 - `0.014%      (1 in 7,000) took more than 1 second`
 - `0.003%     (1 in 30,000) took more than 10 seconds`
 - `0.0001% (1 in 1,000,000) took more than 100 seconds`
 
-Here are the times in seconds from puzzles that took more than a second, sorted, on linear and log scales:
+Here are the times in seconds from puzzles that took more than a
+second, sorted, on linear and log scales:
 
 ![](static/sudoku_random_puzzle_times_linear.svg)
 ![](static/sudoku_random_puzzle_times_log.svg)
 
-It is hard to draw conclusions from this. Is the uptick in the last few values significant? If I generated 10 million puzzles, would one take 1000 seconds? Here's the hardest (for my program) of the million random puzzles:
+It is hard to draw conclusions from this. Is the uptick in the
+last few values significant? If I generated 10 million puzzles,
+would one take 1000 seconds? Here's the hardest (for my program)
+of the million random puzzles:
 
 ```shell
 # file: examples/sudoku_hardestest.txt
@@ -713,20 +722,13 @@ It is hard to draw conclusions from this. Is the uptick in the last few values s
  . . . | . . . | . . .
 ```
 
-I capture the result in `examples/sudoku_hardestest_result.txt`, just so I don't have to recompute it again and again during development.
+I use a capture_file `captures/sudoku_hardestest.json`, as this operation
+is 1. expensive and 2. has a non deterministic output.
 
 ```shell
-# exec
+# run: python examples/sudoku.py --show examples/sudoku_hardestest.txt
+# capture_file: "captures/sudoku_hardestest.json"
 # timeout: 60
-if [[ ! -f examples/sudoku_hardestest_result.txt ]]; then
-    python examples/sudoku.py \
-        --show examples/sudoku_hardestest.txt \
-        > examples/sudoku_hardestest_result.txt
-fi
-```
-
-```shell
-# run: cat examples/sudoku_hardestest_result.txt
  4 3 8 | 7 9 6 | 2 1 5
  6 5 9 | 1 3 2 | 4 7 8
  2 7 1 | 4 5 8 | 6 9 3
@@ -739,15 +741,54 @@ fi
  3 6 2 | 9 8 7 | 5 4 1
  5 8 7 | 6 4 1 | 9 3 2
 
-Solved 1 of 1 puzzles. (avg 37519 ms/solve  max 37519 ms)
+Solved 1 of 1 puzzles. (avg 37604 ms/solve  max 37604 ms)
 # exit: 0
 ```
 
-Unfortunately, this is not a true Sudoku puzzle because it has multiple solutions. (It was generated before I incorporated Olivier Grégoire's suggestion about checking for 8 digits, so note that any solution to this puzzle leads to another solution where the 1s and 7s are swapped.) But is this an intrinsically hard puzzle? Or is the difficulty an artifact of the particular variable- and value-ordering scheme used by my `search` routine? To test I randomized the value ordering (I changed `for d in values[s]` in the last line of `search` to be `for d in shuffled(values[s])` and implemented `shuffled` using `random.shuffle`). The results were starkly bimodal: in 27 out of 30 trials the puzzle took less than 0.02 seconds, while each of the other 3 trials took just about 190 seconds (about 10,000 times longer). There are multiple solutions to this puzzle, and the randomized `search` found 13 different solutions. My guess is that somewhere early in the search there is a sequence of squares (probably two) such that if we choose the exact wrong combination of values to fill the squares, it takes about 190 seconds to discover that there is a contradiction. But if we make any other choice, we very quickly either find a solution or find a contradiction and move on to another choice. So the speed of the algorithm is determined by whether it can avoid the deadly combination of value choices.
+Unfortunately, this is not a true Sudoku puzzle because it has
+multiple solutions. (It was generated before I incorporated
+Olivier Grégoire's suggestion about checking for 8 digits, so
+note that any solution to this puzzle leads to another solution
+where the 1s and 7s are swapped.) But is this an intrinsically
+hard puzzle? Or is the difficulty an artifact of the particular
+variable- and value-ordering scheme used by my `search` routine?
+To test I randomized the value ordering (I changed
+`for d in values[s]` in the last line of `search` to be
+`for d in shuffled(values[s])` and implemented `shuffled` using
+`random.shuffle`). The results were starkly bimodal: in 27 out
+of 30 trials the puzzle took less than 0.02 seconds, while each
+of the other 3 trials took just about 190 seconds (about 10,000
+times longer). There are multiple solutions to this puzzle, and
+the randomized `search` found 13 different solutions. My guess
+is that somewhere early in the search there is a sequence of
+squares (probably two) such that if we choose the exact wrong
+combination of values to fill the squares, it takes about 190
+seconds to discover that there is a contradiction. But if we
+make any other choice, we very quickly either find a solution or
+find a contradiction and move on to another choice. So the speed
+of the algorithm is determined by whether it can avoid the
+deadly combination of value choices.
 
-Randomization works most of the time (27 out of 30), but perhaps we could do even better by considering a better value ordering (one popular heuristic is _least-constraining value_, which chooses first the value that imposes the fewest constraints on peers), or by trying a smarter variable ordering.
+Randomization works most of the time (27 out of 30), but perhaps
+we could do even better by considering a better value ordering
+(one popular heuristic is _least-constraining value_, which
+chooses first the value that imposes the fewest constraints on
+peers), or by trying a smarter variable ordering.
 
-More experimentation would be needed before I could give a good characterization of the hard puzzles. I decided to experiment on another million random puzzles, this time keeping statistics on the mean, 50th (median), 90th and 99th percentiles, maximum and standard deviation of run times. The results were similar, except this time I got two puzzles that took over 100 seconds, and one took quite a bit longer: 1439 seconds. It turns out this puzzle is one of the 0.2% that has no solution, so maybe it doesn't count. But the main message is that the mean and median stay about the same even as we sample more, but the maximum keeps going up--dramatically. The standard deviation edges up too, but mostly because of the very few very long times that are way out beyond the 99th percentile. This is a _heavy-tailed_ distribution, not a normal one.
+More experimentation would be needed before I could give a good
+characterization of the hard puzzles. I decided to experiment on
+another million random puzzles, this time keeping statistics on
+the mean, 50th (median), 90th and 99th percentiles, maximum and
+standard deviation of run times. The results were similar,
+except this time I got two puzzles that took over 100 seconds,
+and one took quite a bit longer: 1439 seconds. It turns out this
+puzzle is one of the 0.2% that has no solution, so maybe it
+doesn't count. But the main message is that the mean and median
+stay about the same even as we sample more, but the maximum
+keeps going up--dramatically. The standard deviation edges up
+too, but mostly because of the very few very long times that are
+way out beyond the 99th percentile. This is a _heavy-tailed_
+distribution, not a normal one.
 
 For comparison, the tables below give the statistics for puzzle-solving run times on the left, and for samples from a normal (Gaussian) distribution with mean 0.014 and standard deviation 1.4794 on the right. Note that with a million samples, the max of the Gaussian is 5 standard deviations above the mean (roughly what you'd expect from a Gaussian), while the maximum puzzle run time is 1000 standard deviations above the mean.
 

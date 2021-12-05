@@ -24,12 +24,12 @@ except ImportError:
     pass  # no need to fail because of missing dev dependency
 
 
-logger = logging.getLogger(__name__)
-
-
 InputPaths = typ.Sequence[str]
 
 click.disable_unicode_literals_warning = True  # type: ignore[attr-defined]
+
+
+logger = logging.getLogger(__name__)
 
 
 class LogConfig(typ.NamedTuple):

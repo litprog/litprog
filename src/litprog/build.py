@@ -6,6 +6,7 @@
 import os
 import re
 import sys
+import json
 import time
 import typing as typ
 import fnmatch
@@ -486,6 +487,22 @@ def _get_default_command(block: ct.Block) -> typ.Optional[str]:
         return None
 
 
+OptionValue = typ.Union[bool, str, int, float, None]
+
+
+def _parse_option(
+    block      : ct.Block,
+    options    : dict[str, OptionValue],
+    option_name: str,
+    default_val: OptionValue,
+) -> None:
+    option_directive = get_directive(block, option_name)
+    if option_directive:
+        options[option_name] = json.loads(option_directive.value)
+    elif option_name not in options:
+        options[option_name] = default_val
+
+
 def _parse_format_options(block: ct.Block) -> ct.FormatOptions:
     default_err_fmt = "\u001b[" + TERM_COLORS['red'] + "m{0}\u001b[0m"
 
@@ -529,12 +546,8 @@ def _parse_session_block_options(block: ct.Block) -> typ.Optional[ct.SessionBloc
     else:
         return None
 
-    _provides    = get_directive(block, 'def')
-    _debug       = get_directive(block, 'debug')
-    _requires    = get_directive(block, 'requires')
-    _input_delay = get_directive(block, 'input_delay')
-    _timeout     = get_directive(block, 'timeout')
-    _expect      = get_directive(block, 'expect')
+    _provides = get_directive(block, 'def')
+    _requires = get_directive(block, 'requires')
 
     provides_id : typ.Optional[str] = None
     if _provides:
@@ -546,21 +559,29 @@ def _parse_session_block_options(block: ct.Block) -> typ.Optional[ct.SessionBloc
     else:
         requires_ids = set()
 
-    timeout_val          = float(_timeout.value    ) if _timeout else DEFUALT_TIMEOUT
-    input_delay_val      = float(_input_delay.value) if _input_delay else 0.0
-    expected_exit_status = int(_expect.value) if _expect else 0
+    _options = get_directive(block, 'options')
+    options  = json.loads(_options.value) if _options else {}
+
+    _parse_option(block, options, 'timeout'      , DEFUALT_TIMEOUT)
+    _parse_option(block, options, 'expect'       , 0)
+    _parse_option(block, options, 'input_delay'  , 0.0)
+    _parse_option(block, options, 'debug'        , False)
+    _parse_option(block, options, 'deterministic', True)
+    _parse_option(block, options, 'keepends'     , True)
+    _parse_option(block, options, 'capture_file' , None)
 
     return ct.SessionBlockOptions(
         command=command,
         directive=directive,
         provides_id=provides_id,
         requires_ids=requires_ids,
-        timeout=timeout_val,
-        input_delay=input_delay_val,
-        expected_exit_status=expected_exit_status,
+        timeout=options['timeout'],
+        input_delay=options['input_delay'],
+        expected_exit_status=options['expect'],
+        capture_file=None if options['capture_file'] is None else Path(options['capture_file']),
         is_stdin_writable=directive in ('exec', 'run'),
-        is_debug=bool(_debug),
-        keepends=True,
+        is_debug=options['debug'],
+        keepends=options['keepends'],
         fmt=_parse_format_options(block),
     )
 
@@ -679,8 +700,7 @@ def _process_isession(
     command    : str,
     stdin_lines: list[str],
 ) -> session.Capture:
-    _cmd = command if len(command) < 40 else (command[:40] + "...")
-
+    _cmd   = command if len(command) < 35 else (command[:35] + "...")
     logmsg = f"Line {block.first_line:>5} of {block.md_path} - {opts.directive} {_cmd}"
     logger.info(logmsg)
 
@@ -697,17 +717,19 @@ def _process_isession(
         sys.stderr.write("".join(isession.iter_stderr()))
         raise
 
-    runtime_ms = round(isession.runtime * 1000)
-
     if exit_status == opts.expected_exit_status:
         exit_info = f"{exit_status}"
     else:
         exit_info = f"{exit_status} != {opts.expected_exit_status}"
 
+    _cmd   = command if len(command) < 10 else (command[:10] + "...")
+    logmsg = f"Line {block.first_line:>5} of {block.md_path} - {opts.directive} {_cmd}"
+
+    runtime_ms = round(isession.runtime * 1000)
     if runtime_ms < 500:
-        logger.debug(f"{logmsg:<90} time: {runtime_ms:>6}ms  exit: {exit_info}")
+        logger.debug(f"{logmsg:<55} time: {runtime_ms:>6}ms  exit: {exit_info}")
     else:
-        logger.info(f"{logmsg:<90} time: {runtime_ms:>6}ms  exit: {exit_info}")
+        logger.info(f"{logmsg:<55} time: {runtime_ms:>6}ms  exit: {exit_info}")
 
     lines   = isession.output_lines()
     capture = session.Capture(command, exit_status, isession.runtime, lines)
@@ -834,17 +856,29 @@ class Runner:
             self._all_tasks.extend(_iter_block_tasks(chapter))
 
     def _run_task(self, task: ct.BlockTask) -> None:
-        if self.opts.cache_enabled:
-            cached_capture = self._cache.get_capture(task)
-        else:
-            cached_capture = None
+        capture_file = task.opts.capture_file
 
-        if cached_capture is None:
-            capture = _process_command_block(task.block, task.opts)
-            self._cache.update(task, capture)
+        if not self.opts.cache_enabled:
+            cached_capture = None
+        elif capture_file and capture_file.exists():
+            with capture_file.open(mode='rb') as fobj:
+                cached_capture = session.loads_capture(fobj.read())
         else:
+            cached_capture = self._cache.get_capture(task)
+
+        if cached_capture:
             self._cached_tasks.append(task)
             capture = cached_capture
+        else:
+            capture = _process_command_block(task.block, task.opts)
+            self._cache.update(task, capture)
+            if capture_file:
+                if not capture_file.parent.exists():
+                    capture_file.parent.mkdir(parents=True, exist_ok=True)
+
+                with capture_file.open(mode='wb') as fobj:
+                    capture_data = session.dumps_capture(capture, pretty=True)
+                    fobj.write(capture_data)
 
         if task.capture_index >= 0:
             self._task_results.append((task, capture))

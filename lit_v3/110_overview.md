@@ -718,12 +718,12 @@ with timeit("fast"): fast_fib(20)
 
 ```shell
 # out
-slow     0.313 ms
-slow     2.007 ms
-slow    22.342 ms
-fast     0.041 ms
-fast     0.016 ms
-fast     0.014 ms
+slow     0.228 ms
+slow     1.370 ms
+slow     8.995 ms
+fast     0.028 ms
+fast     0.010 ms
+fast     0.010 ms
 # exit: 0
 ```
 
@@ -908,11 +908,11 @@ with open("examples/fib_durations.csv", mode="w") as fobj:
 ```bash
 # run: bash -c "tail -n 5 examples/fib_durations.csv"
 # requires: gen_fib_durations_csv
-17,3144
-18,5116
-19,8187
-20,13134
-21,22606
+17,1671
+18,2638
+19,4278
+20,6952
+21,11251
 # exit: 0
 ```
 

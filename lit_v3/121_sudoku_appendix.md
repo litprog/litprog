@@ -151,7 +151,7 @@ if __name__ == '__main__':
 # run: python3 examples/collect_stats.py
 # def: calc_random_puzzle_times
 # timeout: 1000
-duration:    21.875 sec
+duration:    72.719 sec
 # exit: 0
 ```
 

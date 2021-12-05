@@ -127,12 +127,12 @@ body .dark-overlay {
 .toc li li li a {
     width: 200px;
     padding: 4px 5px 4px 30px;
-    text-indent: -30px;
+    text-indent: -20px;
 }
 .toc li li li li a {
     width: 185px;
     padding: 4px 5px 4px 40px;
-    text-indent: -35px;
+    text-indent: -20px;
 }
 
 .toc a.active {text-decoration: underline;}

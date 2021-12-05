@@ -40,7 +40,7 @@ class Capture(typ.NamedTuple):
     command    : str
     exit_status: int
     runtime    : float
-    lines      : typ.List[CapturedLine]
+    lines      : list[CapturedLine]
 
 
 CaptureData = bytes
@@ -49,26 +49,39 @@ CaptureData = bytes
 def loads_capture(capture_bytes: CaptureData) -> Capture:
     capture_json = capture_bytes.decode("utf-8")
     capture_obj  = json.loads(capture_json)
-    command, exit_status, runtime, lines_args = capture_obj
+    if isinstance(capture_obj, list):
+        command, exit_status, runtime, lines_args = capture_obj
+    elif isinstance(capture_obj, dict):
+        command     = capture_obj['command']
+        exit_status = capture_obj['exit_status']
+        runtime     = capture_obj['runtime']
+        lines_args  = capture_obj['lines_args']
+    else:
+        raise ValueError("Unknown capture format")
 
     lines = [CapturedLine(*line_args) for line_args in lines_args]
-    return Capture(
-        command,
-        exit_status,
-        runtime,
-        lines,
-    )
+    return Capture(command, exit_status, runtime, lines)
 
 
-def dumps_capture(capture: Capture) -> CaptureData:
-    line_args   = [[line.ts, line.line, line.is_err] for line in capture.lines]
-    capture_obj = [
-        capture.command,
-        capture.exit_status,
-        capture.runtime,
-        line_args,
-    ]
-    capture_json  = json.dumps(capture_obj)
+def dumps_capture(capture: Capture, pretty: bool = False) -> CaptureData:
+    line_args = [[line.ts, line.line, line.is_err] for line in capture.lines]
+    if pretty:
+        capture_obj = {
+            'command'    : capture.command,
+            'exit_status': capture.exit_status,
+            'runtime'    : capture.runtime,
+            'lines_args' : line_args,
+        }
+        capture_json = json.dumps(capture_obj, indent=2)
+    else:
+        capture_list = [
+            capture.command,
+            capture.exit_status,
+            capture.runtime,
+            line_args,
+        ]
+        capture_json = json.dumps(capture_list)
+
     capture_bytes = capture_json.encode("utf-8")
     return capture_bytes
 
@@ -98,7 +111,7 @@ def _gen_captured_lines(
 
 def _read_loop(
     sp_output_pipe: typ.IO[bytes],
-    captured_lines: typ.List[RawCapturedLine],
+    captured_lines: list[RawCapturedLine],
     encoding      : str = "utf-8",
 ) -> None:
     raw_lines = iter(sp_output_pipe.readline, b'')
@@ -108,23 +121,23 @@ def _read_loop(
 
 class CapturingThread(typ.NamedTuple):
     thread: threading.Thread
-    lines : typ.List[RawCapturedLine]
+    lines : list[RawCapturedLine]
 
 
 def _start_reader(
     sp_output_pipe: typ.IO[bytes],
     encoding      : str = "utf-8",
 ) -> CapturingThread:
-    captured_lines: typ.List[RawCapturedLine] = []
+    captured_lines: list[RawCapturedLine] = []
     read_loop_thread = threading.Thread(target=_read_loop, args=(sp_output_pipe, captured_lines, encoding))
     read_loop_thread.start()
     return CapturingThread(read_loop_thread, captured_lines)
 
 
-AnyCommand = typ.Union[str, typ.List[str]]
+AnyCommand = typ.Union[str, list[str]]
 
 
-def _normalize_command(command: AnyCommand) -> typ.List[str]:
+def _normalize_command(command: AnyCommand) -> list[str]:
     if isinstance(command, str):
         return shlex.split(command)
     elif isinstance(command, list):
@@ -146,7 +159,7 @@ class InteractiveSession:
     _stdout : typ.IO[bytes]
     _stderr : typ.IO[bytes]
 
-    _in_cl : typ.List[RawCapturedLine]
+    _in_cl : list[RawCapturedLine]
     _out_ct: CapturingThread
     _err_ct: CapturingThread
 
@@ -265,11 +278,11 @@ class InteractiveSession:
         return returncode
 
     @property
-    def out_lines(self) -> typ.List[RawCapturedLine]:
+    def out_lines(self) -> list[RawCapturedLine]:
         return self._out_ct.lines
 
     @property
-    def err_lines(self) -> typ.List[RawCapturedLine]:
+    def err_lines(self) -> list[RawCapturedLine]:
         return self._err_ct.lines
 
     def iter_lines(self) -> typ.Iterable[CapturedLine]:
@@ -295,7 +308,7 @@ class InteractiveSession:
             else:
                 break
 
-    def output_lines(self) -> typ.List[CapturedLine]:
+    def output_lines(self) -> list[CapturedLine]:
         return list(self.iter_lines())
 
     def iter_stdout(self) -> typ.Iterable[str]:
@@ -334,7 +347,7 @@ class DebugInteractiveSession(InteractiveSession):
     _proc   : sp.Popen
     _stdin  : typ.Optional[typ.IO[bytes]]
 
-    _in_cl: typ.List[RawCapturedLine]
+    _in_cl: list[RawCapturedLine]
 
     def __init__(
         self,
@@ -371,5 +384,5 @@ class DebugInteractiveSession(InteractiveSession):
 
         return self._wait(timeout)
 
-    def output_lines(self) -> typ.List[CapturedLine]:
+    def output_lines(self) -> list[CapturedLine]:
         return []

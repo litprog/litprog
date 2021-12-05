@@ -35,6 +35,8 @@ class SessionBlockOptions(typ.NamedTuple):
     input_delay         : float
     expected_exit_status: int
 
+    capture_file: typ.Optional[Path]
+
     is_stdin_writable: bool
     is_debug         : bool
     keepends         : bool

@@ -329,10 +329,12 @@ VALID_DIRECTIVES = {
     # parameters for out and run
     'debug',
     'expect',
+    'options',
     'timeout',
     # NOTE: input_delay might allow the accurate
     #   association of input/output as long as output
     #   is always captured by the time the delay passes.
+    'capture_file',
     'input_delay',
     'proc_info',
     'out_prefix',
