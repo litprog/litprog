@@ -1,23 +1,35 @@
-#!/home/mbarkhau/miniconda3/envs/litprog_py38/bin/python
+#!/home/mbarkhau/miniconda3/envs/litprog_py39/bin/python
 # This file is part of the litprog project
 # https://github.com/litprog/litprog
 #
-# Copyright (c) 2018-2021 Manuel Barkhau (mbarkhau@gmail.com) - MIT License
+# Copyright (c) 2018-2022 Manuel Barkhau (mbarkhau@gmail.com) - MIT License
 # SPDX-License-Identifier: MIT
+"""Create a booklet from an existing pdf.
+
+Usage: python pdf_booklet.py FILE [OPTIONS]
+
+Options:
+    --help
+    --verbose
+    --debug
+
+    --max-section-pages PAGES
+"""
+
 import sys
+import math
 import typing as typ
 import logging
 import pathlib as pl
+import contextlib
 
 import pdfrw
 
 logger = logging.getLogger("pdf_booklet")
 
 
-MAX_SECTION_PAGES = 48
-PAGES_PER_SHEET   = 4
-
-assert MAX_SECTION_PAGES % PAGES_PER_SHEET == 0
+MAX_SECTION_SHEETS = 12
+PAGES_PER_SHEET    = 4
 
 PT_PER_INCH = 72
 PT_PER_MM   = PT_PER_INCH / 25.4
@@ -38,16 +50,21 @@ BOOKLET_FORMAT_MAPPING = {
 
 PAPER_FORMATS_PT = {
     'A6-Portrait'     : (105  * PT_PER_MM  , 148 * PT_PER_MM),
+    'A6'              : (105  * PT_PER_MM  , 148 * PT_PER_MM),
     'A5-Landscape'    : (210  * PT_PER_MM  , 148 * PT_PER_MM),
     'A5-Portrait'     : (148  * PT_PER_MM  , 210 * PT_PER_MM),
+    'A5'              : (148  * PT_PER_MM  , 210 * PT_PER_MM),
     'A4-Landscape'    : (297  * PT_PER_MM  , 210 * PT_PER_MM),
     'A4-Portrait'     : (210  * PT_PER_MM  , 297 * PT_PER_MM),
+    'A4'              : (210  * PT_PER_MM  , 297 * PT_PER_MM),
     'A3-Portrait'     : (297  * PT_PER_MM  , 420 * PT_PER_MM),
+    'A3'              : (297  * PT_PER_MM  , 420 * PT_PER_MM),
     '1of2col-A4'      : (105  * PT_PER_MM  , 297 * PT_PER_MM),
     '1of2col-Letter'  : (4.25 * PT_PER_INCH, 11  * PT_PER_INCH),
     'Half-Letter'     : (5.5  * PT_PER_INCH, 8.5 * PT_PER_INCH),
     'Letter-Landscape': (11   * PT_PER_INCH, 8.5 * PT_PER_INCH),
     'Letter-Portrait' : (8.5  * PT_PER_INCH, 11  * PT_PER_INCH),
+    'Letter'          : (8.5  * PT_PER_INCH, 11  * PT_PER_INCH),
 }
 
 
@@ -113,9 +130,7 @@ class OutputParameters(typ.NamedTuple):
     pad_center: float
 
 
-def parse_output_parameters(
-    in_page_width: float, in_page_height: float, out_sheet_format: str
-) -> OutputParameters:
+def parse_output_parameters(in_page_width: float, in_page_height: float, out_format: str) -> OutputParameters:
     # NOTE (mb 2021-03-04): Can we figure out the bounds of the inner content
     #   and scale + translate each page to be in a well defined content box
     #   in the output page?
@@ -124,9 +139,9 @@ def parse_output_parameters(
 
     # pylint: disable=too-many-locals
 
-    out_sheet_width, out_sheet_height = PAPER_FORMATS_PT[out_sheet_format]
+    out_sheet_width, out_sheet_height = PAPER_FORMATS_PT[out_format]
     if out_sheet_width < out_sheet_height:
-        errmsg = f"Invalid out_sheet_format={out_sheet_format}. Landscape format required."
+        errmsg = f"Invalid out_format={out_format}. Landscape format required."
         raise ValueError(errmsg)
 
     out_page_width  = out_sheet_width / 2
@@ -172,15 +187,57 @@ def parse_output_parameters(
 PdfPage = typ.Any
 
 
-def create(
-    in_path         : pl.Path,
-    out_path        : typ.Optional[pl.Path] = None,
-    out_sheet_format: str = 'A4-Landscape',
-    page_order      : str = 'booklet',
-) -> pl.Path:
-    assert out_sheet_format in PAPER_FORMATS_PT
+@contextlib.contextmanager
+def fit_pdf(in_path: pl.Path, crop_width: int, crop_height: int, out_format: str) -> typ.Iterator[pl.Path]:
+    import PyPDF2 as pypdf
 
-    in_pdf    = pdfrw.PdfReader(in_path)
+    tmp_path = in_path.parent / (in_path.name + ".crop_tmp")
+
+    out_width, out_height = PAPER_FORMATS_PT[out_format]
+    if out_width < out_height:
+        out_height, out_width = (out_width, out_height)
+
+    tgt_width  = round(out_width / 2)
+    tgt_height = round(out_height)
+
+    with in_path.open(mode="rb") as in_fobj:
+        reader = pypdf.PdfFileReader(in_fobj)
+        pages  = list(reader.pages)
+        page0  = pages[0]
+
+        media_box = page0.mediaBox
+
+        in_page_width  = float(media_box.getWidth())
+        in_page_height = float(media_box.getHeight())
+
+        translate_x = round((tgt_width  - (in_page_width  - crop_width )) / 2)
+        translate_y = round((tgt_height - (in_page_height - crop_height)) / 2)
+
+        logger.info(f"padding: {translate_x} {translate_y}")
+
+        output = pypdf.PdfFileWriter()
+
+        for in_page in pages:
+            out_page = output.addBlankPage(width=tgt_width, height=tgt_height)
+            out_page.mergeTranslatedPage(in_page, tx=translate_x, ty=translate_y, expand=False)
+            out_page.compressContentStreams()
+
+        with tmp_path.open(mode='wb') as out_fobj:
+            output.write(out_fobj)
+
+    yield tmp_path
+
+    tmp_path.unlink()
+
+
+def _create(
+    in_path          : pl.Path,
+    out_path         : pl.Path,
+    out_format       : str,
+    max_section_pages: int,
+) -> pl.Path:
+    in_pdf = pdfrw.PdfReader(in_path)
+
     in_pages  = in_pdf.pages
     firstpage = in_pages[0]
 
@@ -188,20 +245,17 @@ def create(
     assert _x0 == 0
     assert _y0 == 0
 
-    out_params = parse_output_parameters(in_page_width, in_page_height, out_sheet_format)
-    if abs(out_params.scale - 1) > 0.02:
-        # pylint: disable=import-outside-toplevel ; improves import time
-        from litprog import pdf_booklet_old
-
-        result_path = pdf_booklet_old.create(in_path, out_path, out_sheet_format, page_order)
-        return result_path
+    out_params = parse_output_parameters(in_page_width, in_page_height, out_format)
 
     lx_offset = 0 - out_params.pad_center
     rx_offset = (out_params.width / 2) + out_params.pad_center
 
+    num_sections      = math.ceil(len(in_pages) / max_section_pages)
+    max_section_pages = math.ceil(len(in_pages) / num_sections)
+
     in_sections: list[list[PdfPage]] = [[]]
     for in_page in in_pages:
-        if len(in_sections[-1]) == MAX_SECTION_PAGES:
+        if len(in_sections[-1]) == max_section_pages:
             in_sections.append([])
         in_sections[-1].append(in_page)
 
@@ -221,14 +275,46 @@ def create(
 
         return result.render()
 
-    out_pages = []
-    for in_section in in_sections:
+    empty_page = PageMerge().render()
+    out_pages  = []
+    for i, in_section in enumerate(in_sections):
+        if i > 0:
+            out_pages.append(empty_page)
+            out_pages.append(empty_page)
+
         in_section += [None] * (-len(in_section) % 4)
         assert len(in_section) % 4 == 0
 
         while len(in_section) > 0:
             out_pages.append(fixpage(in_section.pop(), in_section.pop(0)))
             out_pages.append(fixpage(in_section.pop(0), in_section.pop()))
+
+    out_pdf = pdfrw.PdfWriter(out_path)
+    out_pdf = out_pdf.addpages(out_pages)
+    out_pdf.write()
+
+    logger.info(f"Wrote to '{out_path}'")
+
+    return out_path
+
+
+def create(
+    in_path           : pl.Path,
+    out_path          : typ.Optional[pl.Path] = None,
+    out_format        : str  = 'A4-Landscape',
+    max_section_sheets: int  = MAX_SECTION_SHEETS,
+    crop_width        : int  = 0,
+    crop_height       : int  = 0,
+    autofit           : bool = True,
+) -> pl.Path:
+    assert in_path.exists(), f"No such file: {in_path}"
+
+    if out_format not in PAPER_FORMATS_PT:
+        valid_formats = list(PAPER_FORMATS_PT)
+        errmsg        = f"Invalid out_format {out_format}. Valid formats: {valid_formats}"
+        raise AssertionError(errmsg)
+
+    max_section_pages = max_section_sheets * 4
 
     if out_path is None:
         ext          = in_path.suffixes[-1]
@@ -237,23 +323,72 @@ def create(
     else:
         _out_path = out_path
 
-    out_pdf = pdfrw.PdfWriter(_out_path)
-    out_pdf = out_pdf.addpages(out_pages)
-    out_pdf.write()
-
-    logger.info(f"Wrote to '{_out_path}'")
-
-    return _out_path
+    if autofit or crop_width or crop_height:
+        with fit_pdf(in_path, crop_width, crop_height, out_format) as tmp_path:
+            return _create(tmp_path, _out_path, out_format, max_section_pages)
+    else:
+        return _create(in_path, _out_path, out_format, max_section_pages)
 
 
-def main() -> int:
+def iter_kwargs(args: list[str]) -> typ.Iterator[tuple[str, typ.Any]]:
+    idx = len(args) - 1
+    key: typ.Optional[str] = None
+    val: typ.Optional[str] = None
+    while idx >= 0:
+        arg = args[idx]
+
+        if arg.startswith("--"):
+            if arg.startswith("--no-"):
+                key      = arg[5:]
+                flag_val = False
+            else:
+                key      = arg[2:]
+                flag_val = True
+
+            key = key.replace("-", "_")
+
+            if val is None:
+                yield (key, flag_val)
+            elif key.endswith("_path"):
+                yield (key, pl.Path(val))
+            else:
+                try:
+                    yield (key, int(val))
+                except ValueError:
+                    yield (key, val)
+            val = None
+        else:
+            val = arg
+
+        idx -= 1
+
+
+def main(args: list[str]) -> int:
+    if "-h" in args or "--help" in args:
+        print(__doc__)
+        return 0
+
+    kwargs = dict(iter_kwargs(args))
+
+    is_debug   = kwargs.pop("debug"  , False)
+    is_verbose = kwargs.pop("verbose", False)
+
     logging.basicConfig()
     root_logger = logging.getLogger()
-    root_logger.setLevel(logging.INFO)
+    if is_debug:
+        root_logger.setLevel(logging.DEBUG)
+    elif is_verbose:
+        root_logger.setLevel(logging.INFO)
+    else:
+        root_logger.setLevel(logging.WARNING)
 
-    create(in_path=pl.Path(sys.argv[1]))
-    return 0
+    try:
+        create(**kwargs)
+        return 0
+    except AssertionError as err:
+        print(err)
+        return 1
 
 
 if __name__ == '__main__':
-    sys.exit(main())
+    sys.exit(main(sys.argv[1:]))
