@@ -125,9 +125,9 @@ class OutputParameters(typ.NamedTuple):
     height: float
 
     scale     : float
-    pad_x     : float
-    pad_y     : float
     pad_center: float
+    lx_offset : float
+    rx_offset : float
 
 
 def parse_output_parameters(in_page_width: float, in_page_height: float, out_format: str) -> OutputParameters:
@@ -147,21 +147,17 @@ def parse_output_parameters(in_page_width: float, in_page_height: float, out_for
     out_page_width  = out_sheet_width / 2
     out_page_height = out_sheet_height
 
-    x_scale = out_page_width  / in_page_width
-    y_scale = out_page_height / in_page_height
+    x_scale = out_page_width  / in_page_width  * 0.98
+    y_scale = out_page_height / in_page_height * 0.98
 
     scale = min(x_scale, y_scale)
 
     scaled_page_width  = in_page_width  * scale
     scaled_page_height = in_page_height * scale
 
-    x_padding = out_page_width  - scaled_page_width
-    y_padding = out_page_height - scaled_page_height
-
-    pad_center = x_padding / 4
-    pad_center = 0
-    pad_x      = (x_padding - pad_center) / 2
-    pad_y      = y_padding / 2
+    pad_center = (out_sheet_width / 2) - scaled_page_width
+    lx_offset  = round(0 - pad_center)
+    rx_offset  = round((out_sheet_width / 2) + pad_center)
 
     _iw_mm = round(in_page_width      / PT_PER_MM)
     _ih_mm = round(in_page_height     / PT_PER_MM)
@@ -169,18 +165,20 @@ def parse_output_parameters(in_page_width: float, in_page_height: float, out_for
     _sh_mm = round(scaled_page_height / PT_PER_MM)
     _ow_mm = round(out_sheet_width    / PT_PER_MM)
     _oh_mm = round(out_sheet_height   / PT_PER_MM)
+
     logger.info("OutputParameters")
     logger.info(f"    scale: {scale:5.2f}x")
     logger.info(f"    in : {_iw_mm}mm x {_ih_mm}mm -> {_sw_mm}mm x {_sh_mm}mm (2x)")
     logger.info(f"    out: {_ow_mm}mm x {_oh_mm}mm")
+    logger.info(f"offsets: {lx_offset}mm {rx_offset}mm")
 
     return OutputParameters(
         out_sheet_width,
         out_sheet_height,
         scale,
-        pad_x,
-        pad_y,
         pad_center,
+        lx_offset,
+        rx_offset,
     )
 
 
@@ -213,7 +211,7 @@ def fit_pdf(in_path: pl.Path, crop_width: int, crop_height: int, out_format: str
         translate_x = round((tgt_width  - (in_page_width  - crop_width )) / 2)
         translate_y = round((tgt_height - (in_page_height - crop_height)) / 2)
 
-        logger.info(f"padding: {translate_x} {translate_y}")
+        logger.info(f"page padding: {translate_x} {translate_y}")
 
         output = pypdf.PdfFileWriter()
 
@@ -247,11 +245,9 @@ def _create(
 
     out_params = parse_output_parameters(in_page_width, in_page_height, out_format)
 
-    lx_offset = 0 - out_params.pad_center
-    rx_offset = (out_params.width / 2) + out_params.pad_center
-
     num_sections      = math.ceil(len(in_pages) / max_section_pages)
-    max_section_pages = math.ceil(len(in_pages) / num_sections)
+    max_section_pages = len(in_pages) / num_sections
+    max_section_pages = max_section_pages + (4 - max_section_pages) % 4
 
     in_sections: list[list[PdfPage]] = [[]]
     for in_page in in_pages:
@@ -268,19 +264,19 @@ def _create(
         result = PageMerge()
         if l_page:
             result.add(l_page)
-            result[-1].x += lx_offset
+            result[-1].x += out_params.lx_offset
         if r_page:
             result.add(r_page)
-            result[-1].x += rx_offset
+            result[-1].x += out_params.rx_offset
 
         return result.render()
 
-    empty_page = PageMerge().render()
+    blank_page = PageMerge().render()
     out_pages  = []
     for i, in_section in enumerate(in_sections):
         if i > 0:
-            out_pages.append(empty_page)
-            out_pages.append(empty_page)
+            out_pages.append(blank_page)
+            out_pages.append(blank_page)
 
         in_section += [None] * (-len(in_section) % 4)
         assert len(in_section) % 4 == 0
