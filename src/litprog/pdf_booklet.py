@@ -13,7 +13,13 @@ Options:
     --verbose
     --debug
 
-    --max-section-pages PAGES
+    --in-path PATH
+    --out-path PATH             default: <in_path>_booklet.pdf
+    --out-format                default: A4-Landscape
+    --max-section-sheets INT    default: 12
+    --crop-width PT             default: 0
+    --crop-height PT            default: 0
+    --autofit/--no-autofit      default: true
 """
 
 import sys
@@ -167,10 +173,10 @@ def parse_output_parameters(in_page_width: float, in_page_height: float, out_for
     _oh_mm = round(out_sheet_height   / PT_PER_MM)
 
     logger.info("OutputParameters")
-    logger.info(f"    scale: {scale:5.2f}x")
-    logger.info(f"    in : {_iw_mm}mm x {_ih_mm}mm -> {_sw_mm}mm x {_sh_mm}mm (2x)")
-    logger.info(f"    out: {_ow_mm}mm x {_oh_mm}mm")
-    logger.info(f"offsets: {lx_offset}mm {rx_offset}mm")
+    logger.info(f"sheet scale: {scale:5.2f}x")
+    logger.info(f"         in: {_iw_mm}mm x {_ih_mm}mm -> {_sw_mm}mm x {_sh_mm}mm (2x)")
+    logger.info(f"        out: {_ow_mm}mm x {_oh_mm}mm")
+    logger.info(f"    offsets: {lx_offset}mm {rx_offset}mm")
 
     return OutputParameters(
         out_sheet_width,
@@ -192,6 +198,7 @@ def fit_pdf(in_path: pl.Path, crop_width: int, crop_height: int, out_format: str
     tmp_path = in_path.parent / (in_path.name + ".crop_tmp")
 
     out_width, out_height = PAPER_FORMATS_PT[out_format]
+
     if out_width < out_height:
         out_height, out_width = (out_width, out_height)
 
@@ -208,8 +215,14 @@ def fit_pdf(in_path: pl.Path, crop_width: int, crop_height: int, out_format: str
         in_page_width  = float(media_box.getWidth())
         in_page_height = float(media_box.getHeight())
 
-        translate_x = round((tgt_width  - (in_page_width  - crop_width )) / 2)
-        translate_y = round((tgt_height - (in_page_height - crop_height)) / 2)
+        scale         = tgt_height / in_page_height
+        scaled_width  = in_page_width  * scale
+        scaled_height = in_page_height * scale
+
+        logger.info(f"page scale={scale:.3f}x")
+
+        translate_x = round((tgt_width  - (scaled_width  - crop_width )) / 2)
+        translate_y = round((tgt_height - (scaled_height - crop_height)) / 2)
 
         logger.info(f"page padding: {translate_x} {translate_y}")
 
@@ -217,7 +230,14 @@ def fit_pdf(in_path: pl.Path, crop_width: int, crop_height: int, out_format: str
 
         for in_page in pages:
             out_page = output.addBlankPage(width=tgt_width, height=tgt_height)
-            out_page.mergeTranslatedPage(in_page, tx=translate_x, ty=translate_y, expand=False)
+
+            if abs(1 - scale) > 0.02:
+                out_page.mergeScaledTranslatedPage(
+                    in_page, scale=scale, tx=translate_x, ty=translate_y, expand=False
+                )
+            else:
+                out_page.mergeTranslatedPage(in_page, tx=translate_x, ty=translate_y, expand=False)
+
             out_page.compressContentStreams()
 
         with tmp_path.open(mode='wb') as out_fobj:

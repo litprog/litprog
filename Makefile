@@ -74,24 +74,6 @@ doc:
 #	cp src/litprog/static/*.js /run/user/1000/keybase/kbfs/public/mbarkhau/litprog/
 
 
-svg2png := inkscape --without-gui --export-area-page --file
-
-
-## Create favicon
-logo/favicon.ico: logo/*.svg
-	# $(svg2png) logo/favicon.svg --export-png logo/favicon_16.png -w 16 -h 16
-	# $(svg2png) logo/favicon.svg --export-png logo/favicon_24.png -w 24 -h 24
-	# $(svg2png) logo/favicon.svg --export-png logo/favicon_48.png -w 48 -h 48
-	# $(svg2png) logo/favicon.svg --export-png logo/icon.png -w 128 -h 128
-	# convert logo/favicon_16.png logo/favicon_24.png logo/favicon_48.png logo/favicon_old.ico
-
-	$(svg2png) logo/logotype.svg --export-png logo/logotype_16.png -w 16 -h 16
-	$(svg2png) logo/logotype.svg --export-png logo/logotype_24.png -w 24 -h 24
-	$(svg2png) logo/logotype.svg --export-png logo/logotype_48.png -w 48 -h 48
-	$(svg2png) logo/logotype.svg --export-png logo/logotype.png -w 256 -h 256
-	convert logo/logotype_16.png logo/logotype_24.png logo/logotype_48.png logo/favicon.ico
-
-
 KATEX_CDN_BASE_URL=https://cdn.jsdelivr.net/npm/katex@0.10.2/dist
 
 
