@@ -42,7 +42,7 @@ setuptools.setup(
     author="Manuel Barkhau",
     author_email="mbarkhau@gmail.com",
     url="https://github.com/litprog/litprog",
-    version="2022.1007a0",
+    version="2022.1008a0",
     keywords="literate programming markdown litprog",
     description="Literate Programming using Markdown.",
     long_description=long_description,
