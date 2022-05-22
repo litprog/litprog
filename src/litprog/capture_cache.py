@@ -307,7 +307,7 @@ class LocalResultCache(ResultCache):
         cache_dir    = config.CACHE_DIR / cache_subdir
 
         if not cache_dir.exists():
-            cache_dir.mkdir()
+            cache_dir.mkdir(parents=True)
 
         self._manifest_file = cache_dir / f"build_cache.manifest_v{SERIAL_VERSION_ID}"
         self._data_file     = cache_dir / "build_cache.db"
