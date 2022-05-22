@@ -11,11 +11,11 @@ CC0: https://creativecommons.org/publicdomain/zero/1.0/
 Usage:
 
 with SimpleCache(name="mycache") as cache:
-    cache['hello'] = u"wörld"
+    cache['hello'] = "wörld"
 
 # later (in another process)
 with SimpleCache(name="mycache", mode="r") as cache:
-    assert cache['hello'] == u"wörld"
+    assert cache['hello'] == "wörld"
 """
 import os
 import time
@@ -53,7 +53,7 @@ class SimpleCache:
         cache_id=None,
     ) -> None:
         if mode not in ("r", "w"):
-            msg = "Invalid value mode='{0}'. Valid modes are: 'r' and 'w'".format(mode)
+            msg = f"Invalid value mode='{mode}'. Valid modes are: 'r' and 'w'"
             raise ValueError(msg)
 
         self._mode  = mode
@@ -178,16 +178,16 @@ def main():
     with SimpleCache() as cache:
         assert isinstance(cache     , SimpleCache)
         assert isinstance(cache._obj, dict)
-        cache._obj['hello'] = u"wörld"
+        cache._obj['hello'] = "wörld"
 
     print("cache_path:", cache.path)
-    with open(cache.path) as fobj:
+    with open(cache.path, mode='r', encoding='utf-8') as fobj:
         print(fobj.read())
 
     # later
     with SimpleCache(mode="r") as cache:
         assert isinstance(cache._obj, dict)
-        assert cache._obj['hello'] == u"wörld"
+        assert cache._obj['hello'] == "wörld"
 
 
 if __name__ == '__main__':

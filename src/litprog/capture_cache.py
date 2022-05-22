@@ -343,7 +343,7 @@ class LocalResultCache(ResultCache):
         assert manifest == self.manifest
 
         tmp_file = str(self._manifest_file) + ".tmp_" + uuid.uuid4().hex
-        with open(tmp_file, mode="w") as fobj:
+        with open(tmp_file, mode="w", encoding="utf-8") as fobj:
             fobj.write(manifest_text)
 
         os.rename(tmp_file, self._manifest_file)
