@@ -39,10 +39,12 @@ def pretty_print_fibs(ns: Sequence[int]) -> None:
 Flags = set[str]
 Params = list[str]
 
+
 def parse_args(args: list[str]) -> tuple[Flags, Params]:
     flags = {arg for arg in args if arg.startswith("-")}
     params = [arg for arg in args if arg not in flags]
     return (flags, params)
+
 
 def main(args: list[str] = sys.argv[1:]) -> int:
     flags, params = parse_args(args)

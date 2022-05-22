@@ -288,7 +288,6 @@ def _create(
         if r_page:
             result.add(r_page)
             result[-1].x += out_params.rx_offset
-
         return result.render()
 
     blank_page = PageMerge().render()
@@ -384,7 +383,10 @@ def main(args: list[str]) -> int:
         print(__doc__)
         return 0
 
-    kwargs = dict(iter_kwargs(args))
+    if len(args) == 1:
+        kwargs = {'in_path': args[0]}
+    else:
+        kwargs = dict(iter_kwargs(args))
 
     is_debug   = kwargs.pop("debug"  , False)
     is_verbose = kwargs.pop("verbose", False)
