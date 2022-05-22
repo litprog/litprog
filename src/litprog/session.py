@@ -134,7 +134,7 @@ def _start_reader(
     return CapturingThread(read_loop_thread, captured_lines)
 
 
-AnyCommand = typ.Union[str, list[str]]
+AnyCommand = typ.Union[str, list[str], typ.Any]
 
 
 def _normalize_command(command: AnyCommand) -> list[str]:
@@ -143,8 +143,7 @@ def _normalize_command(command: AnyCommand) -> list[str]:
     elif isinstance(command, list):
         return command
     else:
-        err_msg = f"Invalid command: {command}"
-        raise Exception(err_msg)
+        raise Exception(f"Invalid command: {command}")
 
 
 class InteractiveSession:

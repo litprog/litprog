@@ -126,7 +126,7 @@ def main(args: typ.Sequence[str] = sys.argv[1:]) -> int:
     out_path = pl.Path(args[1])
     raw_ops  = iter(args[2:])
 
-    curr_fobj = in_path.open(mode="rb")
+    curr_fobj: io.IOBase = in_path.open(mode="rb")
 
     for op in raw_ops:
         curr_pdf  = pdf.PdfFileReader(curr_fobj)

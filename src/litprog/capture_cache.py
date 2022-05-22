@@ -40,15 +40,15 @@ SERIAL_VERSION_ID = '1'
 # capture_zstd = cctx.compress(capture_bytes)
 
 
+CaptureData = bytes
+
+
 def _compress(data: bytes) -> bytes:
     return data
 
 
 def _decompress(data: bytes) -> bytes:
     return data
-
-
-CaptureData = bytes
 
 
 class ManifestEntry(typ.NamedTuple):
@@ -329,6 +329,7 @@ class LocalResultCache(ResultCache):
     def read_capture(self, entry: ManifestEntry) -> typ.Optional[CaptureData]:
         raw_capture_data = self._db.get(entry.capture_digest)
         if raw_capture_data:
+            assert isinstance(raw_capture_data, bytes)
             return _decompress(raw_capture_data)
         else:
             return None
