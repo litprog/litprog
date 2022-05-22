@@ -1,6 +1,6 @@
 # Pylint-Ignore
 
-**WARNING: This file is programatically generated.**
+**WARNING: This file is programmatically generated.**
 
 This file is parsed by [`pylint-ignore`](https://pypi.org/project/pylint-ignore/)
 to determine which
@@ -24,10 +24,12 @@ The recommended approach to using `pylint-ignore` is:
 # Overview
 
  - [W0212: protected-access (3x)](#w0212-protected-access)
- - [W0511: fixme (20x)](#w0511-fixme)
+ - [W0511: fixme (23x)](#w0511-fixme)
  - [W0703: broad-except (1x)](#w0703-broad-except)
  - [C0103: invalid-name (1x)](#c0103-invalid-name)
+ - [C0302: too-many-lines (1x)](#c0302-too-many-lines)
  - [C0415: import-outside-toplevel (2x)](#c0415-import-outside-toplevel)
+ - [R0912: too-many-branches (1x)](#r0912-too-many-branches)
  - [R0914: too-many-locals (2x)](#r0914-too-many-locals)
  - [R1702: too-many-nested-blocks (1x)](#r1702-too-many-nested-blocks)
 
@@ -46,7 +48,7 @@ The recommended approach to using `pylint-ignore` is:
   179:         assert isinstance(cache     , SimpleCache)
   180:         assert isinstance(cache._obj, dict)
 > 181:         cache._obj['hello'] = u"wörld"
-  182:
+  182: 
   183:     print("cache_path:", cache.path)
 ```
 
@@ -80,7 +82,7 @@ The recommended approach to using `pylint-ignore` is:
   188:     with SimpleCache(mode="r") as cache:
   189:         assert isinstance(cache._obj, dict)
 > 190:         assert cache._obj['hello'] == u"wörld"
-  191:
+  191: 
   192:
 ```
 
@@ -95,7 +97,7 @@ The recommended approach to using `pylint-ignore` is:
 
 ```
   31: logger = logging.getLogger("litprog.simple_cache")
-  32:
+  32: 
 > 33: # TODO (mb 2021-07-25):
   34: #   redis backing
   35: #   compression
@@ -109,10 +111,10 @@ The recommended approach to using `pylint-ignore` is:
 - `date   : 2021-08-15T16:30:27`
 
 ```
-  32:
-  33:
+  32: 
+  33: 
 > 34: # TODO (mb 2021-03-05):
-  35:
+  35: 
   36: # dctx = zstandard.ZstdDecompressor()
 ```
 
@@ -134,18 +136,18 @@ The recommended approach to using `pylint-ignore` is:
 ```
 
 
-## File src/litprog/build.py - Line 115 - W0511 (fixme)
+## File src/litprog/build.py - Line 118 - W0511 (fixme)
 
 - `message: TODO: Maybe use this to parse all directive values, and thereby enable quoting.`
 - `author : Manuel Barkhau <mbarkhau@gmail.com>`
 - `date   : 2021-08-15T16:53:09`
 
 ```
-  113:
-  114:
-> 115: # TODO: Maybe use this to parse all directive values, and thereby enable quoting.
-  116: def _parse_directive_val(directive: ct.Directive) -> str:
-  117:     val = directive.value.strip()
+  116: 
+  117: 
+> 118: # TODO: Maybe use this to parse all directive values, and thereby enable quoting.
+  119: def _parse_directive_val(directive: ct.Directive) -> str:
+  120:     val = directive.value.strip()
 ```
 
 
@@ -159,7 +161,7 @@ The recommended approach to using `pylint-ignore` is:
   132: def _parse_change(change_args: typ.Sequence[str]) -> Change:
   ...
   140:         del_rel       = len(change_args[3] or "")
-  141:
+  141: 
 > 142:     # TODO (mb 2021-01-21): better parsing of changed filename
   143:     #    '{static => src/litprog/static}/pdf_modal.css',
   144:     return Change(
@@ -183,6 +185,23 @@ The recommended approach to using `pylint-ignore` is:
 ```
 
 
+## File src/litprog/build.py - Line 173 - W0511 (fixme)
+
+- `message: TODO (mb 2021-07-18): pylev for better message:`
+- `author : Manuel Barkhau <mbarkhau@gmail.com>`
+- `date   : 2021-08-15T16:30:27`
+
+```
+  162: def _build_dep_map(blocks_by_sid: BlockListBySid) -> DependencyMap:
+  ...
+  171:                 dep_sids = list(_resolve_dep_sids(raw_dep_sid, blocks_by_sid))
+  172:                 if not any(dep_sids):
+> 173:                     # TODO (mb 2021-07-18): pylev for better message:
+  174:                     #   "Maybe you meant {closest_sids}"
+  175:                     raise BlockError(f"Invalid block id: {raw_dep_sid}", block)
+```
+
+
 ## File src/litprog/vcs.py - Line 201 - W0511 (fixme)
 
 - `message: TODO (mb 2021-01-28): Check if project path should be parameterized.`
@@ -198,20 +217,20 @@ The recommended approach to using `pylint-ignore` is:
 ```
 
 
-## File src/litprog/build.py - Line 254 - W0511 (fixme)
+## File src/litprog/build.py - Line 263 - W0511 (fixme)
 
-- `message: TODO (mb 2021-07-18): pylev for better message`
+- `message: TODO (mb 2021-07-18): pylev for better message:`
 - `author : Manuel Barkhau <mbarkhau@gmail.com>`
 - `date   : 2021-08-15T16:30:27`
 
 ```
-  214: def _expand_block_content(
+  233: def _expand_block_content(
   ...
-  252:
-  253:             if lp_dep_sid not in blocks_by_sid:
-> 254:                 # TODO (mb 2021-07-18): pylev for better message
-  255:                 errmsg = f"Invalid dep: '{lp_dep_sid}'"
-  256:                 raise BlockError(errmsg, block)
+  261:             dep_sids = list(_resolve_dep_sids(raw_dep_sid, blocks_by_sid))
+  262:             if not dep_sids:
+> 263:                 # TODO (mb 2021-07-18): pylev for better message:
+  264:                 #   "Maybe you meant {closest_sids}"
+  265:                 raise BlockError(f"Invalid block id: {raw_dep_sid}", block)
 ```
 
 
@@ -232,35 +251,35 @@ The recommended approach to using `pylint-ignore` is:
 ```
 
 
-## File src/litprog/build.py - Line 368 - W0511 (fixme)
+## File src/litprog/parse.py - Line 396 - W0511 (fixme)
+
+- `message: TODO (mb 2021-08-19): Is there a way we can support`
+- `author : Manuel Barkhau <mbarkhau@gmail.com>`
+- `date   : 2022-05-22T17:18:52`
+
+```
+  394: 
+  395: def _parse_directives(comment_text: str, raw_text: str) -> typ.Iterable[ct.Directive]:
+> 396:     # TODO (mb 2021-08-19): Is there a way we can support
+  397:     #   multiple directives on the same line?
+  398:     rest = comment_text
+```
+
+
+## File src/litprog/build.py - Line 406 - W0511 (fixme)
 
 - `message: TODO (mb 2020-12-30): These line numbers appear to be wrong,`
 - `author : Manuel Barkhau <mbarkhau@gmail.com>`
 - `date   : 2021-03-13T20:48:00`
 
 ```
-  342: def _iter_block_errors(parse_ctx: parse.Context, build_ctx: parse.Context) -> typ.Iterable[str]:
+  380: def _iter_block_errors(parse_ctx: parse.Context, build_ctx: parse.Context) -> typ.Iterable[str]:
   ...
-  366:                         rel_line_no += 1
-  367:
-> 368:                     # TODO (mb 2020-12-30): These line numbers appear to be wrong,
-  369:                     #   I think for recursive dep directives in particular.
-  370:                     line_no       = elem.first_line + rel_line_no
-```
-
-
-## File src/litprog/build.py - Line 428 - W0511 (fixme)
-
-- `message: TODO (mb 2020-12-17): Allow override/configuration`
-- `author : Manuel Barkhau <mbarkhau@gmail.com>`
-- `date   : 2021-03-13T20:48:00`
-
-```
-  426:
-  427: def _get_default_command(block: ct.Block) -> typ.Optional[str]:
-> 428:     # TODO (mb 2020-12-17): Allow override/configuration
-  429:     lang = block.info_string.strip()
-  430:     if lang == 'python':
+  404:                         rel_line_no += 1
+  405: 
+> 406:                     # TODO (mb 2020-12-30): These line numbers appear to be wrong,
+  407:                     #   I think for recursive dep directives in particular.
+  408:                     line_no       = elem.first_line + rel_line_no
 ```
 
 
@@ -274,42 +293,74 @@ The recommended approach to using `pylint-ignore` is:
   417: def gen_pdf(
   ...
   426:         pdf_dir.mkdir(parents=True)
-  427:
+  427: 
 > 428:     # TODO (mb 2021-01-21): cover page with title and author(s)
   429:     #   timeline for whole project
   430:
 ```
 
 
-## File src/litprog/parse.py - Line 504 - W0511 (fixme)
+## File src/litprog/build.py - Line 478 - W0511 (fixme)
+
+- `message: TODO (mb 2020-12-17): Allow override/configuration`
+- `author : Manuel Barkhau <mbarkhau@gmail.com>`
+- `date   : 2021-03-13T20:48:00`
+
+```
+  476: 
+  477: def _get_default_command(block: ct.Block) -> typ.Optional[str]:
+> 478:     # TODO (mb 2020-12-17): Allow override/configuration
+  479:     lang = block.info_string.strip()
+  480:     if lang == 'python':
+```
+
+
+## File src/litprog/parse.py - Line 515 - W0511 (fixme)
 
 - `message: TODO (mb 2020-06-02): Why do we .strip() here ?`
 - `author : Manuel Barkhau <mbarkhau@gmail.com>`
 - `date   : 2020-12-12T15:53:20`
 
 ```
-  490:     def _init_plain_block(self, elem: MarkdownElement, info_string: str) -> ct.Block:
+  501:     def _init_plain_block(self, elem: MarkdownElement, info_string: str) -> ct.Block:
   ...
-  502:             [],
-  503:             elem.content,
-> 504:             # TODO (mb 2020-06-02): Why do we .strip() here ?
-  505:             inner_content.strip(),
-  506:             inner_content.strip(),
+  513:             [],
+  514:             elem.content,
+> 515:             # TODO (mb 2020-06-02): Why do we .strip() here ?
+  516:             inner_content.strip(),
+  517:             inner_content.strip(),
 ```
 
 
-## File src/litprog/build.py - Line 520 - W0511 (fixme)
+## File src/litprog/parse.py - Line 561 - W0511 (fixme)
+
+- `message: TODO (mb 2021-08-27): hacky, isn't there a better`
+- `author : Manuel Barkhau <mbarkhau@gmail.com>`
+- `date   : 2022-05-22T17:18:52`
+
+```
+  520:     def _init_code_block(self, elem: MarkdownElement, info_string: str, rest_content: str) -> ct.Block:
+  ...
+  559: 
+  560:             if is_prelude:
+> 561:                 # TODO (mb 2021-08-27): hacky, isn't there a better
+  562:                 #   way to capture the newlines earlier?
+  563:                 if rest.startswith("\n") or rest.startswith("\r"):
+```
+
+
+## File src/litprog/build.py - Line 590 - W0511 (fixme)
 
 - `message: TODO: coloring`
 - `author : Manuel Barkhau <mbarkhau@gmail.com>`
 - `date   : 2020-12-11T15:37:25`
 
 ```
-  518:
-  519: def _parse_capture_output(capture: session.Capture, opts: ct.SessionBlockOptions) -> str:
-> 520:     # TODO: coloring
-  521:     # if "\u001b" in capture.stderr:
-  522:     #     stderr = capture.stderr
+  588: 
+  589: def _parse_capture_output(capture: session.Capture, opts: ct.SessionBlockOptions) -> str:
+> 590:     # TODO: coloring
+  591:     # if "\u001b" in capture.stderr:
+  592:     #     stderr = capture.stderr
 ```
 
 
@@ -330,86 +381,86 @@ The recommended approach to using `pylint-ignore` is:
 ```
 
 
-## File src/litprog/build.py - Line 667 - W0511 (fixme)
+## File src/litprog/build.py - Line 738 - W0511 (fixme)
 
 - `message: TODO: limit output using max_bytes and max_lines`
 - `author : Manuel Barkhau <mbarkhau@gmail.com>`
 - `date   : 2020-12-11T15:37:25`
 
 ```
-  627: def _process_isession(
+  697: def _process_isession(
   ...
-  665:
-  666:     if exit_status == opts.expected_exit_status:
-> 667:         # TODO: limit output using max_bytes and max_lines
-  668:         # TODO: output escaping/fence style change and errors
-  669:         return capture
+  736: 
+  737:     if exit_status == opts.expected_exit_status:
+> 738:         # TODO: limit output using max_bytes and max_lines
+  739:         # TODO: output escaping/fence style change and errors
+  740:         return capture
 ```
 
 
-## File src/litprog/build.py - Line 668 - W0511 (fixme)
+## File src/litprog/build.py - Line 739 - W0511 (fixme)
 
 - `message: TODO: output escaping/fence style change and errors`
 - `author : Manuel Barkhau <mbarkhau@gmail.com>`
 - `date   : 2020-12-11T15:37:25`
 
 ```
-  627: def _process_isession(
+  697: def _process_isession(
   ...
-  666:     if exit_status == opts.expected_exit_status:
-  667:         # TODO: limit output using max_bytes and max_lines
-> 668:         # TODO: output escaping/fence style change and errors
-  669:         return capture
-  670:     else:
+  737:     if exit_status == opts.expected_exit_status:
+  738:         # TODO: limit output using max_bytes and max_lines
+> 739:         # TODO: output escaping/fence style change and errors
+  740:         return capture
+  741:     else:
 ```
 
 
-## File src/litprog/parse.py - Line 733 - W0511 (fixme)
+## File src/litprog/parse.py - Line 752 - W0511 (fixme)
 
 - `message: TODO: encoding from config`
 - `author : Manuel Barkhau <mbarkhau@gmail.com>`
 - `date   : 2020-12-11T15:37:25`
 
 ```
-  731:
-  732: def _parse_md_elements(md_path: pl.Path) -> list[MarkdownElement]:
-> 733:     # TODO: encoding from config
-  734:     with md_path.open(mode='r', encoding="utf-8") as fobj:
-  735:         content = fobj.read()
+  750: 
+  751: def _parse_md_elements(md_path: Path) -> list[MarkdownElement]:
+> 752:     # TODO: encoding from config
+  753:     with md_path.open(mode='r', encoding="utf-8") as fobj:
+  754:         content = fobj.read()
 ```
 
 
-## File src/litprog/build.py - Line 768 - W0511 (fixme)
+## File src/litprog/build.py - Line 839 - W0511 (fixme)
 
 - `message: TODO (mb 2021-03-04): _task_results and _cache are somewhat redundant.`
 - `author : Manuel Barkhau <mbarkhau@gmail.com>`
 - `date   : 2021-03-13T20:48:00`
 
 ```
-  756:     def __init__(
+  827:     def __init__(
   ...
-  766:         self.elements_by_chapnum = {}
-  767:
-> 768:         # TODO (mb 2021-03-04): _task_results and _cache are somewhat redundant.
-  769:         #   It might be possible/reasonable to always rely on the _cache to lookup
-  770:         #   the capture of a task, even one that was just executed.
+  837:         self.elements_by_chapnum = {}
+  838: 
+> 839:         # TODO (mb 2021-03-04): _task_results and _cache are somewhat redundant.
+  840:         #   It might be possible/reasonable to always rely on the _cache to lookup
+  841:         #   the capture of a task, even one that was just executed.
 ```
 
 
-## File src/litprog/build.py - Line 967 - W0511 (fixme)
+## File src/litprog/build.py - Line 1051 - W0511 (fixme)
 
 - `message: TODO (mb 2020-06-03): print context of block`
 - `author : Manuel Barkhau <mbarkhau@gmail.com>`
 - `date   : 2020-12-11T15:37:25`
 
 ```
-  955: def build(parse_ctx: parse.Context, opts: BuildOptions) -> parse.Context:
+  1039: def build(parse_ctx: parse.Context, opts: BuildOptions) -> parse.Context:
   ...
-  965:         expanded_chapters = list(_iter_expanded_chapters(build_ctx.chapters))
-  966:     except BlockError as err:
-> 967:         # TODO (mb 2020-06-03): print context of block
-  968:         contents = err.include_contents or [err.block.content]
-  969:         for content in contents:
+  1049:         expanded_chapters = list(_iter_expanded_chapters(build_ctx.chapters))
+  1050:     except BlockError as err:
+> 1051:         # TODO (mb 2020-06-03): print context of block
+  1052:         contents = err.include_contents or [err.block.content]
+  1053:         for content in contents:
 ```
 
 
@@ -444,75 +495,109 @@ The recommended approach to using `pylint-ignore` is:
    45: class SimpleCache:
   ...
   144:         return self
-  145:
+  145: 
 > 146:     def __exit__(self, typ, val, tb):
   147:         if typ or val or tb:
   148:             return
 ```
 
 
+# C0302: too-many-lines
+
+## File src/litprog/build.py - Line 1 - C0302 (too-many-lines)
+
+- `message: Too many lines in module (1081/1000)`
+- `author : Manuel Barkhau <mbarkhau@gmail.com>`
+- `date   : 2022-05-22T17:18:52`
+
+```
+> 1: # This file is part of the litprog project
+  2: # https://github.com/litprog/litprog
+  3: #
+```
+
+
 # C0415: import-outside-toplevel
 
-## File src/litprog/cli.py - Line 128 - C0415 (import-outside-toplevel)
+## File src/litprog/cli.py - Line 131 - C0415 (import-outside-toplevel)
 
 - `message: Import outside toplevel (litprog.build)`
 - `author : Manuel Barkhau <mbarkhau@gmail.com>`
 - `date   : 2021-08-15T16:41:24`
 
 ```
-  119: def _build(
+  122: def _build(
   ...
-  126:     concurrency    : int  = DEFAULT_CONCURRENCY,
-  127: ) -> None:
-> 128:     import litprog.build as lp_build
-  129:     import litprog.parse as lp_parse
-  130:
+  129:     concurrency    : int  = DEFAULT_CONCURRENCY,
+  130: ) -> None:
+> 131:     import litprog.build as lp_build
+  132:     import litprog.parse as lp_parse
+  133:
 ```
 
 
-## File src/litprog/cli.py - Line 129 - C0415 (import-outside-toplevel)
+## File src/litprog/cli.py - Line 132 - C0415 (import-outside-toplevel)
 
 - `message: Import outside toplevel (litprog.parse)`
 - `author : Manuel Barkhau <mbarkhau@gmail.com>`
 - `date   : 2021-08-15T16:41:24`
 
 ```
-  119: def _build(
+  122: def _build(
   ...
-  127: ) -> None:
-  128:     import litprog.build as lp_build
-> 129:     import litprog.parse as lp_parse
-  130:
-  131:     build_opts = lp_build.BuildOptions(
+  130: ) -> None:
+  131:     import litprog.build as lp_build
+> 132:     import litprog.parse as lp_parse
+  133: 
+  134:     build_opts = lp_build.BuildOptions(
+```
+
+
+# R0912: too-many-branches
+
+## File src/litprog/parse.py - Line 520 - R0912 (too-many-branches)
+
+- `message: Too many branches (13/12)`
+- `author : Manuel Barkhau <mbarkhau@gmail.com>`
+- `date   : 2022-05-22T17:18:52`
+
+```
+  441: class Chapter:
+  ...
+  518:         )
+  519: 
+> 520:     def _init_code_block(self, elem: MarkdownElement, info_string: str, rest_content: str) -> ct.Block:
+  521:         language = info_string
+  522:         comment_start_re, comment_end_re = LANGUAGE_COMMENT_REGEXES[language]
 ```
 
 
 # R0914: too-many-locals
 
-## File src/litprog/pdf_booklet.py - Line 175 - R0914 (too-many-locals)
+## File src/litprog/pdf_booklet.py - Line 195 - R0914 (too-many-locals)
 
 - `message: Too many local variables (26/25)`
 - `author : Manuel Barkhau <mbarkhau@gmail.com>`
-- `date   : 2021-08-15T16:30:27`
+- `date   : 2022-05-22T17:18:52`
 
 ```
-  173:
-  174:
-> 175: def create(
-  176:     in_path         : pl.Path,
-  177:     out_path        : typ.Optional[pl.Path] = None,
+  193: 
+  194: @contextlib.contextmanager
+> 195: def fit_pdf(in_path: pl.Path, crop_width: int, crop_height: int, out_format: str) -> typ.Iterator[pl.Path]:
+  196:     import PyPDF2 as pypdf
+  197:
 ```
 
 
 ## File src/litprog/gen_docs.py - Line 417 - R0914 (too-many-locals)
 
-- `message: Too many local variables (27/25)`
+- `message: Too many local variables (28/25)`
 - `author : Manuel Barkhau <mbarkhau@gmail.com>`
 - `date   : 2021-08-15T16:30:27`
 
 ```
-  415:
-  416:
+  415: 
+  416: 
 > 417: def gen_pdf(
   418:     ctx     : parse.Context,
   419:     html_dir: pl.Path,
@@ -521,20 +606,20 @@ The recommended approach to using `pylint-ignore` is:
 
 # R1702: too-many-nested-blocks
 
-## File src/litprog/build.py - Line 350 - R1702 (too-many-nested-blocks)
+## File src/litprog/build.py - Line 388 - R1702 (too-many-nested-blocks)
 
 - `message: Too many nested blocks (6/5)`
 - `author : Manuel Barkhau <mbarkhau@gmail.com>`
 - `date   : 2021-08-15T16:30:27`
 
 ```
-  342: def _iter_block_errors(parse_ctx: parse.Context, build_ctx: parse.Context) -> typ.Iterable[str]:
+  380: def _iter_block_errors(parse_ctx: parse.Context, build_ctx: parse.Context) -> typ.Iterable[str]:
   ...
-  348:     #   the original file.
-  349:     assert len(parse_ctx.chapters) == len(build_ctx.chapters)
-> 350:     for orig_chapter, chapter in zip(parse_ctx.chapters, build_ctx.chapters):
-  351:         assert orig_chapter.md_paths == chapter.md_paths
-  352:         for md_path in orig_chapter.md_paths:
+  386:     #   the original file.
+  387:     assert len(parse_ctx.chapters) == len(build_ctx.chapters)
+> 388:     for orig_chapter, chapter in zip(parse_ctx.chapters, build_ctx.chapters):
+  389:         assert orig_chapter.md_paths == chapter.md_paths
+  390:         for md_path in orig_chapter.md_paths:
 ```
 
 
