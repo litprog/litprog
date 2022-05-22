@@ -266,7 +266,7 @@ def _create(
     out_params = parse_output_parameters(in_page_width, in_page_height, out_format)
 
     num_sections      = math.ceil(len(in_pages) / max_section_pages)
-    max_section_pages = len(in_pages) / num_sections
+    max_section_pages = len(in_pages) // num_sections
     max_section_pages = max_section_pages + (4 - max_section_pages) % 4
 
     in_sections: list[list[PdfPage]] = [[]]
@@ -382,6 +382,8 @@ def main(args: list[str]) -> int:
     if "-h" in args or "--help" in args:
         print(__doc__)
         return 0
+
+    kwargs: typ.Dict[str, typ.Any] = {}
 
     if len(args) == 1:
         kwargs = {'in_path': args[0]}
