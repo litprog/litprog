@@ -1,4 +1,4 @@
-Markdown>=3.0
+Markdown>=3.0,<3.4
 markdown-svgbob
 markdown-aafigure
 markdown-blockdiag

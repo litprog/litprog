@@ -55,6 +55,7 @@ setuptools.setup(
     extras_require={
         'html': read_requirements("html"),
         'pdf': read_requirements("html") + read_requirements("pdf"),
+        'all': read_requirements("html") + read_requirements("pdf"),
     },
     python_requires=">=3.7",
     setup_requires=['lib3to6>=202110.1050b0'],
